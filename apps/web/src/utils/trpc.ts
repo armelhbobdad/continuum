@@ -1,4 +1,4 @@
-import type { AppRouter } from "@continuum/api/routers";
+import type { AppRouter } from "@continuum/api/routers/index";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
