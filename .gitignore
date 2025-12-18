@@ -19,6 +19,8 @@ build
 !.vscode/launch.json
 !.vscode/extensions.json
 .idea
+.claude
+.cursor
 *.swp
 *.swo
 *~
@@ -48,3 +50,6 @@ coverage
 .cache
 tmp
 temp
+
+# BMAD
+_bmad
