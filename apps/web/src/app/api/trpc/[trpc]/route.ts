@@ -1,5 +1,5 @@
 import { createContext } from "@continuum/api/context";
-import { appRouter } from "@continuum/api/routers/index";
+import { appRouter } from "@continuum/api/routers";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import type { NextRequest } from "next/server";
 
