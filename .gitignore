@@ -54,3 +54,6 @@ temp
 # BMAD
 _bmad
 _bmad-output
+
+# Custom knowledge
+stack-knowledge
