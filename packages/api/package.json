@@ -1,0 +1,25 @@
+{
+  "name": "@continuum/api",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "type": "module",
+  "scripts": {},
+  "devDependencies": {
+    "typescript": "^5",
+    "@continuum/config": "workspace:*"
+  },
+  "dependencies": {
+    "@trpc/server": "catalog:",
+    "@trpc/client": "catalog:",
+    "next": "^16.0.10",
+    "dotenv": "catalog:",
+    "zod": "catalog:",
+    "@continuum/auth": "workspace:*"
+  }
+}
