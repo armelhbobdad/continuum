@@ -4,7 +4,7 @@ import type { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
 export default function Dashboard({
-  session,
+  session: _session,
 }: {
   session: typeof authClient.$Infer.Session;
 }) {
