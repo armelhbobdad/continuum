@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -22,37 +25,36 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Button asChild variant="outline">
-        <Link href="/login">Sign In</Link>
+      <Button render={<Link href="/login" />} variant="outline">
+        Sign In
       </Button>
     );
   }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline">{session.user.name}</Button>
+      <DropdownMenuTrigger render={<Button variant="outline" />}>
+        {session.user.name}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-card">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Button
-            className="w-full"
-            onClick={() => {
-              authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    router.push("/");
-                  },
+        <DropdownMenuItem
+          onClick={() => {
+            authClient.signOut({
+              fetchOptions: {
+                onSuccess: () => {
+                  router.push("/");
                 },
-              });
-            }}
-            variant="destructive"
-          >
-            Sign Out
-          </Button>
+              },
+            });
+          }}
+          variant="destructive"
+        >
+          Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
