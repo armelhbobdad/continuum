@@ -94,4 +94,5 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run integration tests
-        run: bun run test -- --project api --project auth
+        # TODO --passWithNoTests allows empty test directories during early development
+        run: bun run test -- --project api --project auth --passWithNoTests
