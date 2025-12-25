@@ -1,0 +1,23 @@
+# Privacy Test Container
+# Uses oven/bun:slim to match project's Bun runtime
+# Per ADR-TEST-001: Use Bun base image to avoid test/production mismatch
+
+FROM oven/bun:slim
+
+WORKDIR /app
+
+# Copy package files first for layer caching
+COPY package.json bun.lock ./
+
+# Install dependencies (requires network - done during build)
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Set environment variable to enable network isolation tests
+ENV PRIVACY_GATE_CI=true
+
+# Run privacy gate tests
+# These tests verify no network calls occur in local-only mode
+CMD ["bun", "run", "test:privacy-gate"]
