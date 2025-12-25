@@ -23,7 +23,14 @@
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:native": "turbo -F native dev",
-    "dev:web": "turbo -F web dev"
+    "dev:web": "turbo -F web dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:privacy-gate": "vitest run --project privacy-gate",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "dotenv": "catalog:",
@@ -38,7 +45,17 @@
     "oxlint": "^1.32.0",
     "typescript": "^5",
     "@types/node": "^22.13.11",
-    "@cloudflare/workers-types": "catalog:"
+    "@cloudflare/workers-types": "catalog:",
+    "vitest": "^3.2.3",
+    "@vitest/coverage-v8": "^3.2.3",
+    "@vitest/ui": "^3.2.3",
+    "@vitejs/plugin-react": "^4.5.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "jsdom": "^26.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@faker-js/faker": "^9.3.0",
+    "@playwright/test": "^1.49.1"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [

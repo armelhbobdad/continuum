@@ -1,0 +1,46 @@
+# Dependencies - will be installed fresh in container
+node_modules/
+apps/*/node_modules/
+apps/*/.next/
+packages/*/node_modules/
+
+# Build outputs
+dist
+**/dist
+.next
+**/.next
+.turbo
+**/.turbo
+coverage
+
+# Development files
+.git
+.github
+.husky
+.vscode
+.idea
+
+# Documentation and non-essential
+docs
+*.md
+!README.md
+_bmad
+_bmad-output
+stack-knowledge
+
+# Test artifacts
+playwright-report
+test-results
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files (keep .env.example if exists)
+.env
+.env.*
+!.env.example
