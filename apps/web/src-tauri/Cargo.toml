@@ -17,6 +17,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2.5.3", features = [] }
 
+[features]
+default = ["language"]
+language = []
+cuda = ["kalosm/cuda"]
+
 [dependencies]
 log = "0.4"
 tauri = { version = "2.9.5", features = [] }
