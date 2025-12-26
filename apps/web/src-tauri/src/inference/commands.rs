@@ -98,9 +98,9 @@ pub async fn load_model(
 
     state.set_status(ModelStatus::Loading).await;
 
-    // Use new_chat() for chat-optimized model (better for conversations)
-    // Alternative: Llama::new() for completion-only use cases
-    match Llama::new_chat().await {
+    // Use Phi-3 for smaller, faster model (~2GB vs ~6GB for Llama 3)
+    // Reference: stack-knowledge/kalosm/kalosm/examples/phi-3.rs
+    match Llama::phi_3().await {
         Ok(model) => {
             let mut model_guard = state.model.write().await;
             *model_guard = Some(model);
