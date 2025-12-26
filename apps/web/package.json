@@ -37,7 +37,8 @@
     "zod": "catalog:",
     "@continuum/api": "workspace:*",
     "@continuum/auth": "workspace:*",
-    "@opennextjs/cloudflare": "^1.14.6"
+    "@opennextjs/cloudflare": "^1.14.6",
+    "zustand": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
