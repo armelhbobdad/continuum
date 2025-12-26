@@ -37,6 +37,8 @@
     "zod": "catalog:",
     "@continuum/api": "workspace:*",
     "@continuum/auth": "workspace:*",
+    "@continuum/inference": "workspace:*",
+    "@continuum/platform": "workspace:*",
     "@opennextjs/cloudflare": "^1.14.6",
     "zustand": "catalog:"
   },
