@@ -106,4 +106,28 @@ describe("Privacy Gate: Network Isolation", () => {
       }
     });
   });
+
+  describe("modeToSyncWhen helper", () => {
+    // Import dynamically to avoid React hooks errors in Node environment
+    it("returns 'never' for local-only mode (stub implementation)", async () => {
+      const { modeToSyncWhen } = await import(
+        "../../apps/web/src/components/features/privacy/privacy-gate-provider"
+      );
+      expect(modeToSyncWhen("local-only")).toBe("never");
+    });
+
+    it("returns 'never' for trusted-network mode (stub implementation)", async () => {
+      const { modeToSyncWhen } = await import(
+        "../../apps/web/src/components/features/privacy/privacy-gate-provider"
+      );
+      expect(modeToSyncWhen("trusted-network")).toBe("never");
+    });
+
+    it("returns 'never' for cloud-enhanced mode (stub implementation)", async () => {
+      const { modeToSyncWhen } = await import(
+        "../../apps/web/src/components/features/privacy/privacy-gate-provider"
+      );
+      expect(modeToSyncWhen("cloud-enhanced")).toBe("never");
+    });
+  });
 });

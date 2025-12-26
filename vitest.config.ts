@@ -1,9 +1,15 @@
+import path from "node:path";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./apps/web/src"),
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",
@@ -54,6 +60,9 @@ export default defineConfig({
             "tests/privacy-gate/**",
           ],
           environment: "jsdom",
+          alias: {
+            "@/": path.resolve(__dirname, "./apps/web/src") + "/",
+          },
         },
       },
       // Web app tests (excluding Playwright e2e tests)
@@ -64,6 +73,11 @@ export default defineConfig({
           include: ["**/*.{test,spec}.{ts,tsx}"],
           exclude: ["**/e2e/**", "**/node_modules/**"],
           environment: "jsdom",
+          globals: true,
+          setupFiles: ["./vitest.setup.ts"],
+          alias: {
+            "@/": path.resolve(__dirname, "./apps/web/src") + "/",
+          },
         },
       },
       // API package tests
@@ -91,6 +105,9 @@ export default defineConfig({
           root: "./tests/privacy-gate",
           include: ["**/*.{test,spec}.{ts,tsx}"],
           environment: "node",
+          alias: {
+            "@/": path.resolve(__dirname, "./apps/web/src") + "/",
+          },
         },
       },
     ],

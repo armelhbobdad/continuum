@@ -7,12 +7,19 @@ FROM oven/bun:1.3.5
 WORKDIR /app
 
 # Copy package files first for layer caching
+# Must include all workspace package.json files for proper monorepo dependency resolution
 COPY package.json bun.lock ./
+COPY apps/web/package.json ./apps/web/
+COPY apps/fumadocs/package.json ./apps/fumadocs/
+COPY packages/api/package.json ./packages/api/
+COPY packages/auth/package.json ./packages/auth/
+COPY packages/config/package.json ./packages/config/
 
 # Install dependencies (requires network - done during build)
 # Note: --frozen-lockfile removed due to platform-specific lockfile differences
 # Dependencies still follow lockfile versions
-RUN bun install
+# --ignore-scripts skips postinstall (fumadocs doesn't need it for privacy tests)
+RUN bun install --ignore-scripts
 
 # Copy source code
 COPY . .
