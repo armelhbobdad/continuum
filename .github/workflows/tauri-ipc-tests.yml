@@ -75,9 +75,11 @@ jobs:
         working-directory: apps/web/src-tauri
         run: cargo check --lib
 
-      - name: Cargo check with CUDA feature
-        working-directory: apps/web/src-tauri
-        run: cargo check --lib --features cuda
+      # CUDA feature check requires self-hosted runner with NVIDIA GPU
+      # Skip on standard GitHub runners that don't have CUDA toolkit
+      # - name: Cargo check with CUDA feature
+      #   working-directory: apps/web/src-tauri
+      #   run: cargo check --lib --features cuda
 
   # Future: Full E2E IPC tests with xvfb
   # e2e-ipc-tests:
