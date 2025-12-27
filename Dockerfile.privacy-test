@@ -14,6 +14,8 @@ COPY apps/fumadocs/package.json ./apps/fumadocs/
 COPY packages/api/package.json ./packages/api/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/config/package.json ./packages/config/
+COPY packages/inference/package.json ./packages/inference/
+COPY packages/platform/package.json ./packages/platform/
 
 # Install dependencies (requires network - done during build)
 # Note: --frozen-lockfile removed due to platform-specific lockfile differences
