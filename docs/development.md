@@ -5,7 +5,7 @@ This guide covers local development setup for Continuum, including GPU-accelerat
 ## Prerequisites
 
 - **Bun 1.3.5+** (runtime)
-- **Rust 1.77.2+** (for Tauri backend)
+- **Rust 1.92.0+** (for Tauri backend - required for edition 2024 dependencies)
 - **Node.js 20+** (for tooling compatibility)
 
 ## CUDA Build Support (GPU Acceleration)
