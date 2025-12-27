@@ -7,9 +7,11 @@
  * ThemeProvider → QueryClientProvider → PrivacyGateProvider → (JazzProvider in Story 6.x)
  *
  * Story 1.2: Privacy Gate Provider & Zustand Stores
+ * Story 1.6: Privacy Dashboard MVP
  */
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { PrivacyDashboard } from "@/components/features/privacy/privacy-dashboard";
 import { PrivacyGateProvider } from "@/components/features/privacy/privacy-gate-provider";
 import { usePrivacyKeyboardShortcuts } from "@/components/features/privacy/use-privacy-keyboard-shortcuts";
 import { queryClient } from "@/utils/trpc";
@@ -39,8 +41,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           <PrivacyGateProvider>
             {({ mode: _mode, jazzKey: _jazzKey }) => (
               <>
-                {/* Enable keyboard shortcuts for privacy mode switching */}
+                {/* Enable keyboard shortcuts for privacy mode switching and dashboard toggle */}
                 <PrivacyKeyboardShortcuts />
+                {/* Privacy Dashboard overlay (Story 1.6) */}
+                <PrivacyDashboard />
                 {/*
                 JazzProvider will be added here in Story 6.x:
                 <JazzProvider key={_jazzKey} syncWhen={modeToSyncWhen(_mode)}>

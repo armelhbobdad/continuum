@@ -22,13 +22,21 @@ describe("PrivacyIndicator Component", () => {
   describe("Rendering", () => {
     it("renders with data-slot attribute", () => {
       render(<PrivacyIndicator />);
-      const indicator = screen.getByRole("status");
+      // Default is button, use getByRole("button")
+      const indicator = screen.getByRole("button");
       expect(indicator).toHaveAttribute("data-slot", "privacy-indicator");
     });
 
     it("displays mode label", () => {
       render(<PrivacyIndicator />);
       expect(screen.getByText("Local-only")).toBeInTheDocument();
+    });
+
+    it("renders as span with role=status when as='span'", () => {
+      render(<PrivacyIndicator as="span" />);
+      const indicator = screen.getByRole("status");
+      expect(indicator).toBeInTheDocument();
+      expect(indicator.tagName.toLowerCase()).toBe("span");
     });
   });
 
@@ -37,7 +45,7 @@ describe("PrivacyIndicator Component", () => {
       usePrivacyStore.setState({ mode: "local-only" });
       render(<PrivacyIndicator />);
 
-      const indicator = screen.getByRole("status");
+      const indicator = screen.getByRole("button");
       expect(indicator.className).toContain("emerald");
     });
 
@@ -45,7 +53,7 @@ describe("PrivacyIndicator Component", () => {
       usePrivacyStore.setState({ mode: "trusted-network" });
       render(<PrivacyIndicator />);
 
-      const indicator = screen.getByRole("status");
+      const indicator = screen.getByRole("button");
       expect(indicator.className).toContain("sky");
     });
 
@@ -53,7 +61,7 @@ describe("PrivacyIndicator Component", () => {
       usePrivacyStore.setState({ mode: "cloud-enhanced" });
       render(<PrivacyIndicator />);
 
-      const indicator = screen.getByRole("status");
+      const indicator = screen.getByRole("button");
       expect(indicator.className).toContain("slate");
     });
   });
@@ -79,25 +87,34 @@ describe("PrivacyIndicator Component", () => {
   });
 
   describe("Accessibility (AC #1)", () => {
-    it("has role=status for screen reader announcements", () => {
+    it("button has descriptive aria-label including dashboard action", () => {
       render(<PrivacyIndicator />);
-      expect(screen.getByRole("status")).toBeInTheDocument();
-    });
-
-    it("has aria-live=polite for mode change announcements", () => {
-      render(<PrivacyIndicator />);
-      const indicator = screen.getByRole("status");
-      expect(indicator).toHaveAttribute("aria-live", "polite");
-    });
-
-    it("has descriptive aria-label including mode and description", () => {
-      render(<PrivacyIndicator />);
-      const indicator = screen.getByRole("status");
+      const indicator = screen.getByRole("button");
       const ariaLabel = indicator.getAttribute("aria-label");
 
       expect(ariaLabel).toContain("Privacy mode");
       expect(ariaLabel).toContain("Local-only");
-      expect(ariaLabel).toContain("Your data never leaves this device");
+      expect(ariaLabel).toContain("Click to open Privacy Dashboard");
+    });
+
+    it("span variant has role=status for screen reader announcements", () => {
+      render(<PrivacyIndicator as="span" />);
+      expect(screen.getByRole("status")).toBeInTheDocument();
+    });
+
+    it("span variant has aria-live=polite for mode change announcements", () => {
+      render(<PrivacyIndicator as="span" />);
+      const indicator = screen.getByRole("status");
+      expect(indicator).toHaveAttribute("aria-live", "polite");
+    });
+
+    it("span variant does not include dashboard action in aria-label", () => {
+      render(<PrivacyIndicator as="span" />);
+      const indicator = screen.getByRole("status");
+      const ariaLabel = indicator.getAttribute("aria-label");
+
+      expect(ariaLabel).toContain("Privacy mode");
+      expect(ariaLabel).not.toContain("Click to open");
     });
 
     it("updates aria-label when mode changes", () => {
@@ -109,7 +126,7 @@ describe("PrivacyIndicator Component", () => {
       });
       rerender(<PrivacyIndicator />);
 
-      const indicator = screen.getByRole("status");
+      const indicator = screen.getByRole("button");
       const ariaLabel = indicator.getAttribute("aria-label");
 
       expect(ariaLabel).toContain("Cloud");
@@ -124,7 +141,7 @@ describe("PrivacyIndicator Component", () => {
 
       render(<PrivacyIndicator onClick={handleClick} />);
 
-      await user.click(screen.getByRole("status"));
+      await user.click(screen.getByRole("button"));
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
@@ -134,7 +151,7 @@ describe("PrivacyIndicator Component", () => {
 
       render(<PrivacyIndicator onClick={handleClick} />);
 
-      const indicator = screen.getByRole("status");
+      const indicator = screen.getByRole("button");
       indicator.focus();
 
       await user.keyboard("{Enter}");
