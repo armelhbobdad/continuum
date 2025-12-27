@@ -9,12 +9,18 @@
  * ADR-CHAT-002: Memory-Only Session Storage
  */
 import { create } from "zustand";
+import type { InferenceMetadata } from "@/types/inference";
 
-/** Metadata for finalized messages (Story 1.4 Task 8.3) */
+// Re-export types for consumers that import from session store
+export type { InferenceMetadata, InferenceSource } from "@/types/inference";
+
+/** Metadata for finalized messages (Story 1.4 Task 8.3, extended in 1.5) */
 export interface MessageMetadata {
   tokensGenerated?: number;
   finishReason?: "completed" | "aborted" | "error";
   durationMs?: number;
+  /** Inference metadata (Story 1.5) */
+  inference?: InferenceMetadata;
 }
 
 /**
@@ -59,6 +65,12 @@ interface SessionState {
     sessionId: string,
     messageId: string,
     content: string
+  ) => void;
+  /** Set inference metadata on a message (Story 1.5 Task 5.1) */
+  setMessageInferenceMetadata: (
+    sessionId: string,
+    messageId: string,
+    inferenceMetadata: InferenceMetadata
   ) => void;
   /** Finalize message with metadata after generation completes */
   finalizeMessage: (
@@ -131,6 +143,31 @@ export const useSessionStore = create<SessionState>((set, get) => ({
               ...s,
               messages: s.messages.map((m) =>
                 m.id === messageId ? { ...m, content } : m
+              ),
+              updatedAt: new Date(),
+            }
+          : s
+      ),
+    }));
+  },
+
+  setMessageInferenceMetadata: (sessionId, messageId, inferenceMetadata) => {
+    // Story 1.5 Task 5.1: Track inference metadata per message
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === messageId
+                  ? {
+                      ...m,
+                      metadata: {
+                        ...m.metadata,
+                        inference: inferenceMetadata,
+                      },
+                    }
+                  : m
               ),
               updatedAt: new Date(),
             }
