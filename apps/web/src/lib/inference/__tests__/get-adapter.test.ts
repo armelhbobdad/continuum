@@ -35,7 +35,20 @@ describe("getInferenceAdapter", () => {
     vi.clearAllMocks();
   });
 
-  it("should return KalosmAdapter for desktop platform", async () => {
+  it("should return KalosmAdapter for desktop platform (async)", async () => {
+    mockIsDesktopValue = true;
+
+    const { getInferenceAdapterAsync, resetAdapterCache } = await import(
+      "../get-adapter"
+    );
+    resetAdapterCache(); // Ensure fresh start
+    const adapter = await getInferenceAdapterAsync();
+
+    expect(adapter).toBeDefined();
+    expect((adapter as unknown as { name: string }).name).toBe("KalosmAdapter");
+  });
+
+  it("should return StubAdapter from sync getter for desktop (placeholder)", async () => {
     mockIsDesktopValue = true;
 
     const { getInferenceAdapter, resetAdapterCache } = await import(
@@ -44,8 +57,8 @@ describe("getInferenceAdapter", () => {
     resetAdapterCache(); // Ensure fresh start
     const adapter = getInferenceAdapter();
 
-    expect(adapter).toBeDefined();
-    expect((adapter as unknown as { name: string }).name).toBe("KalosmAdapter");
+    // Sync getter returns StubAdapter as placeholder until async init
+    expect((adapter as unknown as { name: string }).name).toBe("StubAdapter");
   });
 
   it("should return StubAdapter for web platform without local inference", async () => {
@@ -64,12 +77,12 @@ describe("getInferenceAdapter", () => {
   it("should cache the adapter instance (singleton)", async () => {
     mockIsDesktopValue = true;
 
-    const { getInferenceAdapter, resetAdapterCache } = await import(
+    const { getInferenceAdapterAsync, resetAdapterCache } = await import(
       "../get-adapter"
     );
     resetAdapterCache();
-    const adapter1 = getInferenceAdapter();
-    const adapter2 = getInferenceAdapter();
+    const adapter1 = await getInferenceAdapterAsync();
+    const adapter2 = await getInferenceAdapterAsync();
 
     expect(adapter1).toBe(adapter2);
   });
@@ -77,16 +90,16 @@ describe("getInferenceAdapter", () => {
   it("should reset cache correctly", async () => {
     mockIsDesktopValue = true;
 
-    const { getInferenceAdapter, resetAdapterCache } = await import(
+    const { getInferenceAdapterAsync, resetAdapterCache } = await import(
       "../get-adapter"
     );
     resetAdapterCache();
-    const adapter1 = getInferenceAdapter();
+    const adapter1 = await getInferenceAdapterAsync();
 
     resetAdapterCache();
     mockIsDesktopValue = false;
 
-    const adapter2 = getInferenceAdapter();
+    const adapter2 = await getInferenceAdapterAsync();
 
     // After reset and platform change, should get different adapter type
     expect((adapter1 as unknown as { name: string }).name).toBe(

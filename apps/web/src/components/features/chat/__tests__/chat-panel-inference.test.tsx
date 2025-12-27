@@ -24,12 +24,12 @@ import {
 import { useSessionStore } from "@/stores/session";
 import { ChatPanel } from "../chat-panel";
 
-// Mock the inference adapter factory
+// Mock the inference adapter factory (async version used by chat-panel)
 vi.mock("@/lib/inference/get-adapter", () => ({
-  getInferenceAdapter: vi.fn(),
+  getInferenceAdapterAsync: vi.fn(),
 }));
 
-import { getInferenceAdapter } from "@/lib/inference/get-adapter";
+import { getInferenceAdapterAsync } from "@/lib/inference/get-adapter";
 
 // Helper to create mock adapter
 function createMockAdapter(
@@ -80,7 +80,7 @@ describe("ChatPanel Inference Integration", () => {
         .mockReturnValue(tokenGenerator(["Hello", " ", "world", "!"])),
     });
 
-    (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+    (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
   });
 
   afterEach(async () => {
@@ -125,7 +125,7 @@ describe("ChatPanel Inference Integration", () => {
           yield { text: "!" };
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -156,7 +156,7 @@ describe("ChatPanel Inference Integration", () => {
         loadModel: vi.fn().mockImplementation(() => loadPromise),
         generate: vi.fn().mockReturnValue(tokenGenerator(["Done"])),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -187,7 +187,7 @@ describe("ChatPanel Inference Integration", () => {
         loadModel: vi.fn().mockResolvedValue(undefined),
         generate: vi.fn().mockReturnValue(tokenGenerator(["OK"])),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -223,7 +223,7 @@ describe("ChatPanel Inference Integration", () => {
           await generationPromise;
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -251,7 +251,7 @@ describe("ChatPanel Inference Integration", () => {
           await generationPromise;
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -285,7 +285,7 @@ describe("ChatPanel Inference Integration", () => {
           yield { text: " more" };
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -321,7 +321,7 @@ describe("ChatPanel Inference Integration", () => {
           throw new Error("Test inference error");
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -341,7 +341,7 @@ describe("ChatPanel Inference Integration", () => {
           throw new Error("Recoverable error");
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -361,7 +361,7 @@ describe("ChatPanel Inference Integration", () => {
           throw new Error("Error");
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -395,7 +395,7 @@ describe("ChatPanel Inference Integration", () => {
           await generationPromise;
         }),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
@@ -422,7 +422,7 @@ describe("ChatPanel Inference Integration", () => {
         loadModel: vi.fn().mockImplementation(() => loadPromise),
         generate: vi.fn().mockReturnValue(tokenGenerator(["OK"])),
       });
-      (getInferenceAdapter as Mock).mockReturnValue(mockAdapter);
+      (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
       const user = userEvent.setup();
       render(<ChatPanel />);
