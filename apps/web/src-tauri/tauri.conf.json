@@ -7,7 +7,11 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:3001",
     "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "./scripts/build-desktop.sh"
+    "beforeBuildCommand": {
+      "linux": "./scripts/build-desktop.sh",
+      "macos": "./scripts/build-desktop.sh",
+      "windows": "powershell.exe -ExecutionPolicy Bypass -File scripts\\build-desktop.ps1"
+    }
   },
   "app": {
     "withGlobalTauri": true,
