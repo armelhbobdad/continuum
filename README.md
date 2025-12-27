@@ -55,11 +55,25 @@ continuum/
 │   └── db/          # Database schema & queries
 ```
 
+## GPU-Accelerated Inference
+
+Continuum supports CUDA for GPU-accelerated inference (22 tok/sec vs 1-2 tok/sec on CPU).
+
+```bash
+# Build with CUDA support (from apps/web)
+cd apps/web
+bun run desktop:build:cuda
+```
+
+See [docs/development.md](./docs/development.md) for full CUDA setup instructions.
+
 ## Available Scripts
 
 - `bun run dev`: Start all applications in development mode
 - `bun run build`: Build all applications
 - `bun run check-types`: Check TypeScript types across all apps
 - `bun run check`: Run Biome formatting and linting
-- `cd apps/web && bun run desktop:dev`: Start Tauri desktop app in development
-- `cd apps/web && bun run desktop:build`: Build Tauri desktop app
+- `cd apps/web && bun run desktop:dev`: Start Tauri desktop app (CPU)
+- `cd apps/web && bun run desktop:dev:cuda`: Start Tauri desktop app (CUDA)
+- `cd apps/web && bun run desktop:build`: Build Tauri desktop app (CPU)
+- `cd apps/web && bun run desktop:build:cuda`: Build Tauri desktop app (CUDA)

@@ -1,0 +1,98 @@
+name: Tauri IPC Tests
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "apps/web/src-tauri/**"
+      - "apps/web/src/lib/inference/**"
+      - ".github/workflows/tauri-ipc-tests.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "apps/web/src-tauri/**"
+      - "apps/web/src/lib/inference/**"
+      - ".github/workflows/tauri-ipc-tests.yml"
+
+env:
+  BUN_VERSION: "1.3.5"
+  RUST_VERSION: "1.92.0"
+
+jobs:
+  verify-tauri-build:
+    name: Verify Tauri Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/web/src-tauri
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify Cargo.toml structure
+        working-directory: apps/web/src-tauri
+        run: |
+          echo "=== Checking Cargo.toml ==="
+          grep -q '\[features\]' Cargo.toml && echo "✓ [features] section exists"
+          grep -q 'cuda' Cargo.toml && echo "✓ cuda feature defined"
+          grep -q 'kalosm' Cargo.toml && echo "✓ kalosm dependency present"
+          grep -q 'tauri' Cargo.toml && echo "✓ tauri dependency present"
+
+      - name: Verify IPC commands in lib.rs
+        working-directory: apps/web/src-tauri
+        run: |
+          echo "=== Checking IPC Commands ==="
+          grep -q 'load_model' src/lib.rs && echo "✓ load_model command"
+          grep -q 'generate' src/lib.rs && echo "✓ generate command"
+          grep -q 'abort_inference' src/lib.rs && echo "✓ abort_inference command"
+          grep -q 'get_model_status' src/lib.rs && echo "✓ get_model_status command"
+          grep -q 'unload_model' src/lib.rs && echo "✓ unload_model command"
+
+      - name: Cargo check (CPU)
+        working-directory: apps/web/src-tauri
+        run: cargo check --lib
+
+      # CUDA feature check requires self-hosted runner with NVIDIA GPU
+      # Skip on standard GitHub runners that don't have CUDA toolkit
+      # - name: Cargo check with CUDA feature
+      #   working-directory: apps/web/src-tauri
+      #   run: cargo check --lib --features cuda
+
+  # Future: Full E2E IPC tests with xvfb
+  # e2e-ipc-tests:
+  #   name: E2E IPC Tests
+  #   runs-on: ubuntu-latest
+  #   needs: verify-tauri-build
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Setup xvfb
+  #       run: sudo apt-get install -y xvfb
+  #     - name: Build Tauri app (debug)
+  #       run: bun run desktop:build
+  #     - name: Run MCP server and execute IPC tests
+  #       run: |
+  #         xvfb-run bunx @hypothesi/tauri-mcp-server &
+  #         # Execute IPC test commands here

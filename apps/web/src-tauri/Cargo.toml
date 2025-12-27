@@ -6,7 +6,7 @@ authors = ["you"]
 license = ""
 repository = ""
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.92.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,7 +17,20 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2.5.3", features = [] }
 
+[features]
+default = ["language"]
+language = []
+cuda = ["kalosm/cuda"]
+
 [dependencies]
 log = "0.4"
 tauri = { version = "2.9.5", features = [] }
 tauri-plugin-log = "2"
+tauri-plugin-mcp-bridge = "0.6"
+
+# Inference dependencies
+kalosm = { version = "0.4", features = ["language"] }
+tokio = { version = "1", features = ["full", "sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures-util = "0.3"

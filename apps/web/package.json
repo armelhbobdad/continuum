@@ -8,7 +8,9 @@
     "start": "next start",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
+    "desktop:dev:cuda": "tauri dev --features cuda",
     "desktop:build": "tauri build",
+    "desktop:build:cuda": "tauri build --features cuda",
     "deploy": "alchemy deploy",
     "destroy": "alchemy destroy"
   },
@@ -37,6 +39,8 @@
     "zod": "catalog:",
     "@continuum/api": "workspace:*",
     "@continuum/auth": "workspace:*",
+    "@continuum/inference": "workspace:*",
+    "@continuum/platform": "workspace:*",
     "@opennextjs/cloudflare": "^1.14.6",
     "zustand": "catalog:"
   },

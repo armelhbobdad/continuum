@@ -2,14 +2,15 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "continuum",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.continuum.dev",
   "build": {
-    "frontendDist": "../.next",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:3001",
     "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "bun run build"
+    "beforeBuildCommand": "node scripts/build-desktop.mjs"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "continuum",

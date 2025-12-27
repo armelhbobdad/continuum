@@ -13,6 +13,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { PrivacyGateProvider } from "@/components/features/privacy/privacy-gate-provider";
 import { usePrivacyKeyboardShortcuts } from "@/components/features/privacy/use-privacy-keyboard-shortcuts";
 import { queryClient } from "@/utils/trpc";
+import { ErrorBoundary } from "./error-boundary";
 import { ThemeProvider } from "./theme-provider";
 import { Toaster } from "./ui/sonner";
 
@@ -27,19 +28,20 @@ function PrivacyKeyboardShortcuts(): null {
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      disableTransitionOnChange
-      enableSystem
-    >
-      <QueryClientProvider client={queryClient}>
-        <PrivacyGateProvider>
-          {({ mode: _mode, jazzKey: _jazzKey }) => (
-            <>
-              {/* Enable keyboard shortcuts for privacy mode switching */}
-              <PrivacyKeyboardShortcuts />
-              {/*
+    <ErrorBoundary>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        disableTransitionOnChange
+        enableSystem
+      >
+        <QueryClientProvider client={queryClient}>
+          <PrivacyGateProvider>
+            {({ mode: _mode, jazzKey: _jazzKey }) => (
+              <>
+                {/* Enable keyboard shortcuts for privacy mode switching */}
+                <PrivacyKeyboardShortcuts />
+                {/*
                 JazzProvider will be added here in Story 6.x:
                 <JazzProvider key={_jazzKey} syncWhen={modeToSyncWhen(_mode)}>
                   {children}
@@ -47,13 +49,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
                 For now, _mode and _jazzKey are available but not used until Jazz integration.
               */}
-              {children}
-            </>
-          )}
-        </PrivacyGateProvider>
-        <ReactQueryDevtools />
-      </QueryClientProvider>
-      <Toaster richColors />
-    </ThemeProvider>
+                {children}
+              </>
+            )}
+          </PrivacyGateProvider>
+          <ReactQueryDevtools />
+        </QueryClientProvider>
+        <Toaster richColors />
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
