@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsDesktop } from "@continuum/platform";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,7 +16,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 
-export default function UserMenu() {
+function WebUserMenu() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
@@ -59,4 +60,25 @@ export default function UserMenu() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+export default function UserMenu() {
+  const isDesktopApp = useIsDesktop();
+
+  // Show skeleton during initialization to prevent hydration mismatch
+  if (isDesktopApp === undefined) {
+    return <Skeleton className="h-9 w-24" />;
+  }
+
+  // Desktop mode: auth is bypassed, show local user indicator
+  if (isDesktopApp) {
+    return (
+      <Button disabled variant="outline">
+        Local User
+      </Button>
+    );
+  }
+
+  // Web mode: full auth flow
+  return <WebUserMenu />;
 }

@@ -10,3 +10,4 @@ export {
   hasWebGPU,
   isDesktop,
 } from "./capabilities";
+export { useIsDesktop } from "./use-is-desktop";

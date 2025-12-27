@@ -150,7 +150,11 @@
       "name": "@continuum/platform",
       "devDependencies": {
         "@continuum/config": "workspace:*",
+        "@types/react": "^19",
         "typescript": "^5",
+      },
+      "peerDependencies": {
+        "react": "^18 || ^19",
       },
     },
   },

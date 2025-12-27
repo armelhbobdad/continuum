@@ -10,11 +10,23 @@
  */
 
 import type { InferenceAdapter } from "@continuum/inference";
-import { KalosmAdapter, StubAdapter } from "@continuum/inference";
+import { StubAdapter } from "@continuum/inference";
 import { isDesktop } from "@continuum/platform";
 
 /** Cached adapter instance (singleton) */
 let cachedAdapter: InferenceAdapter | null = null;
+
+/** Lazy-loaded KalosmAdapter to avoid importing @tauri-apps/api at module load time */
+let KalosmAdapterClass: (new () => InferenceAdapter) | null = null;
+
+async function getKalosmAdapter(): Promise<InferenceAdapter> {
+  if (!KalosmAdapterClass) {
+    // Dynamic import to avoid loading @tauri-apps/api during SSR/hydration
+    const { KalosmAdapter } = await import("@continuum/inference");
+    KalosmAdapterClass = KalosmAdapter;
+  }
+  return new KalosmAdapterClass();
+}
 
 /**
  * Get the appropriate inference adapter for the current platform.
@@ -33,10 +45,29 @@ export function getInferenceAdapter(): InferenceAdapter {
 
   if (isDesktop()) {
     // Desktop: Use Kalosm via Tauri commands
-    cachedAdapter = new KalosmAdapter();
+    // Note: KalosmAdapter is loaded lazily on first use via getInferenceAdapterAsync
+    // For sync access, return a proxy that will be replaced on first async call
+    cachedAdapter = new StubAdapter(); // Temporary until async init
   } else {
     // Web: Use stub for now (WebLLM support in future epic)
-    // Future: Check hasLocalInferenceCapability() for WebGPU
+    cachedAdapter = new StubAdapter();
+  }
+
+  return cachedAdapter;
+}
+
+/**
+ * Get the inference adapter asynchronously (required for desktop to load Kalosm).
+ * Call this before starting inference to ensure the correct adapter is loaded.
+ */
+export async function getInferenceAdapterAsync(): Promise<InferenceAdapter> {
+  if (cachedAdapter && !(cachedAdapter instanceof StubAdapter && isDesktop())) {
+    return cachedAdapter;
+  }
+
+  if (isDesktop()) {
+    cachedAdapter = await getKalosmAdapter();
+  } else {
     cachedAdapter = new StubAdapter();
   }
 
@@ -49,4 +80,5 @@ export function getInferenceAdapter(): InferenceAdapter {
  */
 export function resetAdapterCache(): void {
   cachedAdapter = null;
+  KalosmAdapterClass = null;
 }

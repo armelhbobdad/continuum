@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.continuum.dev",
   "build": {
-    "frontendDist": "../.next",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:3001",
     "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "bun run build"
+    "beforeBuildCommand": "./scripts/build-desktop.sh"
   },
   "app": {
     "windows": [

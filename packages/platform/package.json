@@ -12,7 +12,10 @@
   "scripts": {},
   "devDependencies": {
     "typescript": "^5",
-    "@continuum/config": "workspace:*"
+    "@continuum/config": "workspace:*",
+    "@types/react": "^19"
   },
-  "dependencies": {}
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  }
 }

@@ -12,7 +12,6 @@
 
 import type { InferenceAdapter, InferenceError } from "@continuum/inference";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getInferenceAdapter } from "@/lib/inference/get-adapter";
 import { useSessionStore } from "@/stores/session";
 import { AbortButton } from "./abort-button";
 import { InferenceErrorDisplay } from "./inference-error";
@@ -137,7 +136,11 @@ export function ChatPanel() {
       // Clear any previous error
       setInferenceState((prev) => ({ ...prev, error: null }));
 
-      const adapter = getInferenceAdapter();
+      // Dynamic import to avoid loading @tauri-apps/api at module load time
+      const { getInferenceAdapterAsync } = await import(
+        "@/lib/inference/get-adapter"
+      );
+      const adapter = await getInferenceAdapterAsync();
 
       // Set up generation context for abort tracking
       generationRef.current = {
