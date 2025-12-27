@@ -208,3 +208,136 @@ ADR-BUILD-1 constraint: CUDA build must be ≤60MB (PASS)
 | CUDA (RTX 4090) | ~35 tok/sec | Estimated |
 
 NFR3 compliance requires >=10 tok/sec for acceptable user experience.
+
+## MCP Bridge Integration (E2E Testing)
+
+Continuum uses `tauri-plugin-mcp-bridge` to enable E2E testing of Tauri IPC commands via the Model Context Protocol.
+
+### Overview
+
+The MCP bridge exposes Tauri's IPC commands to external tools (like Claude Code's Tauri MCP server), enabling:
+- Automated testing of IPC commands without UI interaction
+- Debugging IPC communication in real-time
+- Integration testing in CI/CD pipelines
+
+### Configuration
+
+The MCP bridge is **enabled only in debug builds** to avoid production overhead:
+
+```rust
+// src-tauri/src/lib.rs
+.setup(|app| {
+    if cfg!(debug_assertions) {
+        app.handle().plugin(tauri_plugin_mcp_bridge::init())?;
+    }
+    Ok(())
+})
+```
+
+**Required settings** (`tauri.conf.json`):
+```json
+{
+  "app": {
+    "withGlobalTauri": true
+  }
+}
+```
+
+**Capabilities** (`capabilities/default.json`):
+```json
+{
+  "permissions": ["core:default", "mcp-bridge:default"]
+}
+```
+
+### Available IPC Commands
+
+| Command | Description | Parameters |
+|---------|-------------|------------|
+| `load_model` | Load inference model into memory | None |
+| `generate` | Generate text from prompt | `{ prompt: string }` |
+| `abort_inference` | Cancel ongoing generation | None |
+| `get_model_status` | Check if model is loaded | None |
+| `unload_model` | Unload model from memory | None |
+
+### Using MCP Tools for Testing
+
+The MCP bridge runs a WebSocket server on port 9223 (range 9223-9322) when the app starts in debug mode.
+
+**With Claude Code** (recommended):
+```bash
+# Install the Tauri MCP server
+bunx -y install-mcp @hypothesi/tauri-mcp-server --client claude-code
+
+# Or run directly
+bunx @hypothesi/tauri-mcp-server
+```
+
+**Available MCP Tools:**
+
+#### `tauri_ipc_execute_command`
+Execute any registered Tauri IPC command:
+```typescript
+// Example: Load the model
+tauri_ipc_execute_command({ command: "load_model" })
+
+// Example: Generate text
+tauri_ipc_execute_command({
+  command: "generate",
+  args: { prompt: "Hello, world!" }
+})
+
+// Example: Check model status
+tauri_ipc_execute_command({ command: "get_model_status" })
+```
+
+#### `tauri_ipc_monitor`
+Start/stop monitoring IPC traffic for debugging:
+```typescript
+// Start monitoring
+tauri_ipc_monitor({ action: "start" })
+
+// Stop monitoring
+tauri_ipc_monitor({ action: "stop" })
+```
+
+#### `tauri_ipc_get_captured`
+Retrieve captured IPC traffic (requires monitoring to be active):
+```typescript
+// Get all captured IPC calls
+tauri_ipc_get_captured()
+
+// Filter by command name
+tauri_ipc_get_captured({ filter: "generate" })
+```
+
+#### `tauri_ipc_get_backend_state`
+Get Tauri app metadata and state:
+```typescript
+tauri_ipc_get_backend_state()
+// Returns: { appName, tauriVersion, environment, ... }
+```
+
+### Manual Testing Workflow
+
+1. **Start the app in debug mode:**
+   ```bash
+   cd apps/web
+   bun run desktop:dev
+   ```
+
+2. **Connect MCP server** (in another terminal):
+   ```bash
+   bunx @hypothesi/tauri-mcp-server
+   ```
+
+3. **Execute IPC commands** via Claude Code or MCP client
+
+### CI Integration
+
+The `.github/workflows/tauri-ipc-tests.yml` workflow verifies:
+- Cargo.toml structure (features, dependencies)
+- IPC commands are registered in lib.rs
+- `cargo check` passes for both CPU and CUDA builds
+
+Full E2E IPC testing with xvfb is planned for future iterations.

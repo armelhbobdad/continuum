@@ -22,7 +22,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught:", error, errorInfo);
+    // Log errors in development only
+    if (process.env.NODE_ENV === "development") {
+      // biome-ignore lint/suspicious/noConsole: Development debugging only
+      console.error("ErrorBoundary caught:", error, errorInfo);
+    }
   }
 
   render() {
