@@ -40,7 +40,8 @@ const mockModels: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl: "https://example.com/phi.gguf",
     sha256: "abc",
-    tokenizerSource: "microsoft/Phi-3-mini-4k-instruct",
+    tokenizerUrl:
+      "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/resolve/main/tokenizer.json",
   },
   {
     id: "llama-3-8b",
@@ -55,7 +56,8 @@ const mockModels: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl: "https://example.com/llama.gguf",
     sha256: "def",
-    tokenizerSource: "meta-llama/Meta-Llama-3-8B-Instruct",
+    tokenizerUrl:
+      "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct/resolve/main/tokenizer.json",
   },
   {
     id: "mixtral-8x7b",
@@ -74,7 +76,8 @@ const mockModels: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl: "https://example.com/mixtral.gguf",
     sha256: "ghi",
-    tokenizerSource: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    tokenizerUrl:
+      "https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1/resolve/main/tokenizer.json",
   },
 ];
 

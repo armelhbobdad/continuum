@@ -130,28 +130,18 @@ export class KalosmAdapter implements InferenceAdapter {
    *
    * Story 2.4: Updated to accept modelId for loading downloaded models.
    * Uses FileSource::Local on Rust side to load from app_data_dir/models/{modelId}.gguf
-   * Tokenizer is downloaded from HuggingFace using tokenizerSource from registry.
+   * Tokenizer is loaded from app_data_dir/models/{modelId}.tokenizer.json
    *
    * @param modelId - The model identifier (e.g., "phi-3-mini")
-   * @throws Error if modelId not provided or model not found in registry
+   * @throws Error if modelId not provided
    */
   async loadModel(modelId?: string): Promise<void> {
     if (!modelId) {
       throw new Error("Model ID required. Use auto-select or specify a model.");
     }
 
-    // Look up tokenizer source from registry
-    const { getModelMetadata } = await import("../models/registry");
-    const metadata = getModelMetadata(modelId);
-    if (!metadata) {
-      throw new Error(`Model '${modelId}' not found in registry.`);
-    }
-
     this.status = "loading";
-    await invoke("load_model", {
-      modelId,
-      tokenizerSource: metadata.tokenizerSource,
-    });
+    await invoke("load_model", { modelId });
     this.status = "loaded";
   }
 

@@ -49,7 +49,8 @@ const mockModels: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl: "https://example.com/a.gguf",
     sha256: "abc",
-    tokenizerSource: "test/model-a",
+    tokenizerUrl:
+      "https://huggingface.co/test/model-a/resolve/main/tokenizer.json",
   },
   {
     id: "model-b",
@@ -68,7 +69,8 @@ const mockModels: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl: "https://example.com/b.gguf",
     sha256: "def",
-    tokenizerSource: "test/model-b",
+    tokenizerUrl:
+      "https://huggingface.co/test/model-b/resolve/main/tokenizer.json",
   },
 ];
 

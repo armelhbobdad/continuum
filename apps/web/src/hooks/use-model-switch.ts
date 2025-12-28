@@ -86,17 +86,9 @@ export function useModelSwitch() {
           await invoke("unload_model");
         }
 
-        // Task 4.3: Load new model with tokenizer source from registry
+        // Task 4.3: Load new model (tokenizer is loaded from local file)
         setState((prev) => ({ ...prev, switchProgress: "loading" }));
-        const { getModelMetadata } = await import("@continuum/inference");
-        const metadata = getModelMetadata(modelId);
-        if (!metadata) {
-          throw new Error(`Model '${modelId}' not found in registry.`);
-        }
-        await invoke("load_model", {
-          modelId,
-          tokenizerSource: metadata.tokenizerSource,
-        });
+        await invoke("load_model", { modelId });
 
         // Task 4.4: Success - update selection
         selectModel(modelId);
@@ -116,16 +108,7 @@ export function useModelSwitch() {
         // Try to reload previous model if available
         if (previousModelId) {
           try {
-            const { getModelMetadata: getMeta } = await import(
-              "@continuum/inference"
-            );
-            const prevMeta = getMeta(previousModelId);
-            if (prevMeta) {
-              await invoke("load_model", {
-                modelId: previousModelId,
-                tokenizerSource: prevMeta.tokenizerSource,
-              });
-            }
+            await invoke("load_model", { modelId: previousModelId });
           } catch {
             // Failed to reload previous - leave in unloaded state
           }

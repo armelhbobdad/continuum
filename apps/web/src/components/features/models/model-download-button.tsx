@@ -115,7 +115,12 @@ export function ModelDownloadButton({
   const hasPartialDownload = partialBytes !== null && partialBytes > 0;
 
   const handleDownload = async () => {
-    await initiateDownload(model.id, downloadUrl, model.requirements.storageMb);
+    await initiateDownload(
+      model.id,
+      downloadUrl,
+      model.tokenizerUrl,
+      model.requirements.storageMb
+    );
   };
 
   const handleResume = useCallback(async () => {

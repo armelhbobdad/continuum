@@ -30,6 +30,7 @@ type UseModelDownloadResult = {
   initiateDownload: (
     modelId: string,
     url: string,
+    tokenizerUrl: string,
     requiredMb: number
   ) => Promise<void>;
   /** Retry after storage warning */
@@ -52,15 +53,21 @@ export function useModelDownload(): UseModelDownloadResult {
   const [pendingDownload, setPendingDownload] = useState<{
     modelId: string;
     url: string;
+    tokenizerUrl: string;
     requiredMb: number;
   } | null>(null);
 
   const addDownload = useDownloadStore((s) => s.addDownload);
 
   const initiateDownload = useCallback(
-    async (modelId: string, url: string, requiredMb: number) => {
+    async (
+      modelId: string,
+      url: string,
+      tokenizerUrl: string,
+      requiredMb: number
+    ) => {
       // Save for potential retry
-      setPendingDownload({ modelId, url, requiredMb });
+      setPendingDownload({ modelId, url, tokenizerUrl, requiredMb });
 
       // Check storage first
       setState({ status: "checking-storage" });
@@ -77,7 +84,7 @@ export function useModelDownload(): UseModelDownloadResult {
         // Start download
         setState({ status: "starting" });
 
-        const downloadId = await startModelDownload(modelId, url);
+        const downloadId = await startModelDownload(modelId, url, tokenizerUrl);
 
         // Add to store
         addDownload({
@@ -106,6 +113,7 @@ export function useModelDownload(): UseModelDownloadResult {
       await initiateDownload(
         pendingDownload.modelId,
         pendingDownload.url,
+        pendingDownload.tokenizerUrl,
         pendingDownload.requiredMb
       );
     }

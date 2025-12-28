@@ -63,6 +63,7 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
@@ -85,6 +86,7 @@ describe("useModelDownload", () => {
         result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
@@ -118,6 +120,7 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
@@ -142,13 +145,15 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
 
       expect(mockStartModelDownload).toHaveBeenCalledWith(
         "phi-3-mini",
-        "https://example.com/model.gguf"
+        "https://example.com/model.gguf",
+        "https://example.com/tokenizer.json"
       );
     });
   });
@@ -169,6 +174,7 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
@@ -197,6 +203,7 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
@@ -222,6 +229,7 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
@@ -249,6 +257,7 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });
@@ -285,6 +294,7 @@ describe("useModelDownload", () => {
         await result.current.initiateDownload(
           "phi-3-mini",
           "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json",
           4000
         );
       });

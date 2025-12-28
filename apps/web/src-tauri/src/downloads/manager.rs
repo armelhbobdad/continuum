@@ -21,22 +21,28 @@ use uuid::Uuid;
 /// Progress update interval (100ms per ADR-DOWNLOAD-003)
 const PROGRESS_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
 
-/// Start a new download
+/// Start a new download for model and tokenizer
 ///
 /// Returns the download_id for tracking.
 /// Downloads are stored as .part files until complete.
+/// Both model.gguf and tokenizer.json are downloaded.
 pub async fn start_download(
     app: &AppHandle,
     state: &DownloadState,
     model_id: &str,
     url: &str,
+    tokenizer_url: &str,
 ) -> Result<String, String> {
     let download_id = Uuid::new_v4().to_string();
+    let models_dir = state.models_dir();
 
-    // Determine file paths
+    // Download tokenizer first (small file, quick)
+    download_tokenizer(state.client(), tokenizer_url, models_dir, model_id).await?;
+
+    // Determine file paths for model
     let file_name = format!("{}.gguf", model_id);
-    let file_path = state.models_dir().join(&file_name);
-    let part_path = state.models_dir().join(format!("{}.part", file_name));
+    let file_path = models_dir.join(&file_name);
+    let part_path = models_dir.join(format!("{}.part", file_name));
 
     // Check for existing partial download
     let mut bytes_downloaded = 0u64;
@@ -60,6 +66,7 @@ pub async fn start_download(
         id: download_id.clone(),
         model_id: model_id.to_string(),
         url: url.to_string(),
+        tokenizer_url: tokenizer_url.to_string(),
         file_path: file_path.clone(),
         part_path: part_path.clone(),
         bytes_downloaded,
@@ -112,6 +119,48 @@ pub async fn start_download(
     });
 
     Ok(download_id)
+}
+
+/// Download tokenizer.json to the models directory
+async fn download_tokenizer(
+    client: &reqwest::Client,
+    url: &str,
+    models_dir: &std::path::Path,
+    model_id: &str,
+) -> Result<(), String> {
+    let tokenizer_path = models_dir.join(format!("{}.tokenizer.json", model_id));
+
+    // Skip if already downloaded
+    if tokenizer_path.exists() {
+        info!("Tokenizer already exists for {}", model_id);
+        return Ok(());
+    }
+
+    info!("Downloading tokenizer for {} from {}", model_id, url);
+
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("Tokenizer download failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "Tokenizer download failed: HTTP {}",
+            response.status()
+        ));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read tokenizer: {}", e))?;
+
+    std::fs::write(&tokenizer_path, &bytes)
+        .map_err(|e| format!("Failed to save tokenizer: {}", e))?;
+
+    info!("Tokenizer saved for {}", model_id);
+    Ok(())
 }
 
 /// Get content length via HEAD request
@@ -284,7 +333,15 @@ pub async fn resume_download(
         state.remove_download(download_id).await;
 
         // Start a new download (will resume from .part file)
-        start_download(app, state, &download.model_id, &download.url).await?;
+        // Tokenizer should already be downloaded since it downloads first
+        start_download(
+            app,
+            state,
+            &download.model_id,
+            &download.url,
+            &download.tokenizer_url,
+        )
+        .await?;
 
         info!("Download resumed: {}", download_id);
         Ok(())
@@ -342,6 +399,7 @@ mod tests {
             id: "test-123".to_string(),
             model_id: "phi-3-mini".to_string(),
             url: "https://example.com/model.gguf".to_string(),
+            tokenizer_url: "https://example.com/tokenizer.json".to_string(),
             file_path: PathBuf::from("/tmp/model.gguf"),
             part_path: PathBuf::from("/tmp/model.gguf.part"),
             bytes_downloaded: 500_000_000,

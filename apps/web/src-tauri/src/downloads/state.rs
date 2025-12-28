@@ -41,6 +41,8 @@ pub struct Download {
     pub id: String,
     pub model_id: String,
     pub url: String,
+    /// Tokenizer download URL (needed for resume)
+    pub tokenizer_url: String,
     /// Final destination path (used after download completes)
     #[allow(dead_code)]
     pub file_path: std::path::PathBuf,

@@ -91,9 +91,9 @@ export interface ModelMetadata {
   /** Expected SHA-256 hash for verification (Story 2.5) */
   sha256: string;
   /**
-   * HuggingFace repository for tokenizer (e.g., "mistralai/Mistral-7B-Instruct-v0.2")
+   * Direct URL to tokenizer.json file on HuggingFace.
+   * Downloaded alongside the model and stored in the app's models folder.
    * Required because GGUF files often don't embed tokenizers in a format Kalosm can use.
-   * Kalosm downloads tokenizer.json from this repo at load time.
    */
-  tokenizerSource: string;
+  tokenizerUrl: string;
 }

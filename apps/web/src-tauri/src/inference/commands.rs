@@ -103,17 +103,15 @@ impl InferenceError {
 ///
 /// # Arguments
 /// * `model_id` - The model identifier (e.g., "phi-3-mini")
-/// * `tokenizer_source` - HuggingFace repo for tokenizer (e.g., "mistralai/Mistral-7B-Instruct-v0.2")
 ///
 /// The model file is expected at: app_data_dir/models/{model_id}.gguf
-/// The tokenizer is downloaded from HuggingFace at load time.
-/// This integrates with Story 2.3 download manager which stores models there.
+/// The tokenizer is expected at: app_data_dir/models/{model_id}.tokenizer.json
+/// Both files are downloaded together by the download manager (Story 2.3).
 #[tauri::command]
 pub async fn load_model(
     state: State<'_, Arc<InferenceState>>,
     download_state: State<'_, DownloadState>,
     model_id: String,
-    tokenizer_source: String,
 ) -> Result<(), InferenceError> {
     // Unload any existing model first (ADR-MODEL-002)
     {
@@ -138,18 +136,28 @@ pub async fn load_model(
         return Err(InferenceError::model_not_found(&model_id));
     }
 
-    log::info!("Loading model from: {:?}", model_path);
-    log::info!("Tokenizer source: {}", tokenizer_source);
+    // Resolve tokenizer path (downloaded alongside model by Story 2.3)
+    let tokenizer_path = download_state
+        .models_dir()
+        .join(format!("{}.tokenizer.json", model_id));
 
-    // Load model from local path using FileSource::Local (Task 1.2)
-    // Tokenizer downloaded from HuggingFace at load time
-    // Reference: Kalosm DeepWiki - FileSource::Local + with_tokenizer API
+    // Verify tokenizer exists
+    if !tokenizer_path.exists() {
+        state.set_status(ModelStatus::Error).await;
+        log::error!("Tokenizer file not found: {:?}", tokenizer_path);
+        return Err(InferenceError::model_load_failed(&format!(
+            "Tokenizer not found for {}. Please re-download the model.",
+            model_id
+        )));
+    }
+
+    log::info!("Loading model from: {:?}", model_path);
+    log::info!("Loading tokenizer from: {:?}", tokenizer_path);
+
+    // Load model from local path using FileSource::Local
+    // Both model and tokenizer are local files managed by the app
     let source = LlamaSource::new(FileSource::Local(model_path.clone()))
-        .with_tokenizer(FileSource::HuggingFace {
-            model_id: tokenizer_source.clone(),
-            revision: "main".to_string(),
-            file: "tokenizer.json".to_string(),
-        });
+        .with_tokenizer(FileSource::Local(tokenizer_path.clone()));
 
     match Llama::builder().with_source(source).build().await {
         Ok(model) => {

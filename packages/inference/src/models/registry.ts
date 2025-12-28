@@ -39,7 +39,8 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     downloadUrl:
       "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf",
     sha256: "8a83c7fb9049a9b2e92266fa7ad04933bb53aa1e85136b7b30f1b8000ff2edef",
-    tokenizerSource: "microsoft/Phi-3-mini-4k-instruct",
+    tokenizerUrl:
+      "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/resolve/main/tokenizer.json",
   },
   {
     id: "llama-3-8b",
@@ -68,7 +69,8 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     downloadUrl:
       "https://huggingface.co/QuantFactory/Meta-Llama-3-8B-GGUF/resolve/main/Meta-Llama-3-8B.Q4_K_M.gguf",
     sha256: "c57380038ea85d8f234bc5e0c9b5c1c4a8d1a4e5f6b7c8d9e0f1a2b3c4d5e6f7",
-    tokenizerSource: "meta-llama/Meta-Llama-3-8B-Instruct",
+    tokenizerUrl:
+      "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct/resolve/main/tokenizer.json",
   },
   {
     id: "gemma-2b",
@@ -96,7 +98,8 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     downloadUrl:
       "https://huggingface.co/google/gemma-2b-it-GGUF/resolve/main/gemma-2b-it.Q4_K_M.gguf",
     sha256: "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
-    tokenizerSource: "google/gemma-2b-it",
+    tokenizerUrl:
+      "https://huggingface.co/google/gemma-2b-it/resolve/main/tokenizer.json",
   },
   {
     id: "mistral-7b",
@@ -126,7 +129,8 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     downloadUrl:
       "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
     sha256: "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
-    tokenizerSource: "mistralai/Mistral-7B-Instruct-v0.2",
+    tokenizerUrl:
+      "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2/resolve/main/tokenizer.json",
   },
   {
     id: "qwen-1.5b",
@@ -156,7 +160,8 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     downloadUrl:
       "https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8b-chat-q4_k_m.gguf",
     sha256: "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
-    tokenizerSource: "Qwen/Qwen1.5-1.8B-Chat",
+    tokenizerUrl:
+      "https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat/resolve/main/tokenizer.json",
   },
 ];
 

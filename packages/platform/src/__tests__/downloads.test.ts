@@ -55,12 +55,14 @@ describe("Download Adapter", () => {
 
       const result = await startModelDownload(
         "phi-3-mini",
-        "https://example.com/model.gguf"
+        "https://example.com/model.gguf",
+        "https://example.com/tokenizer.json"
       );
 
       expect(mockInvoke).toHaveBeenCalledWith("start_download", {
         modelId: "phi-3-mini",
         url: "https://example.com/model.gguf",
+        tokenizerUrl: "https://example.com/tokenizer.json",
       });
       expect(result).toBe("download-123");
     });
@@ -69,7 +71,11 @@ describe("Download Adapter", () => {
       mockIsDesktop.mockReturnValue(false);
 
       await expect(
-        startModelDownload("phi-3-mini", "https://example.com/model.gguf")
+        startModelDownload(
+          "phi-3-mini",
+          "https://example.com/model.gguf",
+          "https://example.com/tokenizer.json"
+        )
       ).rejects.toThrow("Model downloads are only supported on desktop");
     });
   });

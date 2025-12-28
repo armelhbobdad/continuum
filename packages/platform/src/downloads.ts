@@ -48,23 +48,25 @@ interface TauriStorageCheckResult {
 // ============================================================================
 
 /**
- * Start downloading a model.
+ * Start downloading a model and its tokenizer.
  *
  * @param modelId - The model identifier
- * @param url - The download URL
+ * @param url - The download URL for the GGUF model
+ * @param tokenizerUrl - The download URL for the tokenizer.json
  * @returns Promise<string> - The download ID for tracking
  * @throws Error if not on desktop or if download fails to start
  */
 export async function startModelDownload(
   modelId: string,
-  url: string
+  url: string,
+  tokenizerUrl: string
 ): Promise<string> {
   if (!isDesktop()) {
     throw new Error("Model downloads are only supported on desktop");
   }
 
   const { invoke } = await import("@tauri-apps/api/core");
-  return invoke<string>("start_download", { modelId, url });
+  return invoke<string>("start_download", { modelId, url, tokenizerUrl });
 }
 
 /**

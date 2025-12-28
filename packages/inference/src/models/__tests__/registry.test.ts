@@ -69,9 +69,11 @@ describe("Model Registry", () => {
       expect(model.downloadUrl).toMatch(/^https?:\/\//);
       expect(model.sha256).toBeTruthy();
 
-      // Tokenizer source (HuggingFace repo)
-      expect(model.tokenizerSource).toBeTruthy();
-      expect(model.tokenizerSource).toMatch(/^[\w-]+\/[\w.-]+$/);
+      // Tokenizer URL (direct HuggingFace download link)
+      expect(model.tokenizerUrl).toBeTruthy();
+      expect(model.tokenizerUrl).toMatch(
+        /^https:\/\/huggingface\.co\/.*\/tokenizer\.json$/
+      );
     });
   });
 

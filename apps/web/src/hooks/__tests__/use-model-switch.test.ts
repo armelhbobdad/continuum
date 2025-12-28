@@ -20,23 +20,6 @@ vi.mock("@/stores/models", () => ({
   useModelStore: vi.fn(),
 }));
 
-// Mock inference package for model metadata
-vi.mock("@continuum/inference", () => ({
-  getModelMetadata: vi.fn((modelId: string) => {
-    const models: Record<string, { id: string; tokenizerSource: string }> = {
-      "phi-3-mini": {
-        id: "phi-3-mini",
-        tokenizerSource: "microsoft/Phi-3-mini-4k-instruct",
-      },
-      "llama-3-8b": {
-        id: "llama-3-8b",
-        tokenizerSource: "meta-llama/Meta-Llama-3-8B-Instruct",
-      },
-    };
-    return models[modelId];
-  }),
-}));
-
 // Import mocked modules after mocking
 import { invoke } from "@tauri-apps/api/core";
 import { useModelStore } from "@/stores/models";
@@ -93,12 +76,11 @@ describe("useModelSwitch", () => {
         await result.current.switchModel("llama-3-8b");
       });
 
-      // Verify call order: abort first (Task 4.1), then unload, then load with tokenizer source
+      // Verify call order: abort first (Task 4.1), then unload, then load
       expect(mockInvoke).toHaveBeenNthCalledWith(1, "abort_inference");
       expect(mockInvoke).toHaveBeenNthCalledWith(2, "unload_model");
       expect(mockInvoke).toHaveBeenNthCalledWith(3, "load_model", {
         modelId: "llama-3-8b",
-        tokenizerSource: "meta-llama/Meta-Llama-3-8B-Instruct",
       });
     });
 
@@ -142,19 +124,21 @@ describe("useModelSwitch", () => {
   });
 
   describe("switchModel Error Flow", () => {
-    it("should handle load error when model not in registry (Task 4.5)", async () => {
-      // Set up mock to handle abort (called before registry lookup)
-      mockInvoke.mockResolvedValue(undefined);
+    it("should handle load error when model load fails (Task 4.5)", async () => {
+      mockInvoke
+        .mockResolvedValueOnce(undefined) // abort succeeds
+        .mockResolvedValueOnce(undefined) // unload succeeds
+        .mockRejectedValueOnce(new Error("Model load failed")); // load fails
 
       const { result } = renderHook(() => useModelSwitch());
 
       await act(async () => {
         const switchResult = await result.current.switchModel("invalid-model");
         expect(switchResult.success).toBe(false);
-        expect(switchResult.error).toContain("not found in registry");
+        expect(switchResult.error).toBe("Model load failed");
       });
 
-      expect(result.current.error).toContain("not found in registry");
+      expect(result.current.error).toBe("Model load failed");
       expect(result.current.isSwitching).toBe(false);
     });
 
@@ -174,7 +158,6 @@ describe("useModelSwitch", () => {
       // Should try to reload previous model (4th call after abort, unload, failed load)
       expect(mockInvoke).toHaveBeenNthCalledWith(4, "load_model", {
         modelId: "phi-3-mini",
-        tokenizerSource: "microsoft/Phi-3-mini-4k-instruct",
       });
     });
   });
@@ -193,10 +176,10 @@ describe("useModelSwitch", () => {
       });
 
       // Verify the switch was initiated (states changed during operation)
+      // Note: tokenizerSource is no longer passed - backend loads tokenizer from local file
       expect(mockInvoke).toHaveBeenCalledWith("unload_model");
       expect(mockInvoke).toHaveBeenCalledWith("load_model", {
         modelId: "llama-3-8b",
-        tokenizerSource: "meta-llama/Meta-Llama-3-8B-Instruct",
       });
     });
   });
