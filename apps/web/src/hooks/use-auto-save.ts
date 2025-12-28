@@ -51,8 +51,8 @@ interface UseAutoSaveReturn {
 export function useAutoSave(): UseAutoSaveReturn {
   const isDirty = useSessionStore((state) => state.isDirty);
   const clearDirty = useSessionStore((state) => state.clearDirty);
-  const debounceRef = useRef<number>();
-  const intervalRef = useRef<number>();
+  const debounceRef = useRef<number | undefined>(undefined);
+  const intervalRef = useRef<number | undefined>(undefined);
 
   /**
    * Debounced save function.
