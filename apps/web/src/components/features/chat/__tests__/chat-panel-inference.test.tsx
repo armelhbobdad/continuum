@@ -3,6 +3,7 @@
  *
  * Tests for inference functionality in the chat panel.
  * Story 1.4: AC #2-#6 (streaming, abort, loading, errors)
+ * Story 2.4: Updated to work with model selection integration
  */
 
 import type {
@@ -28,6 +29,40 @@ import { ChatPanel } from "../chat-panel";
 vi.mock("@/lib/inference/get-adapter", () => ({
   getInferenceAdapterAsync: vi.fn(),
 }));
+
+// Mock the model switch hook to avoid Tauri calls
+vi.mock("@/hooks/use-model-switch", () => ({
+  useModelSwitch: () => ({
+    isSwitching: false,
+    switchingTo: null,
+    switchProgress: null,
+    error: null,
+    switchModel: vi.fn(),
+    clearError: vi.fn(),
+  }),
+}));
+
+// Mock getModelMetadata to return test model info
+vi.mock("@continuum/inference", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@continuum/inference")>();
+  return {
+    ...actual,
+    getModelMetadata: vi.fn().mockReturnValue({
+      id: "test-model",
+      name: "Test Model",
+      version: "1.0",
+      description: "Test",
+      requirements: { ramMb: 4096, gpuVramMb: 0, storageMb: 2000 },
+      capabilities: ["general-chat"],
+      limitations: [],
+      contextLength: 4096,
+      license: { name: "MIT", url: "", commercial: true },
+      vulnerabilities: [],
+      downloadUrl: "",
+      sha256: "",
+    }),
+  };
+});
 
 import { getInferenceAdapterAsync } from "@/lib/inference/get-adapter";
 
@@ -60,6 +95,10 @@ async function* tokenGenerator(
   }
 }
 
+// Import stores to set up model selection (Story 2.4)
+import { useHardwareStore } from "@/stores/hardware";
+import { useModelStore } from "@/stores/models";
+
 describe("ChatPanel Inference Integration", () => {
   let mockAdapter: InferenceAdapter;
 
@@ -68,6 +107,46 @@ describe("ChatPanel Inference Integration", () => {
     useSessionStore.setState({
       sessions: [],
       activeSessionId: null,
+    });
+
+    // Story 2.4: Set up model store with a selected model for tests
+    useModelStore.setState({
+      availableModels: [
+        {
+          id: "test-model",
+          name: "Test Model",
+          version: "1.0",
+          description: "Test",
+          requirements: { ramMb: 4096, gpuVramMb: 0, storageMb: 2000 },
+          capabilities: ["general-chat"],
+          limitations: [],
+          contextLength: 4096,
+          license: { name: "MIT", url: "", commercial: true },
+          vulnerabilities: [],
+          downloadUrl: "",
+          sha256: "",
+        },
+      ],
+      downloadedModels: ["test-model"],
+      selectedModelId: "test-model",
+      switchingTo: null,
+      switchProgress: null,
+      isLoading: false,
+      error: null,
+    });
+
+    // Set up hardware store with capabilities
+    useHardwareStore.setState({
+      capabilities: {
+        ram: 16_384,
+        cpuCores: 8,
+        storageAvailable: 100_000,
+        gpu: null,
+        detectedBy: "desktop",
+        detectedAt: new Date(),
+      },
+      isLoading: false,
+      error: null,
     });
 
     // Reset mocks

@@ -86,8 +86,14 @@ export interface ModelMetadata {
   /** Known security vulnerabilities (FR33) */
   vulnerabilities: ModelVulnerability[];
 
-  /** Download URL */
+  /** Download URL for GGUF model weights */
   downloadUrl: string;
   /** Expected SHA-256 hash for verification (Story 2.5) */
   sha256: string;
+  /**
+   * HuggingFace repository for tokenizer (e.g., "mistralai/Mistral-7B-Instruct-v0.2")
+   * Required because GGUF files often don't embed tokenizers in a format Kalosm can use.
+   * Kalosm downloads tokenizer.json from this repo at load time.
+   */
+  tokenizerSource: string;
 }

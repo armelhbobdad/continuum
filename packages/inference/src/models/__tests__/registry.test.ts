@@ -68,6 +68,10 @@ describe("Model Registry", () => {
       // Download info
       expect(model.downloadUrl).toMatch(/^https?:\/\//);
       expect(model.sha256).toBeTruthy();
+
+      // Tokenizer source (HuggingFace repo)
+      expect(model.tokenizerSource).toBeTruthy();
+      expect(model.tokenizerSource).toMatch(/^[\w-]+\/[\w.-]+$/);
     });
   });
 

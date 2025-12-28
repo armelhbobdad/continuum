@@ -98,8 +98,13 @@ export interface InferenceAdapter {
   /**
    * Load model if not already loaded.
    * AC3: Model loads within 10 seconds
+   *
+   * Story 2.4: Accepts optional modelId for loading specific models.
+   * Desktop uses modelId to load from app_data_dir/models/{modelId}.gguf
+   *
+   * @param modelId - Optional model identifier to load
    */
-  loadModel(): Promise<void>;
+  loadModel(modelId?: string): Promise<void>;
 
   /**
    * Get adapter capabilities for UI adaptation.

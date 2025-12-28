@@ -7,6 +7,9 @@
  *
  * Story 1.3: Basic Chat UI Shell
  * AC #2 (input responsiveness), AC #3 (message submission)
+ *
+ * Story 2.4: Model Selection & Switching
+ * Task 5.3: Disable send button during switch with tooltip explanation
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 interface MessageInputProps {
   onSend: (content: string) => void;
   disabled?: boolean;
+  /** Reason for disabled state (shown in tooltip) */
+  disabledReason?: string;
 }
 
 /**
@@ -24,7 +29,11 @@ interface MessageInputProps {
  * Handles text input and submission.
  * Enter to send, Shift+Enter for newline.
  */
-export function MessageInput({ onSend, disabled }: MessageInputProps) {
+export function MessageInput({
+  onSend,
+  disabled,
+  disabledReason,
+}: MessageInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -75,6 +84,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
         className="self-end"
         disabled={disabled || !value.trim()}
         onClick={handleSend}
+        title={disabled && disabledReason ? disabledReason : undefined}
       >
         Send
       </Button>

@@ -261,4 +261,78 @@ describe("InferenceBadge", () => {
       expect(badge).not.toHaveClass("animate-pulse");
     });
   });
+
+  describe("Switching state (Story 2.4 Task 5.1-5.2)", () => {
+    it("renders with switching state", () => {
+      render(
+        <InferenceBadge
+          modelName="phi-3-mini"
+          source="local"
+          state="switching"
+          switchingTo="llama-3-8b"
+        />
+      );
+
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /switching to llama-3-8b/i
+      );
+    });
+
+    it("shows generic message when switchingTo is not provided", () => {
+      render(
+        <InferenceBadge
+          modelName="phi-3-mini"
+          source="local"
+          state="switching"
+        />
+      );
+
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /switching to model/i
+      );
+    });
+
+    it("has amber styling for switching state", () => {
+      const { container } = render(
+        <InferenceBadge
+          modelName="phi-3-mini"
+          source="local"
+          state="switching"
+          switchingTo="llama-3-8b"
+        />
+      );
+
+      const badge = container.querySelector('[data-slot="inference-badge"]');
+      expect(badge).toHaveClass("bg-amber-50");
+      expect(badge).toHaveClass("border-amber-300");
+    });
+
+    it("has animate-pulse class when switching", () => {
+      const { container } = render(
+        <InferenceBadge
+          modelName="phi-3-mini"
+          source="local"
+          state="switching"
+          switchingTo="llama-3-8b"
+        />
+      );
+
+      const badge = container.querySelector('[data-slot="inference-badge"]');
+      expect(badge).toHaveClass("animate-pulse");
+    });
+
+    it("has data-state attribute set to switching", () => {
+      const { container } = render(
+        <InferenceBadge
+          modelName="phi-3-mini"
+          source="local"
+          state="switching"
+          switchingTo="llama-3-8b"
+        />
+      );
+
+      const badge = container.querySelector('[data-slot="inference-badge"]');
+      expect(badge).toHaveAttribute("data-state", "switching");
+    });
+  });
 });

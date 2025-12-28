@@ -182,4 +182,36 @@ describe("MessageInput Component", () => {
       expect(end - start).toBeLessThan(100);
     });
   });
+
+  describe("Disabled State with Reason (Story 2.4 Task 5.3)", () => {
+    it("shows disabled reason as title tooltip when disabled", () => {
+      render(
+        <MessageInput
+          disabled
+          disabledReason="Switching model..."
+          onSend={vi.fn()}
+        />
+      );
+
+      const sendBtn = screen.getByRole("button", { name: /send/i });
+      expect(sendBtn).toBeDisabled();
+      expect(sendBtn).toHaveAttribute("title", "Switching model...");
+    });
+
+    it("does not show title when not disabled", () => {
+      render(
+        <MessageInput disabledReason="Switching model..." onSend={vi.fn()} />
+      );
+
+      const sendBtn = screen.getByRole("button", { name: /send/i });
+      expect(sendBtn).not.toHaveAttribute("title");
+    });
+
+    it("disables textarea when disabled prop is true", () => {
+      render(<MessageInput disabled onSend={vi.fn()} />);
+
+      const textarea = screen.getByRole("textbox");
+      expect(textarea).toBeDisabled();
+    });
+  });
 });

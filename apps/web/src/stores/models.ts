@@ -5,6 +5,7 @@
  * Uses persist middleware for downloaded models and selection.
  *
  * Story 2.2: Model Catalog & Cards
+ * Story 2.4: Model Selection & Switching
  * ADR-MODEL-002: Zustand with Persist for User Model Selections
  *
  * Persistence Boundary:
@@ -12,6 +13,7 @@
  * - selectedModelId: Persisted (last active model)
  * - availableModels: NOT persisted (fetched from registry)
  * - isLoading/error: NOT persisted (transient UI state)
+ * - switchingTo/switchProgress: NOT persisted (transient switch state)
  */
 
 import type { ModelMetadata } from "@continuum/inference";
@@ -27,6 +29,9 @@ import { useHardwareStore } from "./hardware";
 /** Storage key for model data */
 const STORAGE_KEY = "continuum-models";
 
+/** Switch progress phases */
+export type SwitchProgress = "unloading" | "loading" | null;
+
 /** Model store state */
 export interface ModelState {
   /** All available models from registry */
@@ -35,6 +40,10 @@ export interface ModelState {
   downloadedModels: string[];
   /** Currently selected model for inference */
   selectedModelId: string | null;
+  /** Model we're currently switching to (memory-only) */
+  switchingTo: string | null;
+  /** Current switch progress phase (memory-only) */
+  switchProgress: SwitchProgress;
   /** Loading state */
   isLoading: boolean;
   /** Error message */
@@ -42,12 +51,22 @@ export interface ModelState {
 
   /** Load models from registry */
   loadModels: () => Promise<void>;
-  /** Select a model for inference */
+  /**
+   * Set the selected model ID in state (sync operation).
+   * NOTE: This only updates the selectedModelId in state. It does NOT load
+   * the model via Tauri IPC. Use useModelSwitch().switchModel() to actually
+   * load/unload models in the backend. This is by design for lazy loading -
+   * model loading happens when the user sends their first message.
+   *
+   * @param modelId - Model ID to select
+   */
   selectModel: (modelId: string) => void;
   /** Mark a model as downloaded */
   addDownloadedModel: (modelId: string) => void;
   /** Remove a downloaded model */
   removeDownloadedModel: (modelId: string) => void;
+  /** Get full metadata for selected model */
+  getSelectedModel: () => ModelMetadata | null;
 }
 
 /**
@@ -60,6 +79,8 @@ export const useModelStore = create<ModelState>()(
       availableModels: [],
       downloadedModels: [],
       selectedModelId: null,
+      switchingTo: null,
+      switchProgress: null,
       isLoading: false,
       error: null,
 
@@ -99,11 +120,18 @@ export const useModelStore = create<ModelState>()(
             state.selectedModelId === modelId ? null : state.selectedModelId,
         }));
       },
+
+      getSelectedModel: () => {
+        const { selectedModelId } = get();
+        if (!selectedModelId) return null;
+        return getModelMetadata(selectedModelId) ?? null;
+      },
     }),
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
       // Only persist user data, not transient state
+      // Story 2.4: switchingTo/switchProgress are NOT persisted
       partialize: (state) => ({
         downloadedModels: state.downloadedModels,
         selectedModelId: state.selectedModelId,

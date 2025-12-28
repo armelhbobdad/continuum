@@ -2,10 +2,14 @@
 //!
 //! Implements Tauri commands that expose Kalosm inference to the frontend.
 //! Reference: stack-knowledge/kalosm/language-model/docs/completion.md
+//!
+//! Story 2.4: Updated to load models from local downloads directory
+//! using FileSource::Local instead of hardcoded Llama::phi_3().
 
 use super::state::{InferenceState, ModelStatus};
+use crate::downloads::DownloadState;
 use futures_util::StreamExt;
-use kalosm::language::{Llama, TextCompletionModelExt};
+use kalosm::language::{FileSource, Llama, LlamaSource, TextCompletionModelExt};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
@@ -55,6 +59,17 @@ impl InferenceError {
         }
     }
 
+    pub fn model_not_found(model_id: &str) -> Self {
+        Self {
+            code: InferenceErrorCode::ModelNotFound,
+            message: format!(
+                "Model '{}' not found. Please download it first.",
+                model_id
+            ),
+            details: Some(format!("Model file not found for ID: {}", model_id)),
+        }
+    }
+
     pub fn oom_error(details: &str) -> Self {
         Self {
             code: InferenceErrorCode::OomError,
@@ -82,36 +97,72 @@ impl InferenceError {
     }
 }
 
-/// Load model - use Llama::new_chat() for chat-optimized model
+/// Load model from local downloads directory
+/// Story 2.4: Updated to load downloaded models using FileSource::Local
 /// AC3: Model loads within 10 seconds
 ///
-/// Reference: stack-knowledge/kalosm/kalosm/docs/language.md
+/// # Arguments
+/// * `model_id` - The model identifier (e.g., "phi-3-mini")
+/// * `tokenizer_source` - HuggingFace repo for tokenizer (e.g., "mistralai/Mistral-7B-Instruct-v0.2")
+///
+/// The model file is expected at: app_data_dir/models/{model_id}.gguf
+/// The tokenizer is downloaded from HuggingFace at load time.
+/// This integrates with Story 2.3 download manager which stores models there.
 #[tauri::command]
 pub async fn load_model(
     state: State<'_, Arc<InferenceState>>,
-    _model_name: String,
+    download_state: State<'_, DownloadState>,
+    model_id: String,
+    tokenizer_source: String,
 ) -> Result<(), InferenceError> {
-    // Check if already loaded
-    if state.is_loaded().await {
-        return Ok(());
+    // Unload any existing model first (ADR-MODEL-002)
+    {
+        let mut model_guard = state.model.write().await;
+        if model_guard.is_some() {
+            *model_guard = None;
+            log::info!("Unloaded previous model before loading new one");
+        }
     }
 
     state.set_status(ModelStatus::Loading).await;
 
-    // Use Phi-3 for smaller, faster model (~2GB vs ~6GB for Llama 3)
-    // Reference: stack-knowledge/kalosm/kalosm/examples/phi-3.rs
-    match Llama::phi_3().await {
+    // Resolve model path from downloads directory (Task 1.3)
+    let model_path = download_state
+        .models_dir()
+        .join(format!("{}.gguf", model_id));
+
+    // Verify model exists before loading (Task 1.6)
+    if !model_path.exists() {
+        state.set_status(ModelStatus::Error).await;
+        log::error!("Model file not found: {:?}", model_path);
+        return Err(InferenceError::model_not_found(&model_id));
+    }
+
+    log::info!("Loading model from: {:?}", model_path);
+    log::info!("Tokenizer source: {}", tokenizer_source);
+
+    // Load model from local path using FileSource::Local (Task 1.2)
+    // Tokenizer downloaded from HuggingFace at load time
+    // Reference: Kalosm DeepWiki - FileSource::Local + with_tokenizer API
+    let source = LlamaSource::new(FileSource::Local(model_path.clone()))
+        .with_tokenizer(FileSource::HuggingFace {
+            model_id: tokenizer_source.clone(),
+            revision: "main".to_string(),
+            file: "tokenizer.json".to_string(),
+        });
+
+    match Llama::builder().with_source(source).build().await {
         Ok(model) => {
             let mut model_guard = state.model.write().await;
             *model_guard = Some(model);
             state.set_status(ModelStatus::Loaded).await;
-            log::info!("Model loaded successfully");
+            log::info!("Model loaded successfully: {}", model_id);
             Ok(())
         }
         Err(e) => {
             state.set_status(ModelStatus::Error).await;
             let error_msg = e.to_string();
-            log::error!("Failed to load model: {}", error_msg);
+            log::error!("Failed to load model {}: {}", model_id, error_msg);
 
             // Check for OOM errors
             if error_msg.contains("memory") || error_msg.contains("OOM") {

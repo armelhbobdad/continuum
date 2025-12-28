@@ -220,6 +220,77 @@ describe("Model Store", () => {
     });
   });
 
+  describe("Model Switching State (Story 2.4)", () => {
+    it("should have switchingTo state for transition tracking", async () => {
+      const { useModelStore } = await import("../models");
+      const state = useModelStore.getState();
+
+      expect(state.switchingTo).toBeNull();
+    });
+
+    it("should have switchProgress state for switch progress tracking", async () => {
+      const { useModelStore } = await import("../models");
+      const state = useModelStore.getState();
+
+      expect(state.switchProgress).toBeNull();
+    });
+
+    it("should NOT persist switchingTo to localStorage", async () => {
+      const { useModelStore } = await import("../models");
+
+      // Set switchingTo (if action exists)
+      useModelStore.setState({ switchingTo: "phi-3-mini" });
+
+      // Wait for persist to write
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Check that switchingTo is not in persisted data
+      const storedData = localStorageMock.setItem.mock.calls.at(-1)?.[1];
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        expect(parsed.state.switchingTo).toBeUndefined();
+      }
+    });
+
+    it("should NOT persist switchProgress to localStorage", async () => {
+      const { useModelStore } = await import("../models");
+
+      // Set switchProgress
+      useModelStore.setState({ switchProgress: "loading" });
+
+      // Wait for persist to write
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Check that switchProgress is not in persisted data
+      const storedData = localStorageMock.setItem.mock.calls.at(-1)?.[1];
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        expect(parsed.state.switchProgress).toBeUndefined();
+      }
+    });
+  });
+
+  describe("getSelectedModel Selector (Story 2.4)", () => {
+    it("should return null when no model selected", async () => {
+      const { useModelStore } = await import("../models");
+      const state = useModelStore.getState();
+
+      expect(state.getSelectedModel()).toBeNull();
+    });
+
+    it("should return full model metadata when model selected", async () => {
+      const { useModelStore } = await import("../models");
+
+      await useModelStore.getState().loadModels();
+      useModelStore.getState().selectModel("phi-3-mini");
+
+      const selectedModel = useModelStore.getState().getSelectedModel();
+      expect(selectedModel).not.toBeNull();
+      expect(selectedModel?.id).toBe("phi-3-mini");
+      expect(selectedModel?.name).toBe("Phi-3 Mini");
+    });
+  });
+
   describe("useModelsWithRecommendations Hook", () => {
     const mockHardware: HardwareCapabilities = {
       ram: 16_384,

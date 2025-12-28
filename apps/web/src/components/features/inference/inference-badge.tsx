@@ -33,6 +33,8 @@ export interface InferenceBadgeProps {
   tokenCount?: number;
   /** Duration in milliseconds (shown on complete) */
   duration?: number;
+  /** Model being switched to (for switching state) */
+  switchingTo?: string;
   /** Additional CSS classes */
   className?: string;
 }
@@ -49,17 +51,23 @@ export function InferenceBadge({
   modelName,
   tokenCount,
   duration,
+  switchingTo,
   className,
 }: InferenceBadgeProps) {
   // Determine if source is local-like (local or stub) vs cloud
   const isLocal = source === "local" || source === "stub";
 
+  // Special handling for switching state
+  const isSwitching = state === "switching";
+
   // Generate state text based on state and source
-  const stateText = {
-    generating: `Generating ${isLocal ? "locally " : ""}via ${modelName}`,
-    complete: `Generated ${isLocal ? "locally " : ""}via ${modelName}`,
-    error: "Generation failed",
-  }[state];
+  const stateText = isSwitching
+    ? `Switching to ${switchingTo ?? "model"}...`
+    : {
+        generating: `Generating ${isLocal ? "locally " : ""}via ${modelName}`,
+        complete: `Generated ${isLocal ? "locally " : ""}via ${modelName}`,
+        error: "Generation failed",
+      }[state as "generating" | "complete" | "error"];
 
   // Show timing info only when complete and both values are present
   const timingText =
@@ -67,18 +75,38 @@ export function InferenceBadge({
       ? `${(duration / 1000).toFixed(1)}s • ${tokenCount} tokens`
       : null;
 
+  // Get styling based on state
+  const getBadgeStyles = () => {
+    if (isSwitching) {
+      // Amber/yellow for switching state - indicates transition
+      return "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-950/20 dark:text-amber-400";
+    }
+    if (isLocal) {
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    }
+    return "border-slate-200 bg-slate-50 text-slate-600";
+  };
+
+  // Get dot color based on state
+  const getDotStyles = () => {
+    if (isSwitching) {
+      return "bg-amber-500";
+    }
+    if (isLocal) {
+      return "bg-emerald-500";
+    }
+    return "bg-slate-400";
+  };
+
   return (
     <div
       aria-atomic="true"
       aria-live="polite"
       className={cn(
         "inline-flex items-center gap-2 rounded-md border px-2 py-1 font-mono text-sm",
-        // Mode-aware styling
-        isLocal
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-slate-200 bg-slate-50 text-slate-600",
-        // Animation for generating state
-        state === "generating" && "animate-pulse",
+        getBadgeStyles(),
+        // Animation for generating or switching state
+        (state === "generating" || isSwitching) && "animate-pulse",
         className
       )}
       data-slot="inference-badge"
@@ -91,8 +119,8 @@ export function InferenceBadge({
         aria-hidden="true"
         className={cn(
           "h-2 w-2 rounded-full",
-          isLocal ? "bg-emerald-500" : "bg-slate-400",
-          state === "generating" && "animate-pulse"
+          getDotStyles(),
+          (state === "generating" || isSwitching) && "animate-pulse"
         )}
       />
 

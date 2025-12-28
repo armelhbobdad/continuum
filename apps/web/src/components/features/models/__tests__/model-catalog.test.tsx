@@ -49,6 +49,7 @@ const mockModels: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl: "https://example.com/a.gguf",
     sha256: "abc",
+    tokenizerSource: "test/model-a",
   },
   {
     id: "model-b",
@@ -67,6 +68,7 @@ const mockModels: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl: "https://example.com/b.gguf",
     sha256: "def",
+    tokenizerSource: "test/model-b",
   },
 ];
 
@@ -187,9 +189,11 @@ describe("ModelCatalog", () => {
         startPolling: vi.fn(),
         stopPolling: vi.fn(),
       });
-      mockedUseModelStore.mockReturnValue({
+
+      // Mock store with selector support for ModelDownloadButton
+      const storeState = {
         availableModels: mockModels,
-        downloadedModels: [],
+        downloadedModels: [] as string[],
         selectedModelId: null,
         isLoading: false,
         error: null,
@@ -197,7 +201,14 @@ describe("ModelCatalog", () => {
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
         removeDownloadedModel: vi.fn(),
+      };
+      mockedUseModelStore.mockImplementation((selector?: unknown) => {
+        if (typeof selector === "function") {
+          return selector(storeState);
+        }
+        return storeState;
       });
+
       mockedUseModelsWithRecommendations.mockReturnValue([
         { model: mockModels[0], recommendation: "recommended" as const },
         { model: mockModels[1], recommendation: "may-be-slow" as const },
@@ -222,9 +233,11 @@ describe("ModelCatalog", () => {
         startPolling: vi.fn(),
         stopPolling: vi.fn(),
       });
-      mockedUseModelStore.mockReturnValue({
+
+      // Mock store with selector support for ModelDownloadButton
+      const storeState = {
         availableModels: mockModels,
-        downloadedModels: [],
+        downloadedModels: [] as string[],
         selectedModelId: null,
         isLoading: false,
         error: null,
@@ -232,7 +245,14 @@ describe("ModelCatalog", () => {
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
         removeDownloadedModel: vi.fn(),
+      };
+      mockedUseModelStore.mockImplementation((selector?: unknown) => {
+        if (typeof selector === "function") {
+          return selector(storeState);
+        }
+        return storeState;
       });
+
       // Note: useModelsWithRecommendations already returns sorted
       mockedUseModelsWithRecommendations.mockReturnValue([
         { model: mockModels[0], recommendation: "recommended" as const },
@@ -261,9 +281,11 @@ describe("ModelCatalog", () => {
         startPolling: vi.fn(),
         stopPolling: vi.fn(),
       });
-      mockedUseModelStore.mockReturnValue({
+
+      // Mock store with selector support for ModelDownloadButton
+      const storeState = {
         availableModels: mockModels,
-        downloadedModels: [],
+        downloadedModels: [] as string[],
         selectedModelId: null,
         isLoading: false,
         error: null,
@@ -271,7 +293,14 @@ describe("ModelCatalog", () => {
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
         removeDownloadedModel: vi.fn(),
+      };
+      mockedUseModelStore.mockImplementation((selector?: unknown) => {
+        if (typeof selector === "function") {
+          return selector(storeState);
+        }
+        return storeState;
       });
+
       mockedUseModelsWithRecommendations.mockReturnValue([
         { model: mockModels[0], recommendation: "recommended" as const },
         { model: mockModels[1], recommendation: "not-recommended" as const },
