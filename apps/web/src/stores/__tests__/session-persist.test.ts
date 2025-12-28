@@ -100,7 +100,7 @@ describe("Session Store - Persistence", () => {
               messages: [
                 {
                   id: "msg-1",
-                  role: "user",
+                  role: "user" as const,
                   content: "Hello",
                   timestamp: new Date().toISOString(),
                 },
@@ -146,13 +146,13 @@ describe("Session Store - Persistence", () => {
               messages: [
                 {
                   id: "msg-1",
-                  role: "user",
+                  role: "user" as const,
                   content: "Tell me a story",
                   timestamp: new Date().toISOString(),
                 },
                 {
                   id: "msg-2",
-                  role: "assistant",
+                  role: "assistant" as const,
                   content: "Once upon a time, there was a", // Partial response
                   timestamp: new Date().toISOString(),
                   metadata: undefined, // No finalization metadata = incomplete
