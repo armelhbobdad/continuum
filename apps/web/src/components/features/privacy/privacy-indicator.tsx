@@ -4,7 +4,7 @@
  * Privacy Indicator Component
  *
  * Displays the current privacy mode with mode-specific styling.
- * Clicking opens the Privacy Mode Selector.
+ * Clicking opens the Privacy Dashboard (Story 1.6).
  *
  * Visual language (from UX spec):
  * - local-only: emerald, solid border
@@ -12,6 +12,7 @@
  * - cloud-enhanced: slate, no border
  *
  * Story 1.2: Privacy Gate Provider & Zustand Stores
+ * Story 1.6: Privacy Dashboard MVP
  */
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -89,7 +90,7 @@ const dotVariants = cva("size-2 rounded-full", {
 
 interface PrivacyIndicatorProps
   extends VariantProps<typeof privacyIndicatorVariants> {
-  /** Click handler to open mode selector */
+  /** Click handler - defaults to opening Privacy Dashboard */
   onClick?: () => void;
   /** Additional CSS classes */
   className?: string;
@@ -101,6 +102,7 @@ interface PrivacyIndicatorProps
  * Privacy Indicator Component
  *
  * Shows current privacy mode with visual styling.
+ * Clicking opens the Privacy Dashboard (per UX spec: <= 2 clicks to verification).
  * Accessible via keyboard (Enter/Space to activate).
  */
 export function PrivacyIndicator({
@@ -109,20 +111,35 @@ export function PrivacyIndicator({
   as: Component = "button",
 }: PrivacyIndicatorProps) {
   const mode = usePrivacyStore((state) => state.mode);
+  const openDashboard = usePrivacyStore((state) => state.openDashboard);
   const label = MODE_LABELS[mode];
   const description = MODE_DESCRIPTIONS[mode];
+
+  // Default to opening dashboard when no custom onClick provided
+  const handleClick = onClick ?? openDashboard;
 
   // Only add button-specific props when rendering as button
   const buttonProps = Component === "button" ? { type: "button" as const } : {};
 
+  // Semantic props: buttons shouldn't have role="status" (they're interactive)
+  // Non-button variants get role="status" for screen reader live region announcements
+  const isInteractive = Component === "button";
+  const semanticProps = isInteractive
+    ? {
+        "aria-label": `Privacy mode: ${label}. ${description}. Click to open Privacy Dashboard.`,
+      }
+    : {
+        "aria-label": `Privacy mode: ${label}. ${description}`,
+        "aria-live": "polite" as const,
+        role: "status" as const,
+      };
+
   return (
     <Component
-      aria-label={`Privacy mode: ${label}. ${description}`}
-      aria-live="polite"
       className={cn(privacyIndicatorVariants({ mode }), className)}
       data-slot="privacy-indicator"
-      onClick={onClick}
-      role="status"
+      onClick={handleClick}
+      {...semanticProps}
       {...buttonProps}
     >
       <span aria-hidden="true" className={dotVariants({ mode })} />

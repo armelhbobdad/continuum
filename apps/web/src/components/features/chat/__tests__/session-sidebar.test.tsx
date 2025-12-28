@@ -3,6 +3,7 @@
  *
  * Tests for session sidebar navigation and display.
  * Story 1.3: AC #1 (sidebar), AC #5 (session list)
+ * Story 1.7: AC #4 (timestamps, ordering, unsaved indicator)
  */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -12,10 +13,13 @@ import { SessionSidebar } from "../session-sidebar";
 
 describe("SessionSidebar Component", () => {
   beforeEach(() => {
-    // Reset session store
+    // Reset session store with Story 1.7 state
     useSessionStore.setState({
       sessions: [],
       activeSessionId: null,
+      lastSavedAt: null,
+      isDirty: false,
+      wasRecovered: false,
     });
   });
 
@@ -191,6 +195,156 @@ describe("SessionSidebar Component", () => {
       // Items have role="option" for listbox semantics
       const option = screen.getByRole("option", { name: /test session/i });
       expect(option).toBeInTheDocument();
+    });
+  });
+
+  // Story 1.7: Session Persistence & Auto-Save
+  describe("Relative Timestamps (Story 1.7 Task 4.2)", () => {
+    it("displays relative timestamp for each session", () => {
+      const state = useSessionStore.getState();
+      state.createSession("Test session");
+
+      render(<SessionSidebar />);
+
+      // Should show "just now" for recently created session
+      expect(screen.getByText(/just now/i)).toBeInTheDocument();
+    });
+
+    it("displays appropriate time format for older sessions", () => {
+      // Create session with older timestamp
+      const oldDate = new Date();
+      oldDate.setMinutes(oldDate.getMinutes() - 5);
+
+      useSessionStore.setState({
+        sessions: [
+          {
+            id: "old-session",
+            title: "Old session",
+            messages: [],
+            createdAt: oldDate,
+            updatedAt: oldDate,
+          },
+        ],
+        activeSessionId: "old-session",
+      });
+
+      render(<SessionSidebar />);
+
+      // Should show "5 min ago"
+      expect(screen.getByText(/5 min ago/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Session Ordering (Story 1.7 Task 4.3)", () => {
+    it("sorts sessions by updatedAt descending", () => {
+      // Create sessions with different timestamps
+      const oldDate = new Date();
+      oldDate.setHours(oldDate.getHours() - 2);
+
+      const recentDate = new Date();
+
+      useSessionStore.setState({
+        sessions: [
+          {
+            id: "old",
+            title: "Old session",
+            messages: [],
+            createdAt: oldDate,
+            updatedAt: oldDate,
+          },
+          {
+            id: "recent",
+            title: "Recent session",
+            messages: [],
+            createdAt: recentDate,
+            updatedAt: recentDate,
+          },
+        ],
+        activeSessionId: "recent",
+      });
+
+      render(<SessionSidebar />);
+
+      const items = screen.getAllByRole("option");
+      // Recent should come first
+      expect(items[0]).toHaveTextContent("Recent session");
+      expect(items[1]).toHaveTextContent("Old session");
+    });
+  });
+
+  describe("Unsaved Changes Indicator (Story 1.7 Task 4.4)", () => {
+    it("shows unsaved indicator for active session when dirty", () => {
+      const state = useSessionStore.getState();
+      const sessionId = state.createSession("Test session");
+
+      // Set dirty state
+      useSessionStore.setState({
+        activeSessionId: sessionId,
+        isDirty: true,
+      });
+
+      render(<SessionSidebar />);
+
+      // Should show unsaved indicator
+      const indicator = screen.getByLabelText("Unsaved changes");
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it("does not show unsaved indicator when not dirty", () => {
+      const state = useSessionStore.getState();
+      state.createSession("Test session");
+
+      // Clear dirty flag (createSession sets it to true)
+      useSessionStore.setState({ isDirty: false });
+
+      render(<SessionSidebar />);
+
+      // Should not show unsaved indicator
+      expect(
+        screen.queryByLabelText("Unsaved changes")
+      ).not.toBeInTheDocument();
+    });
+
+    it("does not show unsaved indicator for inactive sessions even when dirty", () => {
+      // Create two sessions
+      useSessionStore.setState({
+        sessions: [
+          {
+            id: "inactive",
+            title: "Inactive session",
+            messages: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: "active",
+            title: "Active session",
+            messages: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        activeSessionId: "active",
+        isDirty: true,
+      });
+
+      render(<SessionSidebar />);
+
+      // Only one unsaved indicator (for active session)
+      const indicators = screen.queryAllByLabelText("Unsaved changes");
+      expect(indicators).toHaveLength(1);
+    });
+  });
+
+  describe("Session Item Styling (Story 1.7)", () => {
+    it("has data-slot attribute on session items", () => {
+      const state = useSessionStore.getState();
+      state.createSession("Test session");
+
+      render(<SessionSidebar />);
+
+      const item = screen.getByRole("option", { name: /test session/i });
+      expect(item).toHaveAttribute("data-slot", "session-sidebar-item");
     });
   });
 });

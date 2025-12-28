@@ -8,11 +8,13 @@
  *
  * Story 1.3: Basic Chat UI Shell - AC #1 (chat panel with message input)
  * Story 1.4: Local Inference Integration - AC #2, #3, #4, #5, #6 (streaming + abort + errors)
+ * Story 1.5: Inference Badge & Streaming UI - AC #1, #2 (badge + streaming message)
  */
 
 import type { InferenceAdapter, InferenceError } from "@continuum/inference";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSessionStore } from "@/stores/session";
+import type { StreamingMetadata } from "@/types/inference";
 import { AbortButton } from "./abort-button";
 import { InferenceErrorDisplay } from "./inference-error";
 import { MessageInput } from "./message-input";
@@ -32,6 +34,7 @@ interface GenerationContext {
   messageId: string;
   adapter: InferenceAdapter;
   aborted: boolean;
+  streamingMetadata: StreamingMetadata;
 }
 
 /**
@@ -48,6 +51,9 @@ export function ChatPanel() {
   const updateMessageContent = useSessionStore(
     (state) => state.updateMessageContent
   );
+  const setMessageInferenceMetadata = useSessionStore(
+    (state) => state.setMessageInferenceMetadata
+  );
   const finalizeMessage = useSessionStore((state) => state.finalizeMessage);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +63,10 @@ export function ChatPanel() {
     error: null,
     lastPrompt: null,
   });
+
+  // Track streaming metadata for UI (Story 1.5)
+  const [streamingMetadata, setStreamingMetadata] =
+    useState<StreamingMetadata | null>(null);
 
   // Track current generation for abort (AC4)
   const generationRef = useRef<GenerationContext | null>(null);
@@ -94,16 +104,30 @@ export function ChatPanel() {
     // Call adapter abort
     await ctx.adapter.abort();
 
+    // Save inference metadata before clearing (Story 1.5)
+    if (ctx.streamingMetadata) {
+      setMessageInferenceMetadata(ctx.sessionId, ctx.messageId, {
+        source: ctx.streamingMetadata.source,
+        modelName: ctx.streamingMetadata.modelName,
+        startTime: ctx.streamingMetadata.startTime,
+        tokenCount: ctx.streamingMetadata.tokenCount,
+        duration: Date.now() - ctx.streamingMetadata.startTime,
+      });
+    }
+
     // Finalize with aborted status (preserves partial response - AC4)
     finalizeMessage(ctx.sessionId, ctx.messageId, {
       finishReason: "aborted",
     });
 
+    // Clear streaming metadata
+    setStreamingMetadata(null);
+
     setInferenceState((prev) => ({
       ...prev,
       isGenerating: false,
     }));
-  }, [finalizeMessage]);
+  }, [finalizeMessage, setMessageInferenceMetadata]);
 
   // Dismiss error (AC6)
   const handleDismissError = useCallback(() => {
@@ -140,7 +164,27 @@ export function ChatPanel() {
       const { getInferenceAdapterAsync } = await import(
         "@/lib/inference/get-adapter"
       );
+      const { isDesktop } = await import("@continuum/platform");
       const adapter = await getInferenceAdapterAsync();
+
+      // Get adapter capabilities for model info (Story 1.5)
+      const capabilities = adapter.getCapabilities();
+      const startTime = Date.now();
+
+      // Determine inference source based on platform and adapter (Story 1.5)
+      // Local: Kalosm on desktop, Stub: fallback on web, Cloud: future provider
+      const inferenceSource: "local" | "stub" | `cloud:${string}` = isDesktop()
+        ? "local"
+        : "stub";
+
+      // Create streaming metadata (Story 1.5)
+      const metadata: StreamingMetadata = {
+        messageId: assistantMessageId,
+        source: inferenceSource,
+        modelName: capabilities.modelName,
+        startTime,
+        tokenCount: 0,
+      };
 
       // Set up generation context for abort tracking
       generationRef.current = {
@@ -148,7 +192,11 @@ export function ChatPanel() {
         messageId: assistantMessageId,
         adapter,
         aborted: false,
+        streamingMetadata: metadata,
       };
+
+      // Update streaming state for UI
+      setStreamingMetadata(metadata);
 
       try {
         // Load model if needed (AC3: Cold Model Loading)
@@ -167,7 +215,7 @@ export function ChatPanel() {
         setInferenceState((prev) => ({ ...prev, isGenerating: true }));
 
         let fullContent = "";
-        const startTime = Date.now();
+        let tokenCount = 0;
 
         for await (const token of adapter.generate({ prompt: content })) {
           // Check abort flag during streaming
@@ -176,16 +224,40 @@ export function ChatPanel() {
           }
 
           fullContent += token.text;
+          tokenCount++;
+
+          // Update streaming metadata with token count (Story 1.5)
+          if (generationRef.current) {
+            generationRef.current.streamingMetadata.tokenCount = tokenCount;
+          }
+          setStreamingMetadata((prev) =>
+            prev ? { ...prev, tokenCount } : null
+          );
+
           updateMessageContent(sessionId, assistantMessageId, fullContent);
         }
 
         // Only finalize as completed if not aborted
         if (!generationRef.current?.aborted) {
           const durationMs = Date.now() - startTime;
+
+          // Save inference metadata to message (Story 1.5 Task 5.4)
+          setMessageInferenceMetadata(sessionId, assistantMessageId, {
+            source: inferenceSource,
+            modelName: capabilities.modelName,
+            startTime,
+            tokenCount,
+            duration: durationMs,
+          });
+
           finalizeMessage(sessionId, assistantMessageId, {
             finishReason: "completed",
             durationMs,
+            tokensGenerated: tokenCount,
           });
+
+          // Clear streaming metadata
+          setStreamingMetadata(null);
         }
       } catch (err) {
         // Don't show error if aborted
@@ -221,6 +293,8 @@ export function ChatPanel() {
             isGenerating: false,
             isLoadingModel: false,
           }));
+          // Clear streaming metadata on completion or error
+          setStreamingMetadata(null);
         }
         generationRef.current = null;
       }
@@ -230,6 +304,7 @@ export function ChatPanel() {
       addMessage,
       createSession,
       updateMessageContent,
+      setMessageInferenceMetadata,
       finalizeMessage,
     ]
   );
@@ -262,7 +337,10 @@ export function ChatPanel() {
             </p>
           </div>
         ) : (
-          <MessageList messages={messages} />
+          <MessageList
+            messages={messages}
+            streamingMetadata={streamingMetadata}
+          />
         )}
       </div>
 
