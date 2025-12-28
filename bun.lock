@@ -150,12 +150,17 @@
       "name": "@continuum/platform",
       "devDependencies": {
         "@continuum/config": "workspace:*",
+        "@tauri-apps/api": "^2.0.0",
         "@types/react": "^19",
         "typescript": "^5",
       },
       "peerDependencies": {
+        "@tauri-apps/api": "^2.0.0",
         "react": "^18 || ^19",
       },
+      "optionalPeers": [
+        "@tauri-apps/api",
+      ],
     },
   },
   "catalog": {
