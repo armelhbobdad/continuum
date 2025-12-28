@@ -3,12 +3,14 @@
 /**
  * ModelCard Component
  * Story 2.2: Model Catalog & Cards
+ * Story 2.3: Model Download Manager (download button integration)
  *
  * Displays model specifications, capabilities, and hardware compatibility.
  * Uses CVA for recommendation-based styling variants.
  *
  * AC2: Model Card Details (FR26)
  * AC4: Vulnerability Warnings (FR33)
+ * Story 2.3 AC1-5: Download lifecycle integration
  *
  * ADR-MODEL-003: CVA variants for card visual states
  */
@@ -17,6 +19,7 @@ import type { ModelMetadata } from "@continuum/inference";
 import type { ModelRecommendation } from "@continuum/platform";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+import { ModelDownloadButton } from "./model-download-button";
 
 /**
  * CVA variants for ModelCard based on hardware recommendation.
@@ -187,10 +190,19 @@ export function ModelCard({
         </div>
       )}
 
+      {/* Download Button (Story 2.3) */}
+      <div className="mt-4">
+        <ModelDownloadButton
+          className="w-full"
+          downloadUrl={model.downloadUrl}
+          model={model}
+        />
+      </div>
+
       {/* Select Action */}
       {onSelect && (
         <button
-          className="mt-4 w-full rounded bg-primary px-4 py-2 font-medium text-primary-foreground text-sm hover:bg-primary/90"
+          className="mt-2 w-full rounded bg-secondary px-4 py-2 font-medium text-secondary-foreground text-sm hover:bg-secondary/90"
           onClick={() => onSelect(model.id)}
           type="button"
         >

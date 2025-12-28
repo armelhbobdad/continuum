@@ -1,8 +1,11 @@
+mod downloads;
 mod hardware;
 mod inference;
 
+use downloads::DownloadState;
 use hardware::HardwareState;
 use inference::InferenceState;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,8 +22,28 @@ pub fn run() {
             // Hardware commands (Story 2.1)
             hardware::get_system_info,
             hardware::get_gpu_info,
+            // Download commands (Story 2.3)
+            downloads::start_download,
+            downloads::pause_download,
+            downloads::resume_download,
+            downloads::cancel_download,
+            downloads::get_download_progress,
+            downloads::check_storage_space,
+            downloads::get_model_path,
+            downloads::get_partial_download_size,
+            downloads::delete_model,
         ])
         .setup(|app| {
+            // Initialize download state with app data directory
+            let app_data_dir = app
+                .path()
+                .app_data_dir()
+                .expect("Failed to get app data directory");
+            app.manage(DownloadState::new(app_data_dir));
+
+            // Notification plugin (Story 2.3)
+            app.handle().plugin(tauri_plugin_notification::init())?;
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()

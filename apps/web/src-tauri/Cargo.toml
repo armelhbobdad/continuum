@@ -27,6 +27,7 @@ log = "0.4"
 tauri = { version = "2.9.5", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-mcp-bridge = "0.6"
+tauri-plugin-notification = "2"
 
 # Inference dependencies
 kalosm = { version = "0.4", features = ["language"] }
@@ -37,3 +38,7 @@ futures-util = "0.3"
 
 # Hardware detection (Story 2.1)
 sysinfo = "0.37.2"
+
+# Download manager (Story 2.3)
+reqwest = { version = "0.12", features = ["stream"] }
+uuid = { version = "1.11", features = ["v4"] }

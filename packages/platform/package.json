@@ -10,6 +10,9 @@
   },
   "type": "module",
   "scripts": {},
+  "dependencies": {
+    "@continuum/inference": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5",
     "@continuum/config": "workspace:*",

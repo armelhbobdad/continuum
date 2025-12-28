@@ -5,12 +5,13 @@
  *
  * Client component for model management page.
  * Story 2.2: Model Catalog & Cards
+ * Story 2.3: Model Download Manager
  *
- * Starts hardware polling and displays model catalog.
+ * Starts hardware polling and displays model catalog with active downloads.
  */
 
 import { useEffect } from "react";
-import { ModelCatalog } from "@/components/features/models";
+import { DownloadManager, ModelCatalog } from "@/components/features/models";
 import { useHardwareStore } from "@/stores/hardware";
 
 /**
@@ -37,6 +38,9 @@ export function ModelsPageContent() {
           Recommendations are based on your hardware capabilities.
         </p>
       </header>
+
+      {/* Active downloads with progress bars (Story 2.3 AC1-2) */}
+      <DownloadManager />
 
       <ModelCatalog />
     </div>

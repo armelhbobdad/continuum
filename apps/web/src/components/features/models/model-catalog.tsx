@@ -31,7 +31,7 @@ export interface ModelCatalogProps {
  * AC3: Hardware-appropriate models highlighted, recommended first
  */
 export function ModelCatalog({ className }: ModelCatalogProps) {
-  const { isLoading: hardwareLoading } = useHardwareStore();
+  const { isLoading: hardwareLoading, capabilities } = useHardwareStore();
   const {
     isLoading: modelsLoading,
     error,
@@ -48,9 +48,13 @@ export function ModelCatalog({ className }: ModelCatalogProps) {
     }
   }, [availableModels.length, loadModels]);
 
-  // Loading state (AC1)
-  const isLoading = hardwareLoading || modelsLoading;
-  if (isLoading) {
+  // Only show skeleton on INITIAL load (no data yet)
+  // Don't show skeleton during hardware polling refresh (already have data)
+  const isInitialLoad =
+    (hardwareLoading && !capabilities) ||
+    (modelsLoading && availableModels.length === 0);
+
+  if (isInitialLoad) {
     return <CatalogSkeleton className={className} />;
   }
 
