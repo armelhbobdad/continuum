@@ -104,8 +104,12 @@ impl InferenceError {
 /// # Arguments
 /// * `model_id` - The model identifier (e.g., "phi-3-mini")
 ///
-/// The model file is expected at: app_data_dir/models/{model_id}.gguf
-/// The tokenizer is expected at: app_data_dir/models/{model_id}.tokenizer.json
+/// File structure:
+/// ```
+/// models/{model_id}/
+///   model.gguf       <- main model weights
+///   tokenizer.json   <- tokenizer for the model
+/// ```
 /// Both files are downloaded together by the download manager (Story 2.3).
 #[tauri::command]
 pub async fn load_model(
@@ -124,10 +128,11 @@ pub async fn load_model(
 
     state.set_status(ModelStatus::Loading).await;
 
-    // Resolve model path from downloads directory (Task 1.3)
-    let model_path = download_state
-        .models_dir()
-        .join(format!("{}.gguf", model_id));
+    // Resolve model directory path
+    let model_dir = download_state.models_dir().join(&model_id);
+
+    // Resolve model file path (Task 1.3)
+    let model_path = model_dir.join("model.gguf");
 
     // Verify model exists before loading (Task 1.6)
     if !model_path.exists() {
@@ -137,9 +142,7 @@ pub async fn load_model(
     }
 
     // Resolve tokenizer path (downloaded alongside model by Story 2.3)
-    let tokenizer_path = download_state
-        .models_dir()
-        .join(format!("{}.tokenizer.json", model_id));
+    let tokenizer_path = model_dir.join("tokenizer.json");
 
     // Verify tokenizer exists
     if !tokenizer_path.exists() {

@@ -17,9 +17,12 @@ use tauri::{AppHandle, State};
 /// Returns the download_id for tracking progress.
 /// Progress updates are emitted via the `download_progress` Tauri event.
 ///
-/// Downloads both:
-/// - Model weights: `{model_id}.gguf`
-/// - Tokenizer: `{model_id}.tokenizer.json`
+/// File structure:
+/// ```
+/// models/{model_id}/
+///   model.gguf       <- main model weights
+///   tokenizer.json   <- tokenizer for the model
+/// ```
 ///
 /// # Arguments
 /// * `model_id` - The model identifier
@@ -141,8 +144,8 @@ pub async fn get_model_path(
     model_id: String,
     state: State<'_, DownloadState>,
 ) -> Result<Option<String>, String> {
-    let file_name = format!("{}.gguf", model_id);
-    let file_path = state.models_dir().join(&file_name);
+    // Model is stored in: models/{model_id}/model.gguf
+    let file_path = state.models_dir().join(&model_id).join("model.gguf");
 
     if file_path.exists() {
         Ok(Some(file_path.to_string_lossy().to_string()))
@@ -164,8 +167,8 @@ pub async fn get_partial_download_size(
     model_id: String,
     state: State<'_, DownloadState>,
 ) -> Result<Option<u64>, String> {
-    let file_name = format!("{}.gguf.part", model_id);
-    let part_path = state.models_dir().join(&file_name);
+    // Partial download is stored in: models/{model_id}/model.gguf.part
+    let part_path = state.models_dir().join(&model_id).join("model.gguf.part");
 
     if part_path.exists() {
         let metadata = std::fs::metadata(&part_path)
@@ -178,6 +181,8 @@ pub async fn get_partial_download_size(
 
 /// Delete a downloaded model and its tokenizer
 ///
+/// Removes the entire model directory: models/{model_id}/
+///
 /// # Arguments
 /// * `model_id` - The model identifier
 #[tauri::command]
@@ -185,25 +190,12 @@ pub async fn delete_model(
     model_id: String,
     state: State<'_, DownloadState>,
 ) -> Result<(), String> {
-    let models_dir = state.models_dir();
+    let model_dir = state.models_dir().join(&model_id);
 
-    // Delete model file
-    let model_path = models_dir.join(format!("{}.gguf", model_id));
-    if model_path.exists() {
-        std::fs::remove_file(&model_path)
-            .map_err(|e| format!("Failed to delete model: {}", e))?;
-    }
-
-    // Delete tokenizer file
-    let tokenizer_path = models_dir.join(format!("{}.tokenizer.json", model_id));
-    if tokenizer_path.exists() {
-        let _ = std::fs::remove_file(&tokenizer_path);
-    }
-
-    // Remove any partial files
-    let part_path = models_dir.join(format!("{}.gguf.part", model_id));
-    if part_path.exists() {
-        let _ = std::fs::remove_file(&part_path);
+    // Delete the entire model directory
+    if model_dir.exists() {
+        std::fs::remove_dir_all(&model_dir)
+            .map_err(|e| format!("Failed to delete model directory: {}", e))?;
     }
 
     Ok(())

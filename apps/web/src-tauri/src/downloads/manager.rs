@@ -25,7 +25,15 @@ const PROGRESS_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
 ///
 /// Returns the download_id for tracking.
 /// Downloads are stored as .part files until complete.
-/// Both model.gguf and tokenizer.json are downloaded.
+///
+/// File structure:
+/// ```
+/// models/
+///   {model_id}/
+///     model.gguf       <- main model weights
+///     tokenizer.json   <- tokenizer for the model
+///     model.gguf.part  <- partial download (during download)
+/// ```
 pub async fn start_download(
     app: &AppHandle,
     state: &DownloadState,
@@ -36,13 +44,17 @@ pub async fn start_download(
     let download_id = Uuid::new_v4().to_string();
     let models_dir = state.models_dir();
 
-    // Download tokenizer first (small file, quick)
-    download_tokenizer(state.client(), tokenizer_url, models_dir, model_id).await?;
+    // Create model-specific directory
+    let model_dir = models_dir.join(model_id);
+    std::fs::create_dir_all(&model_dir)
+        .map_err(|e| format!("Failed to create model directory: {}", e))?;
 
-    // Determine file paths for model
-    let file_name = format!("{}.gguf", model_id);
-    let file_path = models_dir.join(&file_name);
-    let part_path = models_dir.join(format!("{}.part", file_name));
+    // Download tokenizer first (small file, quick)
+    download_tokenizer(state.client(), tokenizer_url, &model_dir).await?;
+
+    // Determine file paths for model (inside model directory)
+    let file_path = model_dir.join("model.gguf");
+    let part_path = model_dir.join("model.gguf.part");
 
     // Check for existing partial download
     let mut bytes_downloaded = 0u64;
@@ -121,22 +133,21 @@ pub async fn start_download(
     Ok(download_id)
 }
 
-/// Download tokenizer.json to the models directory
+/// Download tokenizer.json to the model directory
 async fn download_tokenizer(
     client: &reqwest::Client,
     url: &str,
-    models_dir: &std::path::Path,
-    model_id: &str,
+    model_dir: &std::path::Path,
 ) -> Result<(), String> {
-    let tokenizer_path = models_dir.join(format!("{}.tokenizer.json", model_id));
+    let tokenizer_path = model_dir.join("tokenizer.json");
 
     // Skip if already downloaded
     if tokenizer_path.exists() {
-        info!("Tokenizer already exists for {}", model_id);
+        info!("Tokenizer already exists at {:?}", tokenizer_path);
         return Ok(());
     }
 
-    info!("Downloading tokenizer for {} from {}", model_id, url);
+    info!("Downloading tokenizer from {}", url);
 
     let response = client
         .get(url)
@@ -159,7 +170,7 @@ async fn download_tokenizer(
     std::fs::write(&tokenizer_path, &bytes)
         .map_err(|e| format!("Failed to save tokenizer: {}", e))?;
 
-    info!("Tokenizer saved for {}", model_id);
+    info!("Tokenizer saved to {:?}", tokenizer_path);
     Ok(())
 }
 
