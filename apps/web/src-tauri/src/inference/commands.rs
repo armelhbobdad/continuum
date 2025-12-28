@@ -248,11 +248,23 @@ pub async fn abort_inference(state: State<'_, Arc<InferenceState>>) -> Result<()
 }
 
 /// Check if model is loaded
+/// Uses is_loaded() to verify status accuracy
 #[tauri::command]
 pub async fn get_model_status(
     state: State<'_, Arc<InferenceState>>,
 ) -> Result<ModelStatus, InferenceError> {
-    Ok(state.get_status().await)
+    let status = state.get_status().await;
+
+    // Verify status matches actual model state
+    // Status could get out of sync if model was dropped unexpectedly
+    match (&status, state.is_loaded().await) {
+        (ModelStatus::Loaded | ModelStatus::Generating, false) => {
+            // Status says loaded but model is gone - correct it
+            state.set_status(ModelStatus::Unloaded).await;
+            Ok(ModelStatus::Unloaded)
+        }
+        _ => Ok(status),
+    }
 }
 
 /// Unload model and release resources
