@@ -17,7 +17,7 @@ import { getModelMetadata } from "@continuum/inference";
 import type { ModelRecommendation } from "@continuum/platform";
 import { getModelRecommendation } from "@continuum/platform";
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,11 +77,19 @@ export function ChatModelSelector({
   const selectedModelId = useModelStore((s) => s.selectedModelId);
   const availableModels = useModelStore((s) => s.availableModels);
   const selectModel = useModelStore((s) => s.selectModel);
+  const loadModels = useModelStore((s) => s.loadModels);
   const capabilities = useHardwareStore((s) => s.capabilities);
 
   // State for hardware warning dialog (AC4)
   const [pendingSelection, setPendingSelection] =
     useState<PendingSelection | null>(null);
+
+  // Load models on mount if not already loaded
+  useEffect(() => {
+    if (availableModels.length === 0) {
+      loadModels();
+    }
+  }, [availableModels.length, loadModels]);
 
   // Get downloaded models with metadata
   const downloadedModelsWithMeta = availableModels.filter((m) =>
