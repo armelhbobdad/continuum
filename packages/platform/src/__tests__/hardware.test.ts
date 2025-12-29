@@ -4,7 +4,7 @@
  * Tests for AC1-AC7
  */
 
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   GpuInfo,
   HardwareCapabilities,
@@ -17,15 +17,27 @@ let invokeCallCount = 0;
 const invokeCallArgs: string[] = [];
 
 // Mock @tauri-apps/api/core module for desktop detection tests
-mock.module("@tauri-apps/api/core", () => ({
+vi.mock("@tauri-apps/api/core", () => ({
   invoke: async (cmd: string) => {
     invokeCallArgs.push(cmd);
-    invokeCallCount++;
+    invokeCallCount += 1;
     return mockInvokeResponses.get(cmd) ?? null;
   },
 }));
 
 import { getHardwareCapabilities, getModelRecommendation } from "../hardware";
+
+// Helper to create a complete StorageManager mock
+function createStorageMock(
+  estimateFn: () => Promise<{ quota: number; usage: number }>
+): StorageManager {
+  return {
+    estimate: estimateFn,
+    getDirectory: vi.fn().mockRejectedValue(new Error("Not implemented")),
+    persist: vi.fn().mockResolvedValue(false),
+    persisted: vi.fn().mockResolvedValue(false),
+  };
+}
 
 // Store original values for cleanup
 let originalTauri: unknown;
@@ -41,17 +53,11 @@ const mockTauri = (enabled: boolean) => {
     globalThis.__TAURI_INTERNALS__ = {};
   } else {
     // @ts-expect-error - mocking Tauri detection
-    delete globalThis.__TAURI__;
+    globalThis.__TAURI__ = undefined;
     // @ts-expect-error - mocking Tauri internals
-    delete globalThis.__TAURI_INTERNALS__;
+    globalThis.__TAURI_INTERNALS__ = undefined;
   }
 };
-
-// Helper to create mock functions for web tests
-const createMockFn = <T>(impl: () => T | Promise<T>) =>
-  Object.assign(impl, {
-    mockResolvedValue: (v: T) => () => Promise.resolve(v),
-  });
 
 describe("Hardware Capability Detection", () => {
   beforeEach(() => {
@@ -74,7 +80,7 @@ describe("Hardware Capability Detection", () => {
       globalThis.__TAURI__ = originalTauri;
     } else {
       // @ts-expect-error - cleaning up
-      delete globalThis.__TAURI__;
+      globalThis.__TAURI__ = undefined;
     }
 
     if (originalTauriInternals !== undefined) {
@@ -82,10 +88,9 @@ describe("Hardware Capability Detection", () => {
       globalThis.__TAURI_INTERNALS__ = originalTauriInternals;
     } else {
       // @ts-expect-error - cleaning up
-      delete globalThis.__TAURI_INTERNALS__;
+      globalThis.__TAURI_INTERNALS__ = undefined;
     }
 
-    // @ts-expect-error - restoring navigator
     globalThis.navigator = originalNavigator;
   });
 
@@ -311,17 +316,14 @@ describe("Hardware Capability Detection", () => {
 
     it("should use navigator.deviceMemory when available", async () => {
       // Arrange - simulate browser with deviceMemory
-      // @ts-expect-error - mocking navigator
       globalThis.navigator = {
         deviceMemory: 8,
         hardwareConcurrency: 8,
-        storage: {
-          estimate: async () => ({
-            quota: 1_073_741_824, // 1GB
-            usage: 104_857_600, // 100MB
-          }),
-        },
-      };
+        storage: createStorageMock(async () => ({
+          quota: 1_073_741_824, // 1GB
+          usage: 104_857_600, // 100MB
+        })),
+      } as unknown as Navigator;
 
       // Act
       const capabilities = await getHardwareCapabilities();
@@ -333,15 +335,12 @@ describe("Hardware Capability Detection", () => {
 
     it("should use conservative defaults when deviceMemory unavailable", async () => {
       // Arrange - simulate browser without deviceMemory
-      // @ts-expect-error - mocking navigator
       globalThis.navigator = {
         hardwareConcurrency: 4,
-        storage: {
-          estimate: async () => {
-            throw new Error("Not available");
-          },
-        },
-      };
+        storage: createStorageMock(async () => {
+          throw new Error("Not available");
+        }),
+      } as unknown as Navigator;
 
       // Act
       const capabilities = await getHardwareCapabilities();
@@ -355,16 +354,13 @@ describe("Hardware Capability Detection", () => {
 
     it("should detect hardwareConcurrency for CPU cores", async () => {
       // Arrange
-      // @ts-expect-error - mocking navigator
       globalThis.navigator = {
         hardwareConcurrency: 16,
-        storage: {
-          estimate: async () => ({
-            quota: 10_000_000_000,
-            usage: 0,
-          }),
-        },
-      };
+        storage: createStorageMock(async () => ({
+          quota: 10_000_000_000,
+          usage: 0,
+        })),
+      } as unknown as Navigator;
 
       // Act
       const capabilities = await getHardwareCapabilities();
@@ -375,16 +371,13 @@ describe("Hardware Capability Detection", () => {
 
     it("should calculate available storage from quota and usage", async () => {
       // Arrange
-      // @ts-expect-error - mocking navigator
       globalThis.navigator = {
         hardwareConcurrency: 4,
-        storage: {
-          estimate: async () => ({
-            quota: 10_737_418_240, // 10GB in bytes
-            usage: 1_073_741_824, // 1GB in bytes
-          }),
-        },
-      };
+        storage: createStorageMock(async () => ({
+          quota: 10_737_418_240, // 10GB in bytes
+          usage: 1_073_741_824, // 1GB in bytes
+        })),
+      } as unknown as Navigator;
 
       // Act
       const capabilities = await getHardwareCapabilities();
@@ -395,15 +388,12 @@ describe("Hardware Capability Detection", () => {
 
     it("should use storage default when estimate fails", async () => {
       // Arrange
-      // @ts-expect-error - mocking navigator
       globalThis.navigator = {
         hardwareConcurrency: 4,
-        storage: {
-          estimate: async () => {
-            throw new Error("Secure context required");
-          },
-        },
-      };
+        storage: createStorageMock(async () => {
+          throw new Error("Secure context required");
+        }),
+      } as unknown as Navigator;
 
       // Act
       const capabilities = await getHardwareCapabilities();
@@ -414,16 +404,13 @@ describe("Hardware Capability Detection", () => {
 
     it("should return null for GPU in web mode", async () => {
       // Arrange
-      // @ts-expect-error - mocking navigator
       globalThis.navigator = {
         hardwareConcurrency: 4,
-        storage: {
-          estimate: async () => ({
-            quota: 10_000_000_000,
-            usage: 0,
-          }),
-        },
-      };
+        storage: createStorageMock(async () => ({
+          quota: 10_000_000_000,
+          usage: 0,
+        })),
+      } as unknown as Navigator;
 
       // Act
       const capabilities = await getHardwareCapabilities();
@@ -434,16 +421,13 @@ describe("Hardware Capability Detection", () => {
 
     it("should include detection timestamp", async () => {
       // Arrange
-      // @ts-expect-error - mocking navigator
       globalThis.navigator = {
         hardwareConcurrency: 4,
-        storage: {
-          estimate: async () => ({
-            quota: 10_000_000_000,
-            usage: 0,
-          }),
-        },
-      };
+        storage: createStorageMock(async () => ({
+          quota: 10_000_000_000,
+          usage: 0,
+        })),
+      } as unknown as Navigator;
 
       const before = new Date();
 

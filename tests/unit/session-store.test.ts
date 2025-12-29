@@ -266,10 +266,10 @@ describe("Session Store", () => {
       const session1Id = state.createSession("First");
 
       const state1 = useSessionStore.getState();
-      const _session2Id = state1.createSession("Second");
+      state1.createSession("Second"); // Creates second session (sets it active)
 
       const state2 = useSessionStore.getState();
-      state2.setActiveSession(session1Id);
+      state2.setActiveSession(session1Id); // Switch back to first
 
       const finalState = useSessionStore.getState();
       const activeSession = finalState.getActiveSession();

@@ -52,13 +52,6 @@ import { useModelStore } from "@/stores/models";
 
 const mockedUseModelStore = vi.mocked(useModelStore);
 
-// Helper to reset mock to default state
-const _resetMock = () => {
-  mockedUseModelStore.mockImplementation((selector) =>
-    selector({ ...defaultMockState, downloadedModels: [] })
-  );
-};
-
 const mockModel: ModelMetadata = {
   id: "test-model",
   name: "Test Model",

@@ -279,28 +279,23 @@ export async function subscribeToDownloadProgress(
 
   const listen = getTauriListen();
 
-  const unlisten = await listen<TauriDownloadProgressEvent>(
-    "download_progress",
-    (event) => {
-      const payload = event.payload;
+  return listen<TauriDownloadProgressEvent>("download_progress", (event) => {
+    const payload = event.payload;
 
-      // Convert Tauri payload to TypeScript interface
-      const progress: DownloadProgress = {
-        downloadId: payload.download_id,
-        modelId: payload.model_id,
-        status: payload.status as DownloadProgress["status"],
-        bytesDownloaded: payload.bytes_downloaded,
-        totalBytes: payload.total_bytes,
-        speedBps: payload.speed_bps,
-        etaSeconds: payload.eta_seconds,
-        startedAt: new Date(), // Approximate - Tauri doesn't send this
-      };
+    // Convert Tauri payload to TypeScript interface
+    const progress: DownloadProgress = {
+      downloadId: payload.download_id,
+      modelId: payload.model_id,
+      status: payload.status as DownloadProgress["status"],
+      bytesDownloaded: payload.bytes_downloaded,
+      totalBytes: payload.total_bytes,
+      speedBps: payload.speed_bps,
+      etaSeconds: payload.eta_seconds,
+      startedAt: new Date(), // Approximate - Tauri doesn't send this
+    };
 
-      callback(progress);
-    }
-  );
-
-  return unlisten;
+    callback(progress);
+  });
 }
 
 /** Corruption event data from Tauri */
@@ -340,21 +335,16 @@ export async function subscribeToCorruptionEvents(
 
   const listen = getTauriListen();
 
-  const unlisten = await listen<TauriCorruptionEvent>(
-    "download_corrupted",
-    (event) => {
-      const payload = event.payload;
+  return listen<TauriCorruptionEvent>("download_corrupted", (event) => {
+    const payload = event.payload;
 
-      callback({
-        modelId: payload.model_id,
-        expectedHash: payload.expected_hash,
-        actualHash: payload.actual_hash,
-        quarantinePath: payload.quarantine_path,
-      });
-    }
-  );
-
-  return unlisten;
+    callback({
+      modelId: payload.model_id,
+      expectedHash: payload.expected_hash,
+      actualHash: payload.actual_hash,
+      quarantinePath: payload.quarantine_path,
+    });
+  });
 }
 
 // ============================================================================

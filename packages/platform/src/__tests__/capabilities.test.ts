@@ -31,9 +31,9 @@ const mockTauri = (enabled: boolean) => {
 // Mock navigator.gpu for WebGPU detection
 const mockWebGPU = (enabled: boolean) => {
   if (enabled) {
-    globalThis.navigator = { gpu: {} };
+    globalThis.navigator = { gpu: {} } as unknown as Navigator;
   } else {
-    globalThis.navigator = {};
+    globalThis.navigator = {} as unknown as Navigator;
   }
 };
 
