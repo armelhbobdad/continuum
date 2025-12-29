@@ -10,12 +10,6 @@ all-features = true
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 
-# Fail on any vulnerability
-vulnerability = "deny"
-unmaintained = "warn"
-yanked = "warn"
-notice = "warn"
-
 # Ignore specific advisories (add with reason if needed)
 ignore = []
 
@@ -31,9 +25,12 @@ allow = [
     "Zlib",
     "0BSD",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
     "Unlicense",
     "CC0-1.0",
     "MPL-2.0",  # Mozilla Public License (weak copyleft, acceptable)
+    "BSL-1.0",  # Boost Software License
+    "OpenSSL",
 ]
 
 # Confidence threshold for license detection
