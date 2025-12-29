@@ -16,7 +16,8 @@ import type { ModelMetadata } from "@continuum/inference";
 import { getModelMetadata } from "@continuum/inference";
 import type { ModelRecommendation } from "@continuum/platform";
 import { getModelRecommendation } from "@continuum/platform";
-import { ChevronDown } from "lucide-react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 import {
   DropdownMenu,
@@ -187,7 +188,10 @@ export function ChatModelSelector({
           <span className="max-w-32 truncate font-medium">
             {currentModelName}
           </span>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <HugeiconsIcon
+            className="h-4 w-4 opacity-50"
+            icon={ArrowDown01Icon}
+          />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" className="w-64">

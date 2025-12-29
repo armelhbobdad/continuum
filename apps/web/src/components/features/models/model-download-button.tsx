@@ -13,8 +13,15 @@ import {
   getPartialDownloadSize,
   resumeModelDownload,
 } from "@continuum/platform";
+import {
+  Download04Icon,
+  Loading03Icon,
+  PlayIcon,
+  RefreshIcon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Check, Download, Loader2, Play, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useModelDownload } from "@/hooks/use-model-download";
 import { cn } from "@/lib/utils";
@@ -146,7 +153,11 @@ export function ModelDownloadButton({
         disabled
         type="button"
       >
-        <Check aria-hidden="true" className="h-4 w-4" />
+        <HugeiconsIcon
+          aria-hidden="true"
+          className="h-4 w-4"
+          icon={Tick02Icon}
+        />
         Downloaded
       </button>
     );
@@ -160,7 +171,11 @@ export function ModelDownloadButton({
         disabled
         type="button"
       >
-        <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+        <HugeiconsIcon
+          aria-hidden="true"
+          className="h-4 w-4 animate-spin"
+          icon={Loading03Icon}
+        />
         Downloading...
       </button>
     );
@@ -174,7 +189,7 @@ export function ModelDownloadButton({
         onClick={handleResume}
         type="button"
       >
-        <Play aria-hidden="true" className="h-4 w-4" />
+        <HugeiconsIcon aria-hidden="true" className="h-4 w-4" icon={PlayIcon} />
         Resume
       </button>
     );
@@ -201,7 +216,11 @@ export function ModelDownloadButton({
         disabled
         type="button"
       >
-        <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+        <HugeiconsIcon
+          aria-hidden="true"
+          className="h-4 w-4 animate-spin"
+          icon={Loading03Icon}
+        />
         {state.status === "checking-storage" ? "Checking..." : "Starting..."}
       </button>
     );
@@ -217,7 +236,11 @@ export function ModelDownloadButton({
           onClick={handleDownload}
           type="button"
         >
-          <Download aria-hidden="true" className="h-4 w-4" />
+          <HugeiconsIcon
+            aria-hidden="true"
+            className="h-4 w-4"
+            icon={Download04Icon}
+          />
           Try Again
         </button>
       </div>
@@ -232,7 +255,11 @@ export function ModelDownloadButton({
         onClick={handleDownload}
         type="button"
       >
-        <RefreshCw aria-hidden="true" className="h-4 w-4" />
+        <HugeiconsIcon
+          aria-hidden="true"
+          className="h-4 w-4"
+          icon={RefreshIcon}
+        />
         Resume ({formatBytes(partialBytes)})
       </button>
     );
@@ -245,7 +272,11 @@ export function ModelDownloadButton({
       onClick={handleDownload}
       type="button"
     >
-      <Download aria-hidden="true" className="h-4 w-4" />
+      <HugeiconsIcon
+        aria-hidden="true"
+        className="h-4 w-4"
+        icon={Download04Icon}
+      />
       Download
     </button>
   );

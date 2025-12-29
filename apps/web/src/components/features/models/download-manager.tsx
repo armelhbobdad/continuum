@@ -20,8 +20,9 @@ import {
   pauseModelDownload,
   resumeModelDownload,
 } from "@continuum/platform";
+import { Cancel01Icon, PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Pause, Play, X } from "lucide-react";
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
@@ -196,7 +197,7 @@ function DownloadItem({
               onClick={() => onPause(download.downloadId)}
               type="button"
             >
-              <Pause className="h-4 w-4" />
+              <HugeiconsIcon className="h-4 w-4" icon={PauseIcon} />
             </button>
           ) : null}
           {isResumable ? (
@@ -206,7 +207,7 @@ function DownloadItem({
               onClick={() => onResume(download.downloadId)}
               type="button"
             >
-              <Play className="h-4 w-4" />
+              <HugeiconsIcon className="h-4 w-4" icon={PlayIcon} />
             </button>
           ) : null}
           {isCancellable ? (
@@ -216,7 +217,7 @@ function DownloadItem({
               onClick={() => onCancel(download.downloadId)}
               type="button"
             >
-              <X className="h-4 w-4" />
+              <HugeiconsIcon className="h-4 w-4" icon={Cancel01Icon} />
             </button>
           ) : null}
         </div>

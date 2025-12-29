@@ -11,7 +11,8 @@
  */
 
 import type { StorageCheckResult } from "@continuum/inference";
-import { AlertTriangle, HardDrive } from "lucide-react";
+import { Alert02Icon, HardDriveIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
 
 export interface StorageWarningProps {
@@ -65,9 +66,10 @@ export function StorageWarning({
       role="alert"
     >
       <div className="flex items-start gap-3">
-        <AlertTriangle
+        <HugeiconsIcon
           aria-hidden="true"
           className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
+          icon={Alert02Icon}
         />
         <div className="flex-1 space-y-2">
           <h3
@@ -87,7 +89,11 @@ export function StorageWarning({
           <dl className="mt-3 space-y-1 text-sm">
             <div className="flex items-center justify-between">
               <dt className="flex items-center gap-1 text-amber-700 dark:text-amber-400">
-                <HardDrive aria-hidden="true" className="h-4 w-4" />
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  icon={HardDriveIcon}
+                />
                 Required space:
               </dt>
               <dd className="font-medium text-amber-800 dark:text-amber-200">
@@ -179,7 +185,11 @@ export function StorageWarningInline({
       )}
       role="alert"
     >
-      <AlertTriangle aria-hidden="true" className="h-3 w-3" />
+      <HugeiconsIcon
+        aria-hidden="true"
+        className="h-3 w-3"
+        icon={Alert02Icon}
+      />
       Need {formatMb(result.shortfallMb)} more space
     </p>
   );
