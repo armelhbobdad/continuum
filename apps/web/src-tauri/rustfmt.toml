@@ -1,0 +1,49 @@
+# Rustfmt configuration for Continuum Tauri backend
+# https://rust-lang.github.io/rustfmt/
+
+edition = "2021"
+
+# Line width (match typical editor width)
+max_width = 100
+
+# Use spaces, not tabs
+hard_tabs = false
+tab_spaces = 4
+
+# Import organization
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+reorder_modules = true
+
+# Formatting preferences
+use_small_heuristics = "Default"
+fn_single_line = false
+where_single_line = false
+force_multiline_blocks = false
+
+# Comments
+wrap_comments = true
+format_code_in_doc_comments = true
+doc_comment_code_block_width = 80
+normalize_comments = true
+normalize_doc_attributes = true
+
+# Match arms
+match_block_trailing_comma = true
+
+# Struct/enum formatting
+struct_lit_single_line = true
+enum_discrim_align_threshold = 20
+
+# Use field init shorthand: `Foo { x }` instead of `Foo { x: x }`
+use_field_init_shorthand = true
+
+# Newlines
+newline_style = "Auto"
+blank_lines_upper_bound = 1
+blank_lines_lower_bound = 0
+
+# Error handling
+error_on_line_overflow = false
+error_on_unformatted = false

@@ -49,3 +49,38 @@ chrono = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
+
+# Clippy lints configuration
+# https://doc.rust-lang.org/clippy/
+[lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
+
+[lints.clippy]
+# Correctness (errors) - priority -1 to allow individual overrides
+all = { level = "deny", priority = -1 }
+
+# Style & pedantic (warnings upgraded to errors for strict mode)
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Specific lints we want as errors
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+
+# Relaxed pedantic lints (too noisy or stylistic preference)
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+too_many_lines = "allow"
+cognitive_complexity = "allow"
+significant_drop_tightening = "allow"
