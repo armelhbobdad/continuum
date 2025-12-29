@@ -200,20 +200,26 @@ pub async fn start_download(
         .await;
 
         if let Err(e) = result {
-            error!("Download failed for {}: {}", model_id, e);
-            // Emit failure event
-            let _ = app_handle.emit(
-                "download_progress",
-                DownloadProgressEvent {
-                    download_id: id,
-                    model_id,
-                    status: "failed".to_string(),
-                    bytes_downloaded,
-                    total_bytes,
-                    speed_bps: 0,
-                    eta_seconds: 0,
-                },
-            );
+            // Don't emit failure for intentional cancellation (pause/cancel)
+            // The frontend already handles status updates for these actions
+            if e == "cancelled" {
+                info!("Download cancelled/paused for {}", model_id);
+            } else {
+                error!("Download failed for {}: {}", model_id, e);
+                // Emit failure event only for actual errors
+                let _ = app_handle.emit(
+                    "download_progress",
+                    DownloadProgressEvent {
+                        download_id: id,
+                        model_id,
+                        status: "failed".to_string(),
+                        bytes_downloaded,
+                        total_bytes,
+                        speed_bps: 0,
+                        eta_seconds: 0,
+                    },
+                );
+            }
         }
     });
 

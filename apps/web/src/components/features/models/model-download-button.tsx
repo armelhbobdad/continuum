@@ -85,7 +85,7 @@ export function ModelDownloadButton({
   const isDownloading = useDownloadStore(isDownloadingSelector);
   const isPaused = useDownloadStore(isPausedSelector);
   const downloadedModels = useModelStore((s) => s.downloadedModels);
-  const setDownloadStatus = useDownloadStore((s) => s.setDownloadStatus);
+  const removeDownload = useDownloadStore((s) => s.removeDownload);
 
   // Get the download ID for resume functionality
   const getDownloadByModelId = useDownloadStore((s) => s.getDownloadByModelId);
@@ -129,12 +129,14 @@ export function ModelDownloadButton({
     if (download) {
       try {
         await resumeModelDownload(download.downloadId);
-        setDownloadStatus(download.downloadId, "downloading");
+        // Remove old download entry - Rust creates a new one with new ID
+        // The new download will be added via progress events
+        removeDownload(download.downloadId);
       } catch (error) {
         console.error("Failed to resume download:", error);
       }
     }
-  }, [getDownloadByModelId, model.id, setDownloadStatus]);
+  }, [getDownloadByModelId, model.id, removeDownload]);
 
   // Show downloaded state
   if (isDownloaded) {

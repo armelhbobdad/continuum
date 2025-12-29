@@ -86,12 +86,14 @@ export function DownloadManager({
     async (downloadId: string) => {
       try {
         await resumeModelDownload(downloadId);
-        setDownloadStatus(downloadId, "downloading");
+        // Remove old download entry - Rust creates a new one with new ID
+        // The new download will be added via progress events
+        removeDownload(downloadId);
       } catch (error) {
         console.error("Failed to resume download:", error);
       }
     },
-    [setDownloadStatus]
+    [removeDownload]
   );
 
   const handleCancel = useCallback(
