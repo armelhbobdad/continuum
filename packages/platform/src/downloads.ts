@@ -49,14 +49,14 @@ function getTauriInvoke(): <T>(
  */
 function getTauriListen(): <T>(
   event: string,
-  handler: (event: { payload: T }) => void
+  handler: (evt: { payload: T }) => void
 ) => Promise<() => void> {
   const global = globalThis as unknown as {
     __TAURI__?: {
       event?: {
         listen: <T>(
           event: string,
-          handler: (event: { payload: T }) => void
+          handler: (evt: { payload: T }) => void
         ) => Promise<() => void>;
       };
     };
@@ -77,7 +77,7 @@ function getTauriListen(): <T>(
 export type DownloadProgressCallback = (progress: DownloadProgress) => void;
 
 /** Tauri event payload for download_progress event */
-interface TauriDownloadProgressEvent {
+type TauriDownloadProgressEvent = {
   download_id: string;
   model_id: string;
   status: string;
@@ -85,15 +85,15 @@ interface TauriDownloadProgressEvent {
   total_bytes: number;
   speed_bps: number;
   eta_seconds: number;
-}
+};
 
 /** Tauri storage check result */
-interface TauriStorageCheckResult {
+type TauriStorageCheckResult = {
   has_space: boolean;
   available_mb: number;
   required_mb: number;
   shortfall_mb: number;
-}
+};
 
 // ============================================================================
 // Download Functions
@@ -109,6 +109,7 @@ interface TauriStorageCheckResult {
  * @returns Promise<string> - The download ID for tracking
  * @throws Error if not on desktop or if download fails to start
  */
+// biome-ignore lint/suspicious/useAwait: Returns awaited promise from Tauri invoke
 export async function startModelDownload(
   modelId: string,
   url: string,
@@ -209,6 +210,7 @@ export async function checkStorageSpace(
  * @param modelId - The model identifier
  * @returns Promise<string | null> - Path to model file, or null if not downloaded
  */
+// biome-ignore lint/suspicious/useAwait: Returns null early for non-desktop or awaited Tauri invoke
 export async function getModelPath(modelId: string): Promise<string | null> {
   if (!isDesktop()) {
     return null;
@@ -225,6 +227,7 @@ export async function getModelPath(modelId: string): Promise<string | null> {
  * @param modelId - The model identifier
  * @returns Promise<number | null> - Bytes downloaded, or null if no partial file
  */
+// biome-ignore lint/suspicious/useAwait: Returns null early for non-desktop or awaited Tauri invoke
 export async function getPartialDownloadSize(
   modelId: string
 ): Promise<number | null> {
@@ -269,7 +272,9 @@ export async function subscribeToDownloadProgress(
 ): Promise<UnlistenFn> {
   if (!isDesktop()) {
     // Return no-op for web
-    return () => {};
+    return () => {
+      // No-op unlisten function for non-desktop platforms
+    };
   }
 
   const listen = getTauriListen();
@@ -299,23 +304,23 @@ export async function subscribeToDownloadProgress(
 }
 
 /** Corruption event data from Tauri */
-export interface CorruptionEvent {
+export type CorruptionEvent = {
   modelId: string;
   expectedHash: string;
   actualHash: string;
   quarantinePath: string;
-}
+};
 
 /** Callback for corruption events */
 export type CorruptionEventCallback = (event: CorruptionEvent) => void;
 
 /** Tauri corruption event payload */
-interface TauriCorruptionEvent {
+type TauriCorruptionEvent = {
   model_id: string;
   expected_hash: string;
   actual_hash: string;
   quarantine_path: string;
-}
+};
 
 /**
  * Subscribe to download corruption events.
@@ -328,7 +333,9 @@ export async function subscribeToCorruptionEvents(
   callback: CorruptionEventCallback
 ): Promise<UnlistenFn> {
   if (!isDesktop()) {
-    return () => {};
+    return () => {
+      // No-op unlisten function for non-desktop platforms
+    };
   }
 
   const listen = getTauriListen();

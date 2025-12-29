@@ -66,17 +66,17 @@ const badgeVariants = cva("rounded-full px-2 py-0.5 font-medium text-xs", {
 });
 
 /** State for pending model selection (when warning dialog is shown) */
-interface PendingSelection {
+type PendingSelection = {
   model: ModelMetadata;
   recommendation: ModelRecommendation;
-}
+};
 
-export interface ModelSelectorProps {
+export type ModelSelectorProps = {
   /** Additional CSS classes */
   className?: string;
   /** Callback after model selection (optional) */
   onSelect?: (modelId: string) => void;
-}
+};
 
 /**
  * ModelSelector Component
@@ -104,13 +104,17 @@ export function ModelSelector({ className, onSelect }: ModelSelectorProps) {
 
   // Get recommendation for a model
   const getRecommendation = (model: ModelMetadata): ModelRecommendation => {
-    if (!capabilities) return "may-be-slow";
+    if (!capabilities) {
+      return "may-be-slow";
+    }
     return getModelRecommendation(model.requirements, capabilities);
   };
 
   // Handle model selection with hardware warning check (AC4)
   const handleSelect = (model: ModelMetadata) => {
-    if (model.id === selectedModelId) return; // Already selected
+    if (model.id === selectedModelId) {
+      return; // Already selected
+    }
 
     const recommendation = getRecommendation(model);
 
@@ -145,8 +149,12 @@ export function ModelSelector({ className, onSelect }: ModelSelectorProps) {
     modelId: string,
     recommendation: ModelRecommendation
   ): VariantProps<typeof selectorOptionVariants>["state"] => {
-    if (modelId === selectedModelId) return "selected";
-    if (recommendation === "not-recommended") return "warning";
+    if (modelId === selectedModelId) {
+      return "selected";
+    }
+    if (recommendation === "not-recommended") {
+      return "warning";
+    }
     return "default";
   };
 
@@ -176,9 +184,9 @@ export function ModelSelector({ className, onSelect }: ModelSelectorProps) {
           Download a model from the catalog to get started.
         </p>
         {/* ARIA live region for status updates */}
-        <div aria-live="polite" className="sr-only" role="status">
+        <output aria-live="polite" className="sr-only">
           No models available for selection
-        </div>
+        </output>
       </div>
     );
   }
@@ -232,19 +240,23 @@ export function ModelSelector({ className, onSelect }: ModelSelectorProps) {
       </div>
 
       {/* ARIA live region for selection changes */}
-      <div aria-live="polite" className="sr-only" role="status">
+      <output aria-live="polite" className="sr-only">
         {selectedModel
           ? `Selected model: ${selectedModel.name}`
           : "No model selected"}
-      </div>
+      </output>
 
       {/* Hardware Warning Dialog (AC4) */}
-      {pendingSelection && capabilities && (
+      {pendingSelection !== null && capabilities !== null && (
         <HardwareWarningDialog
           hardware={capabilities}
           model={pendingSelection.model}
           onCancel={cancelSelection}
-          onConfirm={() => confirmSelection(pendingSelection.model.id)}
+          onConfirm={() => {
+            if (pendingSelection) {
+              confirmSelection(pendingSelection.model.id);
+            }
+          }}
           open={true}
           recommendation={pendingSelection.recommendation}
         />

@@ -6,9 +6,14 @@
  * AC1: Model Catalog Display
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 
 import { getModelMetadata, listModels, MODEL_REGISTRY } from "../registry";
+
+// Top-level regex patterns for performance
+const URL_PATTERN = /^https?:\/\//;
+const TOKENIZER_URL_PATTERN =
+  /^https:\/\/huggingface\.co\/.*\/tokenizer\.json$/;
 
 describe("Model Registry", () => {
   describe("listModels", () => {
@@ -40,7 +45,9 @@ describe("Model Registry", () => {
   });
 
   describe("Model Metadata Structure", () => {
-    it.each(MODEL_REGISTRY)("$name should have valid structure", (model) => {
+    it.each(
+      MODEL_REGISTRY
+    )("$name should have valid structure", (model: (typeof MODEL_REGISTRY)[number]) => {
       // Required fields
       expect(model.id).toBeTruthy();
       expect(model.name).toBeTruthy();
@@ -62,18 +69,16 @@ describe("Model Registry", () => {
 
       // License
       expect(model.license.name).toBeTruthy();
-      expect(model.license.url).toMatch(/^https?:\/\//);
+      expect(model.license.url).toMatch(URL_PATTERN);
       expect(typeof model.license.commercial).toBe("boolean");
 
       // Download info
-      expect(model.downloadUrl).toMatch(/^https?:\/\//);
+      expect(model.downloadUrl).toMatch(URL_PATTERN);
       expect(model.sha256).toBeTruthy();
 
       // Tokenizer URL (direct HuggingFace download link)
       expect(model.tokenizerUrl).toBeTruthy();
-      expect(model.tokenizerUrl).toMatch(
-        /^https:\/\/huggingface\.co\/.*\/tokenizer\.json$/
-      );
+      expect(model.tokenizerUrl).toMatch(TOKENIZER_URL_PATTERN);
     });
   });
 
@@ -87,7 +92,7 @@ describe("Model Registry", () => {
             vuln.severity
           );
           expect(vuln.description).toBeTruthy();
-          expect(vuln.moreInfoUrl).toMatch(/^https?:\/\//);
+          expect(vuln.moreInfoUrl).toMatch(URL_PATTERN);
         }
       }
     });

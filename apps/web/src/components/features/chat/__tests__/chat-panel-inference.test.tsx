@@ -60,6 +60,7 @@ vi.mock("@continuum/inference", async (importOriginal) => {
       vulnerabilities: [],
       downloadUrl: "",
       sha256: "",
+      tokenizerUrl: "https://example.com/tokenizer.json",
     }),
   };
 });
@@ -136,6 +137,7 @@ describe("ChatPanel Inference Integration", () => {
           vulnerabilities: [],
           downloadUrl: "",
           sha256: "",
+          tokenizerUrl: "https://example.com/tokenizer.json",
         },
       ],
       downloadedModels: ["test-model"],
@@ -203,7 +205,7 @@ describe("ChatPanel Inference Integration", () => {
 
     it("shows generating status during streaming", async () => {
       // Create a slower generator to capture the state
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -236,7 +238,7 @@ describe("ChatPanel Inference Integration", () => {
 
   describe("Cold Model Loading (AC #3)", () => {
     it("shows loading indicator when model not loaded", async () => {
-      let resolveLoad: () => void;
+      let resolveLoad!: () => void;
       const loadPromise = new Promise<void>((resolve) => {
         resolveLoad = resolve;
       });
@@ -302,7 +304,7 @@ describe("ChatPanel Inference Integration", () => {
 
   describe("Abort Functionality (AC #4)", () => {
     it("shows abort button during generation", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -330,7 +332,7 @@ describe("ChatPanel Inference Integration", () => {
     });
 
     it("calls adapter abort when button clicked", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -362,7 +364,7 @@ describe("ChatPanel Inference Integration", () => {
     });
 
     it("preserves partial response on abort", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -476,7 +478,7 @@ describe("ChatPanel Inference Integration", () => {
 
   describe("Input Disabled State", () => {
     it("disables input while generating", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -504,7 +506,7 @@ describe("ChatPanel Inference Integration", () => {
     });
 
     it("disables input while loading model", async () => {
-      let resolveLoad: () => void;
+      let resolveLoad!: () => void;
       const loadPromise = new Promise<void>((resolve) => {
         resolveLoad = resolve;
       });

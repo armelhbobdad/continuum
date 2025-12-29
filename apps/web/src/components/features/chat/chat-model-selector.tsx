@@ -219,12 +219,16 @@ export function ChatModelSelector({
       </DropdownMenu>
 
       {/* Hardware Warning Dialog (AC4) */}
-      {Boolean(pendingSelection && capabilities) && (
+      {pendingSelection !== null && capabilities !== null && (
         <HardwareWarningDialog
           hardware={capabilities}
           model={pendingSelection.model}
           onCancel={cancelSelection}
-          onConfirm={confirmSelection}
+          onConfirm={() => {
+            if (pendingSelection) {
+              confirmSelection();
+            }
+          }}
           open={true}
           recommendation={pendingSelection.recommendation}
         />

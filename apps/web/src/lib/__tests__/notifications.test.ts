@@ -27,7 +27,11 @@ vi.mock("@tauri-apps/plugin-notification", () => ({
 }));
 
 // Mock web Notification API
-const mockWebNotification = vi.fn();
+type MockNotificationFn = ReturnType<typeof vi.fn> & {
+  permission: NotificationPermission;
+  requestPermission: ReturnType<typeof vi.fn>;
+};
+const mockWebNotification = vi.fn() as MockNotificationFn;
 const originalNotification = globalThis.Notification;
 
 describe("notifications", () => {
@@ -71,7 +75,7 @@ describe("notifications", () => {
 
     it("should return false when no notification API", async () => {
       mockIsDesktop = false;
-      delete (globalThis as { Notification?: unknown }).Notification;
+      (globalThis as { Notification?: unknown }).Notification = undefined;
 
       const { isNotificationSupported } = await import("../notifications");
 

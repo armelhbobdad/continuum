@@ -19,8 +19,12 @@ import {
 vi.mock("@continuum/platform", () => ({
   getModelRecommendation: vi.fn((requirements, hardware) => {
     const ramRatio = hardware.ram / requirements.ramMb;
-    if (ramRatio >= 1.5) return "recommended";
-    if (ramRatio >= 1.0) return "may-be-slow";
+    if (ramRatio >= 1.5) {
+      return "recommended";
+    }
+    if (ramRatio >= 1.0) {
+      return "may-be-slow";
+    }
     return "not-recommended";
   }),
 }));
@@ -69,7 +73,7 @@ const mockModels: ModelMetadata[] = [
     version: "47b-4bit",
     description: "Large MoE model",
     requirements: { ramMb: 32_768, gpuVramMb: 0, storageMb: 26_000 },
-    capabilities: ["general-chat", "code-generation", "reasoning"],
+    capabilities: ["general-chat", "code-generation", "summarization"],
     limitations: [],
     contextLength: 32_768,
     license: {

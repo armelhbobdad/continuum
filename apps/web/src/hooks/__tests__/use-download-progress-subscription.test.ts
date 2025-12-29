@@ -96,7 +96,7 @@ describe("useDownloadProgressSubscription", () => {
       };
 
       act(() => {
-        capturedCallback!(progress);
+        capturedCallback?.(progress);
       });
 
       expect(mockUpdateProgress).toHaveBeenCalledWith(progress);
@@ -132,8 +132,8 @@ describe("useDownloadProgressSubscription", () => {
       };
 
       act(() => {
-        capturedCallback!(progress1);
-        capturedCallback!(progress2);
+        capturedCallback?.(progress1);
+        capturedCallback?.(progress2);
       });
 
       expect(mockUpdateProgress).toHaveBeenCalledTimes(2);
@@ -164,7 +164,7 @@ describe("useDownloadProgressSubscription", () => {
       };
 
       act(() => {
-        savedCallback!(progress);
+        savedCallback?.(progress);
       });
 
       // Should not have been called because mounted flag is false
@@ -192,7 +192,7 @@ describe("useDownloadProgressSubscription", () => {
       };
 
       act(() => {
-        capturedCallback!(progress);
+        capturedCallback?.(progress);
       });
 
       expect(mockUpdateProgress).toHaveBeenCalledWith(
@@ -219,11 +219,12 @@ describe("useDownloadProgressSubscription", () => {
         error: {
           code: "NETWORK_ERROR",
           message: "Connection lost",
+          retryable: true,
         },
       };
 
       act(() => {
-        capturedCallback!(progress);
+        capturedCallback?.(progress);
       });
 
       expect(mockUpdateProgress).toHaveBeenCalledWith(

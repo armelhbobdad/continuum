@@ -12,12 +12,33 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ModelCard } from "../model-card";
 
-// Default mock state
+// Top-level regex patterns for performance
+const COMMERCIAL_OK_PATTERN = /Commercial OK/;
+const TEST_VULN_DESC_PATTERN = /Test vulnerability description/;
+const GREEN_PATTERN = /green/;
+const YELLOW_PATTERN = /yellow/;
+const RED_PATTERN = /red/;
+
+// Default mock state with all required ModelState properties
 const defaultMockState = {
+  availableModels: [],
   downloadedModels: [] as string[],
-  verificationStatus: {},
   selectedModelId: null as string | null,
+  switchingTo: null,
+  switchProgress: null,
+  isLoading: false,
+  error: null,
+  verificationStatus: {},
   pinnedVersions: {} as Record<string, string>,
+  loadModels: async () => {},
+  selectModel: () => {},
+  addDownloadedModel: () => {},
+  removeDownloadedModel: () => {},
+  getSelectedModel: () => null,
+  setVerificationStatus: () => {},
+  clearVerificationStatus: () => {},
+  pinVersion: () => {},
+  unpinVersion: () => {},
   isVersionPinned: () => false,
 };
 
@@ -32,7 +53,7 @@ import { useModelStore } from "@/stores/models";
 const mockedUseModelStore = vi.mocked(useModelStore);
 
 // Helper to reset mock to default state
-const resetMock = () => {
+const _resetMock = () => {
   mockedUseModelStore.mockImplementation((selector) =>
     selector({ ...defaultMockState, downloadedModels: [] })
   );
@@ -59,6 +80,7 @@ const mockModel: ModelMetadata = {
   vulnerabilities: [],
   downloadUrl: "https://example.com/model.gguf",
   sha256: "abc123def456",
+  tokenizerUrl: "https://example.com/tokenizer.json",
 };
 
 describe("ModelCard", () => {
@@ -145,7 +167,7 @@ describe("ModelCard", () => {
     it("should show commercial use indicator when allowed", () => {
       render(<ModelCard model={mockModel} recommendation="recommended" />);
 
-      expect(screen.getByText(/Commercial OK/)).toBeInTheDocument();
+      expect(screen.getByText(COMMERCIAL_OK_PATTERN)).toBeInTheDocument();
     });
 
     it("should not show commercial indicator when not allowed", () => {
@@ -155,7 +177,7 @@ describe("ModelCard", () => {
       };
       render(<ModelCard model={nonCommercial} recommendation="recommended" />);
 
-      expect(screen.queryByText(/Commercial OK/)).not.toBeInTheDocument();
+      expect(screen.queryByText(COMMERCIAL_OK_PATTERN)).not.toBeInTheDocument();
     });
   });
 
@@ -210,9 +232,7 @@ describe("ModelCard", () => {
     it("should display vulnerability description", () => {
       render(<ModelCard model={modelWithVuln} recommendation="recommended" />);
 
-      expect(
-        screen.getByText(/Test vulnerability description/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(TEST_VULN_DESC_PATTERN)).toBeInTheDocument();
     });
 
     it("should not show warning when no vulnerabilities", () => {
@@ -276,21 +296,21 @@ describe("ModelCard", () => {
       render(<ModelCard model={mockModel} recommendation="recommended" />);
 
       const article = screen.getByRole("article");
-      expect(article.className).toMatch(/green/);
+      expect(article.className).toMatch(GREEN_PATTERN);
     });
 
     it("should apply may-be-slow variant styles", () => {
       render(<ModelCard model={mockModel} recommendation="may-be-slow" />);
 
       const article = screen.getByRole("article");
-      expect(article.className).toMatch(/yellow/);
+      expect(article.className).toMatch(YELLOW_PATTERN);
     });
 
     it("should apply not-recommended variant styles", () => {
       render(<ModelCard model={mockModel} recommendation="not-recommended" />);
 
       const article = screen.getByRole("article");
-      expect(article.className).toMatch(/red/);
+      expect(article.className).toMatch(RED_PATTERN);
     });
   });
 

@@ -83,8 +83,12 @@ export function ModelCard({
 
   // Derive verification display status
   const getVerificationDisplayStatus = (): VerificationStatus => {
-    if (!isDownloaded) return "unverified";
-    if (!verification) return "unverified";
+    if (!isDownloaded) {
+      return "unverified";
+    }
+    if (!verification) {
+      return "unverified";
+    }
     return verification.verified ? "verified" : "failed";
   };
 
@@ -93,7 +97,6 @@ export function ModelCard({
       aria-labelledby={`model-${model.id}-name`}
       className={cn(cardVariants({ recommendation }), className)}
       data-slot="model-card"
-      role="article"
     >
       {/* Header with name, version, and badge */}
       <div className="flex items-start justify-between gap-2">
@@ -106,7 +109,7 @@ export function ModelCard({
               v{model.version}
             </span>
             <PinnedVersionBadge modelId={model.id} />
-            {isDownloaded && (
+            {Boolean(isDownloaded) && (
               <VerificationBadge
                 status={getVerificationDisplayStatus()}
                 timestamp={verification?.timestamp}
@@ -188,11 +191,11 @@ export function ModelCard({
         >
           {model.license.name}
         </a>
-        {model.license.commercial && " (Commercial OK)"}
+        {Boolean(model.license.commercial) && " (Commercial OK)"}
       </div>
 
       {/* Vulnerability Warning (AC4) */}
-      {hasVulnerabilities && (
+      {Boolean(hasVulnerabilities) && (
         <div
           className="mt-4 rounded border border-red-500 bg-red-50 p-3 dark:bg-red-950/30"
           role="alert"
@@ -228,7 +231,7 @@ export function ModelCard({
       </div>
 
       {/* Select Action - only show for downloaded models */}
-      {onSelect && isDownloaded && (
+      {Boolean(onSelect && isDownloaded) && (
         <button
           className={cn(
             "mt-2 w-full rounded px-4 py-2 font-medium text-sm",
@@ -237,7 +240,7 @@ export function ModelCard({
               : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
           )}
           disabled={isSelected}
-          onClick={() => onSelect(model.id)}
+          onClick={() => onSelect?.(model.id)}
           type="button"
         >
           {isSelected ? "Selected" : "Select Model"}
@@ -284,9 +287,9 @@ function formatLimitation(lim: string): string {
 // Sub-components
 // ============================================================================
 
-interface RecommendationBadgeProps {
+type RecommendationBadgeProps = {
   recommendation: ModelRecommendation;
-}
+};
 
 /**
  * Badge showing hardware recommendation status

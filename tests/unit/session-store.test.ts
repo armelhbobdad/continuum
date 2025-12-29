@@ -5,7 +5,15 @@
  * Story 1.3: AC #5 (auto-session creation)
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { type Message, type Session, useSessionStore } from "@/stores/session";
+import {
+  type Message,
+  type Session,
+  useSessionStore,
+} from "../../apps/web/src/stores/session";
+
+// Top-level regex pattern for UUID v4 validation
+const UUID_V4_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 describe("Session Store", () => {
   beforeEach(() => {
@@ -50,9 +58,7 @@ describe("Session Store", () => {
       const sessionId = state.createSession("Test message");
 
       // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-      expect(sessionId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-      );
+      expect(sessionId).toMatch(UUID_V4_PATTERN);
     });
 
     it("sets title from first message (max 50 chars)", () => {
@@ -132,9 +138,7 @@ describe("Session Store", () => {
       const session = finalState.sessions.find(
         (s: Session) => s.id === sessionId
       );
-      expect(session?.messages[0]?.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-      );
+      expect(session?.messages[0]?.id).toMatch(UUID_V4_PATTERN);
     });
 
     it("adds timestamp to message", () => {
@@ -262,7 +266,7 @@ describe("Session Store", () => {
       const session1Id = state.createSession("First");
 
       const state1 = useSessionStore.getState();
-      const session2Id = state1.createSession("Second");
+      const _session2Id = state1.createSession("Second");
 
       const state2 = useSessionStore.getState();
       state2.setActiveSession(session1Id);
