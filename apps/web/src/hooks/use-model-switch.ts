@@ -16,13 +16,13 @@ import { useCallback, useState } from "react";
 import { useModelStore } from "@/stores/models";
 
 /** Model switch result */
-export type ModelSwitchResult = {
+export interface ModelSwitchResult {
   success: boolean;
   error?: string;
-};
+}
 
 /** Model switch state */
-export type ModelSwitchState = {
+export interface ModelSwitchState {
   /** Whether a switch is in progress */
   isSwitching: boolean;
   /** Model being switched to */
@@ -31,7 +31,7 @@ export type ModelSwitchState = {
   switchProgress: "unloading" | "loading" | null;
   /** Last error message */
   error: string | null;
-};
+}
 
 /**
  * useModelSwitch Hook

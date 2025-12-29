@@ -2,14 +2,14 @@
 
 import { Component, type ReactNode } from "react";
 
-type Props = {
+interface Props {
   children: ReactNode;
-};
+}
 
-type State = {
+interface State {
   hasError: boolean;
   error: Error | null;
-};
+}
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {

@@ -42,7 +42,7 @@ function getRamUsageColor(percent: number): string {
   return "bg-green-500";
 }
 
-export type HardwareWarningDialogProps = {
+export interface HardwareWarningDialogProps {
   /** Model being selected */
   model: ModelMetadata;
   /** Detected hardware capabilities */
@@ -55,7 +55,7 @@ export type HardwareWarningDialogProps = {
   onCancel: () => void;
   /** Whether the dialog is visible */
   open: boolean;
-};
+}
 
 /**
  * Check if we should show the warning based on RAM usage.

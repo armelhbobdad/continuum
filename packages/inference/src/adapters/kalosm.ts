@@ -20,9 +20,9 @@ import type {
 } from "../types";
 
 /** Token event payload from Tauri */
-type TokenPayload = {
+interface TokenPayload {
   text: string;
-};
+}
 
 /** Polling interval for token yield */
 const TOKEN_POLL_INTERVAL_MS = 10;

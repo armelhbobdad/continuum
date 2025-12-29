@@ -14,7 +14,7 @@ import type { StorageCheckResult } from "@continuum/inference";
 import { AlertTriangle, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type StorageWarningProps = {
+export interface StorageWarningProps {
   /** Storage check result */
   result: StorageCheckResult;
   /** Model name for display */
@@ -25,7 +25,7 @@ export type StorageWarningProps = {
   onProceedAnyway?: () => void;
   /** Callback when user wants to cancel */
   onCancel?: () => void;
-};
+}
 
 /**
  * Format MB to human-readable string
@@ -156,12 +156,12 @@ export function StorageWarning({
 /**
  * Compact version for inline display
  */
-export type StorageWarningInlineProps = {
+export interface StorageWarningInlineProps {
   /** Storage check result */
   result: StorageCheckResult;
   /** Additional CSS classes */
   className?: string;
-};
+}
 
 export function StorageWarningInline({
   result,

@@ -8,7 +8,7 @@
 export type PlatformType = "desktop" | "web";
 
 /** Platform capabilities for feature detection */
-export type PlatformCapabilities = {
+export interface PlatformCapabilities {
   /** Platform type: desktop (Tauri) or web (browser) */
   type: PlatformType;
 
@@ -23,7 +23,7 @@ export type PlatformCapabilities = {
 
   /** Whether the platform can function offline */
   isOfflineCapable: boolean;
-};
+}
 
 /**
  * Detect if running in Tauri desktop environment

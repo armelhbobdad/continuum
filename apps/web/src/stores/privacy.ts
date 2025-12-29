@@ -27,21 +27,21 @@ export type NetworkRequestType = "fetch" | "xhr" | "websocket" | "eventsource";
  * Network log entry for tracking network activity
  * ADR-PRIVACY-004: Memory-only, never persisted, never synced
  */
-export type NetworkLogEntry = {
+export interface NetworkLogEntry {
   id: string;
   timestamp: number;
   type: NetworkRequestType;
   url: string;
   blocked: boolean;
   reason?: string;
-};
+}
 
 /**
  * Maximum number of log entries to keep (FIFO)
  */
 const MAX_LOG_ENTRIES = 1000;
 
-type PrivacyState = {
+interface PrivacyState {
   /** Current privacy mode */
   mode: PrivacyMode;
   /** Key for JazzProvider remount on mode change */
@@ -62,7 +62,7 @@ type PrivacyState = {
   openDashboard: () => void;
   /** Close dashboard */
   closeDashboard: () => void;
-};
+}
 
 /**
  * Generate a unique jazzKey for the given mode.

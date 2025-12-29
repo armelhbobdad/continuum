@@ -28,7 +28,7 @@ import {
 export type { InferenceMetadata, InferenceSource } from "@/types/inference";
 
 /** Metadata for finalized messages (Story 1.4 Task 8.3, extended in 1.5, 2.4) */
-export type MessageMetadata = {
+export interface MessageMetadata {
   tokensGenerated?: number;
   finishReason?: "completed" | "aborted" | "error";
   durationMs?: number;
@@ -36,38 +36,38 @@ export type MessageMetadata = {
   inference?: InferenceMetadata;
   /** Model ID that generated this message (Story 2.4 Task 8.1) */
   modelId?: string;
-};
+}
 
 /**
  * Message in a chat session.
  * Role: 'user' for human messages, 'assistant' for AI responses.
  */
-export type Message = {
+export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   /** Metadata populated after generation completes (assistant messages only) */
   metadata?: MessageMetadata;
-};
+}
 
 /**
  * Chat session containing messages.
  * Title is generated from first message (max 50 chars).
  */
-export type Session = {
+export interface Session {
   id: string;
   title: string;
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;
-};
+}
 
 /**
  * Session store state interface.
  * Story 1.7 additions: lastSavedAt, isDirty, wasRecovered, markDirty, clearDirty, initializeSessions
  */
-export type SessionState = {
+export interface SessionState {
   /** All sessions, newest first */
   sessions: Session[];
   /** Currently active session ID */
@@ -113,7 +113,7 @@ export type SessionState = {
   markDirty: () => void;
   /** Clear dirty flag - called after persist (Story 1.7) */
   clearDirty: () => void;
-};
+}
 
 /**
  * Session store using Zustand with persist middleware.

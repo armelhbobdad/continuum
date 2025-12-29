@@ -23,7 +23,7 @@ type DownloadState =
   | { status: "downloading"; downloadId: string }
   | { status: "error"; error: string };
 
-type UseModelDownloadResult = {
+interface UseModelDownloadResult {
   /** Current download state */
   state: DownloadState;
   /** Initiate download with storage check */
@@ -40,7 +40,7 @@ type UseModelDownloadResult = {
   dismiss: () => void;
   /** Storage check result (if available) */
   storageResult: StorageCheckResult | null;
-};
+}
 
 /**
  * Hook for managing model download with storage validation.
@@ -62,7 +62,6 @@ export function useModelDownload(): UseModelDownloadResult {
   const addDownload = useDownloadStore((s) => s.addDownload);
 
   const initiateDownload = useCallback(
-    // biome-ignore lint/nursery/useMaxParams: Download requires all model parameters
     async (
       modelId: string,
       url: string,

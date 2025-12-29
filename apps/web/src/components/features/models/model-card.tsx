@@ -287,9 +287,9 @@ function formatLimitation(lim: string): string {
 // Sub-components
 // ============================================================================
 
-type RecommendationBadgeProps = {
+interface RecommendationBadgeProps {
   recommendation: ModelRecommendation;
-};
+}
 
 /**
  * Badge showing hardware recommendation status

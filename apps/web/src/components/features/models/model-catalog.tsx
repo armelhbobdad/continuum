@@ -18,10 +18,10 @@ import { useHardwareStore } from "@/stores/hardware";
 import { useModelStore, useModelsWithRecommendations } from "@/stores/models";
 import { ModelCard } from "./model-card";
 
-export type ModelCatalogProps = {
+export interface ModelCatalogProps {
   /** Additional CSS classes */
   className?: string;
-};
+}
 
 /**
  * ModelCatalog Component

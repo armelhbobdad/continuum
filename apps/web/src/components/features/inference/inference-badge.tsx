@@ -22,7 +22,7 @@ import type { InferenceBadgeState, InferenceSource } from "@/types/inference";
 // Re-export types for consumers
 export type { InferenceBadgeState, InferenceSource } from "@/types/inference";
 
-export type InferenceBadgeProps = {
+export interface InferenceBadgeProps {
   /** Current inference state */
   state: InferenceBadgeState;
   /** Source of inference (local/stub/cloud:provider) */
@@ -37,7 +37,7 @@ export type InferenceBadgeProps = {
   switchingTo?: string;
   /** Additional CSS classes */
   className?: string;
-};
+}
 
 /**
  * InferenceBadge Component

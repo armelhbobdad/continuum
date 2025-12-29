@@ -77,7 +77,7 @@ function getTauriListen(): <T>(
 export type DownloadProgressCallback = (progress: DownloadProgress) => void;
 
 /** Tauri event payload for download_progress event */
-type TauriDownloadProgressEvent = {
+interface TauriDownloadProgressEvent {
   download_id: string;
   model_id: string;
   status: string;
@@ -85,15 +85,15 @@ type TauriDownloadProgressEvent = {
   total_bytes: number;
   speed_bps: number;
   eta_seconds: number;
-};
+}
 
 /** Tauri storage check result */
-type TauriStorageCheckResult = {
+interface TauriStorageCheckResult {
   has_space: boolean;
   available_mb: number;
   required_mb: number;
   shortfall_mb: number;
-};
+}
 
 // ============================================================================
 // Download Functions
@@ -267,14 +267,14 @@ type UnlistenFn = () => void;
  * @param callback - Function to call with progress updates
  * @returns Promise<UnlistenFn> - Function to unsubscribe from events
  */
-export async function subscribeToDownloadProgress(
+export function subscribeToDownloadProgress(
   callback: DownloadProgressCallback
 ): Promise<UnlistenFn> {
   if (!isDesktop()) {
     // Return no-op for web
-    return () => {
+    return Promise.resolve(() => {
       // No-op unlisten function for non-desktop platforms
-    };
+    });
   }
 
   const listen = getTauriListen();
@@ -299,23 +299,23 @@ export async function subscribeToDownloadProgress(
 }
 
 /** Corruption event data from Tauri */
-export type CorruptionEvent = {
+export interface CorruptionEvent {
   modelId: string;
   expectedHash: string;
   actualHash: string;
   quarantinePath: string;
-};
+}
 
 /** Callback for corruption events */
 export type CorruptionEventCallback = (event: CorruptionEvent) => void;
 
 /** Tauri corruption event payload */
-type TauriCorruptionEvent = {
+interface TauriCorruptionEvent {
   model_id: string;
   expected_hash: string;
   actual_hash: string;
   quarantine_path: string;
-};
+}
 
 /**
  * Subscribe to download corruption events.
@@ -324,13 +324,13 @@ type TauriCorruptionEvent = {
  * @param callback - Function to call with corruption details
  * @returns Promise<UnlistenFn> - Function to unsubscribe from events
  */
-export async function subscribeToCorruptionEvents(
+export function subscribeToCorruptionEvents(
   callback: CorruptionEventCallback
 ): Promise<UnlistenFn> {
   if (!isDesktop()) {
-    return () => {
+    return Promise.resolve(() => {
       // No-op unlisten function for non-desktop platforms
-    };
+    });
   }
 
   const listen = getTauriListen();

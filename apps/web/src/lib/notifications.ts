@@ -14,14 +14,14 @@ import { isDesktop } from "@continuum/platform";
 // Types
 // ============================================================================
 
-type NotificationOptions = {
+interface NotificationOptions {
   /** Notification title */
   title: string;
   /** Notification body text */
   body: string;
   /** Optional icon URL */
   icon?: string;
-};
+}
 
 type NotificationPermission = "granted" | "denied" | "default";
 

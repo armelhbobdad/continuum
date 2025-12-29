@@ -12,7 +12,7 @@ import type { CorruptionEvent } from "@continuum/platform";
 import { subscribeToCorruptionEvents } from "@continuum/platform";
 import { useCallback, useEffect, useState } from "react";
 
-export type CorruptionDialogState = {
+export interface CorruptionDialogState {
   /** Whether the dialog is open */
   isOpen: boolean;
   /** Corruption event data (null when closed) */
@@ -23,7 +23,7 @@ export type CorruptionDialogState = {
   redownload: () => void;
   /** View quarantine folder */
   viewQuarantine: () => void;
-};
+}
 
 /**
  * Hook that subscribes to corruption events and manages dialog state.

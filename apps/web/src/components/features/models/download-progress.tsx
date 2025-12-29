@@ -126,9 +126,9 @@ export function DownloadProgress({
 // Sub-components
 // ============================================================================
 
-type ProgressDetailsProps = {
+interface ProgressDetailsProps {
   progress: DownloadProgressData;
-};
+}
 
 /**
  * Progress details showing bytes, speed, ETA
@@ -148,9 +148,9 @@ function ProgressDetails({ progress }: ProgressDetailsProps) {
   );
 }
 
-type StatusIndicatorProps = {
+interface StatusIndicatorProps {
   progress: DownloadProgressData;
-};
+}
 
 /**
  * Status indicator showing speed/ETA or status text

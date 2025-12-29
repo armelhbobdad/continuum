@@ -37,7 +37,7 @@ const STORAGE_KEY = "continuum-models";
 export type SwitchProgress = "unloading" | "loading" | null;
 
 /** Model store state */
-export type ModelState = {
+export interface ModelState {
   /** All available models from registry */
   availableModels: ModelMetadata[];
   /** User's downloaded model IDs */
@@ -89,7 +89,7 @@ export type ModelState = {
   unpinVersion: (modelId: string) => void;
   /** Check if a model is pinned */
   isVersionPinned: (modelId: string) => boolean;
-};
+}
 
 /**
  * Model store with persistence for downloaded models and selection.
@@ -225,10 +225,10 @@ export const useModelStore = create<ModelState>()(
 );
 
 /** Model with recommendation */
-export type ModelWithRecommendation = {
+export interface ModelWithRecommendation {
   model: ModelMetadata;
   recommendation: ModelRecommendation;
-};
+}
 
 /**
  * Selector hook: Get models sorted by recommendation.

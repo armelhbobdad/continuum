@@ -25,11 +25,11 @@ import type { StreamingMetadata } from "@/types/inference";
 import { Message } from "./message";
 import { StreamingMessage } from "./streaming-message";
 
-type MessageListProps = {
+interface MessageListProps {
   messages: MessageType[];
   /** Current streaming metadata for in-progress generation (Story 1.5) */
   streamingMetadata?: StreamingMetadata | null;
-};
+}
 
 /**
  * Message List Component

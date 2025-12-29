@@ -51,17 +51,17 @@ const recommendationLabels: Record<ModelRecommendation, string> = {
 };
 
 /** State for pending model selection (when warning dialog is shown) */
-type PendingSelection = {
+interface PendingSelection {
   model: ModelMetadata;
   recommendation: ModelRecommendation;
-};
+}
 
-export type ChatModelSelectorProps = {
+export interface ChatModelSelectorProps {
   /** Additional CSS classes */
   className?: string;
   /** Whether selection is disabled (e.g., during inference) */
   disabled?: boolean;
-};
+}
 
 /**
  * ChatModelSelector Component

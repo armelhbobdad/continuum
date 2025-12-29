@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import type { InferenceSource } from "../inference";
 import { InferenceBadge } from "../inference";
 
-export type StreamingMessageProps = {
+export interface StreamingMessageProps {
   /** Current message content */
   content: string;
   /** Whether tokens are still being generated */
@@ -32,7 +32,7 @@ export type StreamingMessageProps = {
   tokenCount: number;
   /** Callback fired when streaming completes */
   onComplete?: () => void;
-};
+}
 
 /**
  * StreamingMessage Component

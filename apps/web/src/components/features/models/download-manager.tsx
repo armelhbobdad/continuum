@@ -50,12 +50,12 @@ const downloadItemVariants = cva("rounded-lg border p-3 transition-colors", {
   },
 });
 
-export type DownloadManagerProps = {
+export interface DownloadManagerProps {
   /** Additional CSS classes */
   className?: string;
   /** Show empty state when no downloads */
   showEmptyState?: boolean;
-};
+}
 
 /**
  * DownloadManager Component

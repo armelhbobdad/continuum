@@ -38,20 +38,20 @@ export type DownloadErrorCode =
  * Download error with user-friendly messaging
  * Per project-context.md: UserError pattern with userMessage and technicalDetails
  */
-export type DownloadError = {
+export interface DownloadError {
   /** Error code for categorization */
   code: DownloadErrorCode;
   /** Human-readable error message */
   message: string;
   /** Whether the download can be retried */
   retryable: boolean;
-};
+}
 
 /**
  * Download progress information
  * Emitted from Rust backend via Tauri event system (ADR-DOWNLOAD-003)
  */
-export type DownloadProgress = {
+export interface DownloadProgress {
   /** Unique download identifier */
   downloadId: string;
   /** Model being downloaded */
@@ -70,13 +70,13 @@ export type DownloadProgress = {
   startedAt: Date;
   /** Error info if status is 'failed' */
   error?: DownloadError;
-};
+}
 
 /**
  * Storage space check result
  * Used for pre-download validation (AC5)
  */
-export type StorageCheckResult = {
+export interface StorageCheckResult {
   /** Whether there's enough space */
   hasSpace: boolean;
   /** Available space in MB */
@@ -85,13 +85,13 @@ export type StorageCheckResult = {
   requiredMb: number;
   /** Shortfall in MB (0 if hasSpace is true) */
   shortfallMb: number;
-};
+}
 
 /**
  * Download request parameters
  * Used to initiate a new model download
  */
-export type DownloadRequest = {
+export interface DownloadRequest {
   /** Model ID to download */
   modelId: string;
   /** Download URL */
@@ -100,7 +100,7 @@ export type DownloadRequest = {
   expectedSizeBytes?: number;
   /** Expected checksum for verification (Story 2.5 integration) */
   expectedChecksum?: string;
-};
+}
 
 /**
  * Error message mapping for user-friendly display

@@ -21,7 +21,7 @@ export type InferenceBadgeState =
  * Inference metadata tracked per message (Story 1.5 Task 5.2)
  * Persisted with messages for historical display.
  */
-export type InferenceMetadata = {
+export interface InferenceMetadata {
   /** Source of inference: local, stub (web fallback), or cloud:provider */
   source: InferenceSource;
   /** Name of the model used */
@@ -32,13 +32,13 @@ export type InferenceMetadata = {
   tokenCount: number;
   /** Duration in milliseconds (populated on completion) */
   duration?: number;
-};
+}
 
 /**
  * Streaming metadata for real-time UI updates during generation.
  * Passed from ChatPanel to MessageList to StreamingMessage.
  */
-export type StreamingMetadata = {
+export interface StreamingMetadata {
   /** Message ID being streamed */
   messageId: string;
   /** Inference source */
@@ -49,4 +49,4 @@ export type StreamingMetadata = {
   startTime: number;
   /** Current token count */
   tokenCount: number;
-};
+}

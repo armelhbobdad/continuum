@@ -66,17 +66,17 @@ const badgeVariants = cva("rounded-full px-2 py-0.5 font-medium text-xs", {
 });
 
 /** State for pending model selection (when warning dialog is shown) */
-type PendingSelection = {
+interface PendingSelection {
   model: ModelMetadata;
   recommendation: ModelRecommendation;
-};
+}
 
-export type ModelSelectorProps = {
+export interface ModelSelectorProps {
   /** Additional CSS classes */
   className?: string;
   /** Callback after model selection (optional) */
   onSelect?: (modelId: string) => void;
-};
+}
 
 /**
  * ModelSelector Component

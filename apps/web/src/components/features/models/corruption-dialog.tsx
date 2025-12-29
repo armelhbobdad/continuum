@@ -17,7 +17,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 
-export type CorruptionDialogProps = {
+export interface CorruptionDialogProps {
   /** Whether the dialog is open */
   open: boolean;
   /** Callback when dialog should close */
@@ -32,7 +32,7 @@ export type CorruptionDialogProps = {
   onRedownload: () => void;
   /** Callback to view quarantine */
   onViewQuarantine: () => void;
-};
+}
 
 /**
  * Truncate hash for display (first 8 + last 8 characters)

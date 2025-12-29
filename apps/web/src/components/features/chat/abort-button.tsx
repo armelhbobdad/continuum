@@ -12,10 +12,10 @@
 
 import { Button } from "@/components/ui/button";
 
-type AbortButtonProps = {
+interface AbortButtonProps {
   onAbort: () => void;
   disabled?: boolean;
-};
+}
 
 /**
  * Abort Button Component

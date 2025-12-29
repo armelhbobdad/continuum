@@ -32,23 +32,23 @@ import { MessageInput } from "./message-input";
 import { MessageList } from "./message-list";
 
 /** Inference state for UI feedback */
-type InferenceState = {
+interface InferenceState {
   isGenerating: boolean;
   isLoadingModel: boolean;
   isSwitchingModel: boolean;
   error: InferenceError | null;
   lastPrompt: string | null;
-};
+}
 
 /** Context for the current generation (for abort) */
-type GenerationContext = {
+interface GenerationContext {
   sessionId: string;
   messageId: string;
   adapter: InferenceAdapter;
   aborted: boolean;
   streamingMetadata: StreamingMetadata;
   modelId: string;
-};
+}
 
 /**
  * Chat Panel Component

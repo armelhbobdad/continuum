@@ -122,14 +122,14 @@ export function VerificationBadge({
  * Button to trigger manual verification (AC4).
  * Used alongside VerificationBadge for user-initiated verification.
  */
-export type VerifyNowButtonProps = {
+export interface VerifyNowButtonProps {
   /** Callback when verify is clicked */
   onVerify: () => void;
   /** Whether verification is in progress */
   isVerifying?: boolean;
   /** Additional CSS classes */
   className?: string;
-};
+}
 
 export function VerifyNowButton({
   onVerify,

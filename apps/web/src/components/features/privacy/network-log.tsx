@@ -18,9 +18,9 @@ import { cn } from "@/lib/utils";
 import type { NetworkLogEntry } from "@/stores/privacy";
 import { usePrivacyStore } from "@/stores/privacy";
 
-export type NetworkLogProps = {
+export interface NetworkLogProps {
   className?: string;
-};
+}
 
 /**
  * Format timestamp as relative time (e.g., "2s ago", "5m ago")
@@ -77,9 +77,9 @@ function truncateUrl(url: string, maxLength = 40): string {
   return `${url.slice(0, maxLength - 3)}...`;
 }
 
-type NetworkLogRowProps = {
+interface NetworkLogRowProps {
   entry: NetworkLogEntry;
-};
+}
 
 /**
  * Single row in the network log table

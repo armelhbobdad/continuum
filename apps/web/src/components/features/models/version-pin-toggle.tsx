@@ -16,7 +16,7 @@
 import { cn } from "@/lib/utils";
 import { useModelStore } from "@/stores/models";
 
-export type VersionPinToggleProps = {
+export interface VersionPinToggleProps {
   /** Model ID to pin */
   modelId: string;
   /** Current model version */
@@ -27,7 +27,7 @@ export type VersionPinToggleProps = {
   newerVersion?: string;
   /** Additional CSS classes */
   className?: string;
-};
+}
 
 /**
  * VersionPinToggle Component
@@ -109,12 +109,12 @@ export function VersionPinToggle({
  * Small badge showing pinned status.
  * For use in compact spaces like model cards.
  */
-export type PinnedVersionBadgeProps = {
+export interface PinnedVersionBadgeProps {
   /** Model ID to check */
   modelId: string;
   /** Additional CSS classes */
   className?: string;
-};
+}
 
 export function PinnedVersionBadge({
   modelId,

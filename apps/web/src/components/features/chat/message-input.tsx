@@ -16,12 +16,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-type MessageInputProps = {
+interface MessageInputProps {
   onSend: (content: string) => void;
   disabled?: boolean;
   /** Reason for disabled state (shown in tooltip) */
   disabledReason?: string;
-};
+}
 
 /**
  * Message Input Component

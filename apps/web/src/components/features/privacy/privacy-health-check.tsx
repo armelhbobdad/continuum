@@ -22,9 +22,9 @@ import { usePrivacyStore } from "@/stores/privacy";
  */
 export type HealthStatus = "secure" | "caution" | "issue";
 
-export type PrivacyHealthCheckProps = {
+export interface PrivacyHealthCheckProps {
   className?: string;
-};
+}
 
 /**
  * CVA variants for health check badge styling
