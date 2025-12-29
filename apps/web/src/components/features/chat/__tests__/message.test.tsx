@@ -212,14 +212,14 @@ describe("Message Component", () => {
       render(
         <Message
           content="AI response"
-          modelName="Llama-3-8B"
+          modelName="Mistral-7B"
           role="assistant"
           timestamp={new Date()}
         />
       );
 
       const message = screen.getByText("AI response").closest("[data-slot]");
-      expect(message).toHaveAttribute("data-model", "Llama-3-8B");
+      expect(message).toHaveAttribute("data-model", "Mistral-7B");
     });
 
     it("preserves model attribution when content updates", () => {

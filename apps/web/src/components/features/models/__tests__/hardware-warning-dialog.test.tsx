@@ -36,22 +36,24 @@ Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
 // Test fixtures
 const mockModel: ModelMetadata = {
-  id: "llama-3-8b",
-  name: "Llama 3 8B",
-  version: "8b-4bit",
-  description: "Powerful reasoning model",
-  requirements: { ramMb: 8192, gpuVramMb: 0, storageMb: 5000 },
+  id: "mistral-7b",
+  name: "Mistral 7B",
+  version: "7b-4bit",
+  description: "High-performance instruction following",
+  requirements: { ramMb: 6144, gpuVramMb: 0, storageMb: 4200 },
   capabilities: ["general-chat"],
   limitations: [],
   contextLength: 8192,
-  license: { name: "Llama 3", url: "https://example.com", commercial: true },
+  license: { name: "Apache 2.0", url: "https://example.com", commercial: true },
   vulnerabilities: [],
-  downloadUrl: "https://example.com/llama.gguf",
+  downloadUrl: "https://example.com/mistral.gguf",
   sha256: "abc",
+  tokenizerUrl:
+    "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2/resolve/main/tokenizer.json",
 };
 
 const mockHardwareLow: HardwareCapabilities = {
-  ram: 8192, // 8GB - exactly matches model requirement (100%)
+  ram: 6144, // 6GB - exactly matches model requirement (100%)
   cpuCores: 4,
   storageAvailable: 50_000,
   gpu: null,
@@ -159,7 +161,7 @@ describe("HardwareWarningDialog", () => {
         />
       );
 
-      expect(screen.getByText("Llama 3 8B")).toBeInTheDocument();
+      expect(screen.getByText("Mistral 7B")).toBeInTheDocument();
     });
 
     it("should display RAM requirements", () => {
@@ -174,8 +176,8 @@ describe("HardwareWarningDialog", () => {
         />
       );
 
-      // Both model requires and system have "8.0 GB RAM" - check both exist
-      const ramElements = screen.getAllByText("8.0 GB RAM");
+      // Both model requires and system have "6.0 GB RAM" - check both exist
+      const ramElements = screen.getAllByText("6.0 GB RAM");
       expect(ramElements.length).toBeGreaterThanOrEqual(1);
     });
 

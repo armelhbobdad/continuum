@@ -43,65 +43,6 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
       "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/resolve/main/tokenizer.json",
   },
   {
-    id: "llama-3-8b",
-    name: "Llama 3 8B",
-    version: "8b-4bit",
-    description: "Meta's powerful 8B parameter model with strong reasoning.",
-    requirements: {
-      ramMb: 8192, // 8GB minimum
-      gpuVramMb: 6144, // 6GB VRAM recommended
-      storageMb: 5000, // ~5GB
-    },
-    capabilities: [
-      "general-chat",
-      "code-generation",
-      "summarization",
-      "creative-writing",
-    ],
-    limitations: ["no-image-understanding"],
-    contextLength: 8192,
-    license: {
-      name: "Llama 3 Community",
-      url: "https://llama.meta.com/llama3/license/",
-      commercial: true,
-    },
-    vulnerabilities: [],
-    downloadUrl:
-      "https://huggingface.co/QuantFactory/Meta-Llama-3-8B-GGUF/resolve/main/Meta-Llama-3-8B.Q4_K_M.gguf",
-    sha256: "2a19e7532fb544cfd164c65a1b045bb415e14924890a8abee0ec84644f66f61f",
-    tokenizerUrl:
-      "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct/resolve/main/tokenizer.json",
-  },
-  {
-    id: "gemma-2b",
-    name: "Gemma 2B",
-    version: "2b-4bit",
-    description: "Google's lightweight model, very fast on modest hardware.",
-    requirements: {
-      ramMb: 2048, // 2GB minimum
-      gpuVramMb: 0, // CPU-capable
-      storageMb: 1500, // ~1.5GB
-    },
-    capabilities: ["general-chat", "summarization"],
-    limitations: [
-      "no-image-understanding",
-      "no-code-execution",
-      "limited-context",
-    ],
-    contextLength: 2048,
-    license: {
-      name: "Gemma Terms of Use",
-      url: "https://ai.google.dev/gemma/terms",
-      commercial: true,
-    },
-    vulnerabilities: [],
-    downloadUrl:
-      "https://huggingface.co/MaziyarPanahi/gemma-2b-it-GGUF/resolve/main/gemma-2b-it.Q4_K_M.gguf",
-    sha256: "f551e32944bb95f79ff69f45271cb4f885b75b4b933dd547c69ba013688133ff",
-    tokenizerUrl:
-      "https://huggingface.co/google/gemma-2b-it/resolve/main/tokenizer.json",
-  },
-  {
     id: "mistral-7b",
     name: "Mistral 7B",
     version: "7b-4bit",

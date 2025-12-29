@@ -61,20 +61,24 @@ const mockModels: ModelMetadata[] = [
       "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/resolve/main/tokenizer.json",
   },
   {
-    id: "llama-3-8b",
-    name: "Llama 3 8B",
-    version: "8b-4bit",
-    description: "Powerful reasoning",
-    requirements: { ramMb: 8192, gpuVramMb: 6144, storageMb: 5000 },
+    id: "mistral-7b",
+    name: "Mistral 7B",
+    version: "7b-4bit",
+    description: "High-performance instruction following",
+    requirements: { ramMb: 6144, gpuVramMb: 4096, storageMb: 4200 },
     capabilities: ["general-chat", "code-generation"],
     limitations: [],
     contextLength: 8192,
-    license: { name: "Llama 3", url: "https://example.com", commercial: true },
+    license: {
+      name: "Apache 2.0",
+      url: "https://example.com",
+      commercial: true,
+    },
     vulnerabilities: [],
-    downloadUrl: "https://example.com/llama.gguf",
+    downloadUrl: "https://example.com/mistral.gguf",
     sha256: "def",
     tokenizerUrl:
-      "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct/resolve/main/tokenizer.json",
+      "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2/resolve/main/tokenizer.json",
   },
 ];
 
@@ -93,7 +97,7 @@ function setupMocks(options: {
   capabilities?: HardwareCapabilities | null;
 }) {
   const {
-    downloadedModels = ["phi-3-mini", "llama-3-8b"],
+    downloadedModels = ["phi-3-mini", "mistral-7b"],
     selectedModelId = "phi-3-mini",
     capabilities = mockHardware,
   } = options;
@@ -177,7 +181,7 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       expect(screen.getByText("Phi-3 Mini")).toBeInTheDocument();
-      expect(screen.getByText("Llama 3 8B")).toBeInTheDocument();
+      expect(screen.getByText("Mistral 7B")).toBeInTheDocument();
     });
 
     it("should highlight currently selected model (AC1)", () => {
@@ -215,10 +219,10 @@ describe("ModelSelector", () => {
 
       render(<ModelSelector />);
 
-      const llamaOption = screen.getByRole("option", { name: /llama 3 8b/i });
-      fireEvent.click(llamaOption);
+      const mistralOption = screen.getByRole("option", { name: /mistral 7b/i });
+      fireEvent.click(mistralOption);
 
-      expect(storeState.selectModel).toHaveBeenCalledWith("llama-3-8b");
+      expect(storeState.selectModel).toHaveBeenCalledWith("mistral-7b");
     });
 
     it("should not call selectModel when clicking already selected model", () => {
@@ -239,9 +243,9 @@ describe("ModelSelector", () => {
 
       render(<ModelSelector />);
 
-      // Llama 3 8B requires 8GB RAM, marked as "may-be-slow"
-      const llamaOption = screen.getByRole("option", { name: /llama 3 8b/i });
-      expect(llamaOption).toHaveTextContent(/may be slow/i);
+      // Mistral 7B requires 8GB RAM, marked as "may-be-slow"
+      const mistralOption = screen.getByRole("option", { name: /mistral 7b/i });
+      expect(mistralOption).toHaveTextContent(/may be slow/i);
     });
 
     it("should show recommended badge for compatible models", () => {
@@ -303,7 +307,7 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       const unselectedOption = screen.getByRole("option", {
-        name: /llama 3 8b/i,
+        name: /mistral 7b/i,
       });
       expect(unselectedOption).toHaveAttribute("data-state", "default");
     });
@@ -311,9 +315,9 @@ describe("ModelSelector", () => {
 
   describe("Hardware Warning Dialog Integration (AC4)", () => {
     it("should show warning dialog when selecting demanding model (>80% RAM)", () => {
-      // Low RAM system where Llama 3 8B would use >80%
+      // Low RAM system where Mistral 7B would use >80%
       const lowRamHardware: HardwareCapabilities = {
-        ram: 8192, // 8GB - Llama 3 requires 8GB = 100% usage
+        ram: 6144, // 6GB - Mistral 7B requires 6GB = 100% usage
         cpuCores: 4,
         storageAvailable: 50_000,
         gpu: null,
@@ -328,25 +332,25 @@ describe("ModelSelector", () => {
 
       // Override recommendation to trigger warning
       mockedGetModelRecommendation.mockImplementation((requirements) => {
-        if (requirements.ramMb >= 8000) return "may-be-slow";
+        if (requirements.ramMb >= 6000) return "may-be-slow";
         return "recommended";
       });
 
       render(<ModelSelector />);
 
-      // Click on Llama 3 8B (demanding model)
-      const llamaOption = screen.getByRole("option", { name: /llama 3 8b/i });
-      fireEvent.click(llamaOption);
+      // Click on Mistral 7B (demanding model)
+      const mistralOption = screen.getByRole("option", { name: /mistral 7b/i });
+      fireEvent.click(mistralOption);
 
       // Should show hardware warning dialog
       const dialog = screen.getByRole("alertdialog");
       expect(dialog).toBeInTheDocument();
       // Dialog should contain the model name (not just checking text existence since it appears in list too)
-      expect(dialog).toHaveTextContent("Llama 3 8B");
+      expect(dialog).toHaveTextContent("Mistral 7B");
     });
 
     it("should not show dialog when selecting recommended model", () => {
-      setupMocks({ selectedModelId: "llama-3-8b" });
+      setupMocks({ selectedModelId: "mistral-7b" });
 
       render(<ModelSelector />);
 
@@ -360,7 +364,7 @@ describe("ModelSelector", () => {
 
     it("should complete selection after confirming warning dialog", () => {
       const lowRamHardware: HardwareCapabilities = {
-        ram: 8192,
+        ram: 6144,
         cpuCores: 4,
         storageAvailable: 50_000,
         gpu: null,
@@ -374,25 +378,25 @@ describe("ModelSelector", () => {
       });
 
       mockedGetModelRecommendation.mockImplementation((requirements) => {
-        if (requirements.ramMb >= 8000) return "may-be-slow";
+        if (requirements.ramMb >= 6000) return "may-be-slow";
         return "recommended";
       });
 
       render(<ModelSelector />);
 
-      // Click on Llama 3 8B
-      fireEvent.click(screen.getByRole("option", { name: /llama 3 8b/i }));
+      // Click on Mistral 7B
+      fireEvent.click(screen.getByRole("option", { name: /mistral 7b/i }));
 
       // Confirm in warning dialog
       fireEvent.click(screen.getByText("Proceed Anyway"));
 
       // Should have called selectModel
-      expect(storeState.selectModel).toHaveBeenCalledWith("llama-3-8b");
+      expect(storeState.selectModel).toHaveBeenCalledWith("mistral-7b");
     });
 
     it("should cancel selection when clicking Choose Different", () => {
       const lowRamHardware: HardwareCapabilities = {
-        ram: 8192,
+        ram: 6144,
         cpuCores: 4,
         storageAvailable: 50_000,
         gpu: null,
@@ -406,14 +410,14 @@ describe("ModelSelector", () => {
       });
 
       mockedGetModelRecommendation.mockImplementation((requirements) => {
-        if (requirements.ramMb >= 8000) return "may-be-slow";
+        if (requirements.ramMb >= 6000) return "may-be-slow";
         return "recommended";
       });
 
       render(<ModelSelector />);
 
-      // Click on Llama 3 8B
-      fireEvent.click(screen.getByRole("option", { name: /llama 3 8b/i }));
+      // Click on Mistral 7B
+      fireEvent.click(screen.getByRole("option", { name: /mistral 7b/i }));
 
       // Cancel in warning dialog
       fireEvent.click(screen.getByText("Choose Different"));

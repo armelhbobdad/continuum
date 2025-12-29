@@ -73,14 +73,14 @@ describe("useModelSwitch", () => {
       const { result } = renderHook(() => useModelSwitch());
 
       await act(async () => {
-        await result.current.switchModel("llama-3-8b");
+        await result.current.switchModel("mistral-7b");
       });
 
       // Verify call order: abort first (Task 4.1), then unload, then load
       expect(mockInvoke).toHaveBeenNthCalledWith(1, "abort_inference");
       expect(mockInvoke).toHaveBeenNthCalledWith(2, "unload_model");
       expect(mockInvoke).toHaveBeenNthCalledWith(3, "load_model", {
-        modelId: "llama-3-8b",
+        modelId: "mistral-7b",
       });
     });
 
@@ -90,10 +90,10 @@ describe("useModelSwitch", () => {
       const { result } = renderHook(() => useModelSwitch());
 
       await act(async () => {
-        await result.current.switchModel("llama-3-8b");
+        await result.current.switchModel("mistral-7b");
       });
 
-      expect(mockSelectModel).toHaveBeenCalledWith("llama-3-8b");
+      expect(mockSelectModel).toHaveBeenCalledWith("mistral-7b");
     });
 
     it("should clear switching state on success", async () => {
@@ -102,7 +102,7 @@ describe("useModelSwitch", () => {
       const { result } = renderHook(() => useModelSwitch());
 
       await act(async () => {
-        await result.current.switchModel("llama-3-8b");
+        await result.current.switchModel("mistral-7b");
       });
 
       expect(result.current.isSwitching).toBe(false);
@@ -152,7 +152,7 @@ describe("useModelSwitch", () => {
       const { result } = renderHook(() => useModelSwitch());
 
       await act(async () => {
-        await result.current.switchModel("llama-3-8b");
+        await result.current.switchModel("mistral-7b");
       });
 
       // Should try to reload previous model (4th call after abort, unload, failed load)
@@ -172,14 +172,14 @@ describe("useModelSwitch", () => {
       const { result } = renderHook(() => useModelSwitch());
 
       await act(async () => {
-        await result.current.switchModel("llama-3-8b");
+        await result.current.switchModel("mistral-7b");
       });
 
       // Verify the switch was initiated (states changed during operation)
       // Note: tokenizerSource is no longer passed - backend loads tokenizer from local file
       expect(mockInvoke).toHaveBeenCalledWith("unload_model");
       expect(mockInvoke).toHaveBeenCalledWith("load_model", {
-        modelId: "llama-3-8b",
+        modelId: "mistral-7b",
       });
     });
   });

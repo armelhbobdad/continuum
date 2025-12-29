@@ -44,20 +44,24 @@ const mockModels: ModelMetadata[] = [
       "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/resolve/main/tokenizer.json",
   },
   {
-    id: "llama-3-8b",
-    name: "Llama 3 8B",
-    version: "8b-4bit",
-    description: "Powerful reasoning",
-    requirements: { ramMb: 8192, gpuVramMb: 0, storageMb: 5000 },
+    id: "mistral-7b",
+    name: "Mistral 7B",
+    version: "7b-4bit",
+    description: "High-performance instruction following",
+    requirements: { ramMb: 6144, gpuVramMb: 0, storageMb: 4200 },
     capabilities: ["general-chat", "code-generation"],
     limitations: [],
     contextLength: 8192,
-    license: { name: "Llama 3", url: "https://example.com", commercial: true },
+    license: {
+      name: "Apache 2.0",
+      url: "https://example.com",
+      commercial: true,
+    },
     vulnerabilities: [],
-    downloadUrl: "https://example.com/llama.gguf",
+    downloadUrl: "https://example.com/mistral.gguf",
     sha256: "def",
     tokenizerUrl:
-      "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct/resolve/main/tokenizer.json",
+      "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2/resolve/main/tokenizer.json",
   },
   {
     id: "mixtral-8x7b",
@@ -124,10 +128,10 @@ describe("autoSelectModel", () => {
 
   describe("Task 7.2-7.3: Pick best match from downloaded models", () => {
     it("should prefer recommended models over may-be-slow", () => {
-      // With 16GB RAM: phi-3-mini (4GB) = recommended, llama-3-8b (8GB) = recommended
+      // With 16GB RAM: phi-3-mini (4GB) = recommended, mistral-7b (8GB) = recommended
       // Should prefer smaller one (phi-3-mini)
       const result = autoSelectModel(
-        ["phi-3-mini", "llama-3-8b"],
+        ["phi-3-mini", "mistral-7b"],
         mockModels,
         mockHardware16GB
       );
@@ -138,15 +142,15 @@ describe("autoSelectModel", () => {
     });
 
     it("should select may-be-slow if no recommended models available", () => {
-      // With 8GB RAM: llama-3-8b (8GB) = may-be-slow
+      // With 8GB RAM: mistral-7b (8GB) = may-be-slow
       const result = autoSelectModel(
-        ["llama-3-8b"],
+        ["mistral-7b"],
         mockModels,
         mockHardware8GB
       );
 
       expect(result.success).toBe(true);
-      expect(result.modelId).toBe("llama-3-8b");
+      expect(result.modelId).toBe("mistral-7b");
       expect(result.recommendation).toBe("may-be-slow");
     });
 
@@ -177,7 +181,7 @@ describe("autoSelectModel", () => {
   describe("Hardware not detected fallback", () => {
     it("should fall back to smallest model when hardware not detected", () => {
       const result = autoSelectModel(
-        ["llama-3-8b", "phi-3-mini"],
+        ["mistral-7b", "phi-3-mini"],
         mockModels,
         null
       );
@@ -200,7 +204,7 @@ describe("needsAutoSelection", () => {
   });
 
   it("should return false when valid model is selected", () => {
-    expect(needsAutoSelection("phi-3-mini", ["phi-3-mini", "llama-3-8b"])).toBe(
+    expect(needsAutoSelection("phi-3-mini", ["phi-3-mini", "mistral-7b"])).toBe(
       false
     );
   });

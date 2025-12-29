@@ -269,12 +269,12 @@ describe("InferenceBadge", () => {
           modelName="phi-3-mini"
           source="local"
           state="switching"
-          switchingTo="llama-3-8b"
+          switchingTo="mistral-7b"
         />
       );
 
       expect(screen.getByRole("status")).toHaveTextContent(
-        /switching to llama-3-8b/i
+        /switching to mistral-7b/i
       );
     });
 
@@ -298,7 +298,7 @@ describe("InferenceBadge", () => {
           modelName="phi-3-mini"
           source="local"
           state="switching"
-          switchingTo="llama-3-8b"
+          switchingTo="mistral-7b"
         />
       );
 
@@ -313,7 +313,7 @@ describe("InferenceBadge", () => {
           modelName="phi-3-mini"
           source="local"
           state="switching"
-          switchingTo="llama-3-8b"
+          switchingTo="mistral-7b"
         />
       );
 
@@ -327,7 +327,7 @@ describe("InferenceBadge", () => {
           modelName="phi-3-mini"
           source="local"
           state="switching"
-          switchingTo="llama-3-8b"
+          switchingTo="mistral-7b"
         />
       );
 
