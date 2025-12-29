@@ -79,6 +79,7 @@ export function ChatModelSelector({
   const selectModel = useModelStore((s) => s.selectModel);
   const loadModels = useModelStore((s) => s.loadModels);
   const capabilities = useHardwareStore((s) => s.capabilities);
+  const fetchCapabilities = useHardwareStore((s) => s.fetchCapabilities);
 
   // State for hardware warning dialog (AC4)
   const [pendingSelection, setPendingSelection] =
@@ -90,6 +91,13 @@ export function ChatModelSelector({
       loadModels();
     }
   }, [availableModels.length, loadModels]);
+
+  // Fetch hardware capabilities on mount if not already detected
+  useEffect(() => {
+    if (capabilities === null) {
+      fetchCapabilities();
+    }
+  }, [capabilities, fetchCapabilities]);
 
   // Get downloaded models with metadata
   const downloadedModelsWithMeta = availableModels.filter((m) =>
