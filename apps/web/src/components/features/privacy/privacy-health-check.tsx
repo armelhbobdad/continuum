@@ -22,9 +22,9 @@ import { usePrivacyStore } from "@/stores/privacy";
  */
 export type HealthStatus = "secure" | "caution" | "issue";
 
-export interface PrivacyHealthCheckProps {
+export type PrivacyHealthCheckProps = {
   className?: string;
-}
+};
 
 /**
  * CVA variants for health check badge styling
@@ -123,16 +123,15 @@ export function PrivacyHealthCheck({ className }: PrivacyHealthCheckProps) {
   const description = statusDescriptions[status];
 
   return (
-    <div
+    <output
       aria-label={`Privacy health: ${label}. ${description}`}
       aria-live="polite"
       className={cn(healthVariants({ status }), className)}
       data-slot="privacy-health-check"
-      role="status"
       title={description}
     >
       <span aria-hidden="true" className={dotVariants({ status })} />
       <span>{label}</span>
-    </div>
+    </output>
   );
 }

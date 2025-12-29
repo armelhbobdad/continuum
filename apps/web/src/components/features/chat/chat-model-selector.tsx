@@ -51,17 +51,17 @@ const recommendationLabels: Record<ModelRecommendation, string> = {
 };
 
 /** State for pending model selection (when warning dialog is shown) */
-interface PendingSelection {
+type PendingSelection = {
   model: ModelMetadata;
   recommendation: ModelRecommendation;
-}
+};
 
-export interface ChatModelSelectorProps {
+export type ChatModelSelectorProps = {
   /** Additional CSS classes */
   className?: string;
   /** Whether selection is disabled (e.g., during inference) */
   disabled?: boolean;
-}
+};
 
 /**
  * ChatModelSelector Component
@@ -96,16 +96,22 @@ export function ChatModelSelector({
 
   // Get recommendation for a model
   const getRecommendation = (model: ModelMetadata): ModelRecommendation => {
-    if (!capabilities) return "may-be-slow";
+    if (!capabilities) {
+      return "may-be-slow";
+    }
     return getModelRecommendation(model.requirements, capabilities);
   };
 
   // Handle model selection with hardware warning check (AC4)
   const handleSelect = (modelId: string) => {
-    if (modelId === selectedModelId) return; // Already selected
+    if (modelId === selectedModelId) {
+      return; // Already selected
+    }
 
     const model = availableModels.find((m) => m.id === modelId);
-    if (!model) return;
+    if (!model) {
+      return;
+    }
 
     const recommendation = getRecommendation(model);
 
@@ -213,7 +219,7 @@ export function ChatModelSelector({
       </DropdownMenu>
 
       {/* Hardware Warning Dialog (AC4) */}
-      {pendingSelection && capabilities && (
+      {Boolean(pendingSelection && capabilities) && (
         <HardwareWarningDialog
           hardware={capabilities}
           model={pendingSelection.model}

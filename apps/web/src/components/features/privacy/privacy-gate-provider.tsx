@@ -98,6 +98,7 @@ const createBlockingError = (type: string, url: string): Error =>
 /**
  * Log a network attempt to the privacy store
  */
+// biome-ignore lint/nursery/useMaxParams: Helper function for logging with all required context
 const logAttempt = (
   logNetworkAttempt: ReturnType<
     typeof usePrivacyStore.getState

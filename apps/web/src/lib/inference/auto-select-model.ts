@@ -20,7 +20,7 @@ import type {
 import { getModelRecommendation } from "@continuum/platform";
 
 /** Result of auto-selection attempt */
-export interface AutoSelectResult {
+export type AutoSelectResult = {
   /** Whether auto-selection succeeded */
   success: boolean;
   /** Selected model ID (if successful) */
@@ -31,7 +31,7 @@ export interface AutoSelectResult {
   model?: ModelMetadata;
   /** The recommendation level of the selected model */
   recommendation?: ModelRecommendation;
-}
+};
 
 /** Reasons why auto-selection might fail */
 export type AutoSelectFailureReason =
@@ -40,12 +40,12 @@ export type AutoSelectFailureReason =
   | "hardware-not-detected";
 
 /** Model with its recommendation for sorting */
-interface RankedModel {
+type RankedModel = {
   model: ModelMetadata;
   recommendation: ModelRecommendation;
   /** Score for sorting (higher = better) */
   score: number;
-}
+};
 
 /** Score values for recommendation levels */
 const RECOMMENDATION_SCORES: Record<ModelRecommendation, number> = {

@@ -23,9 +23,9 @@ import { NetworkLog } from "./network-log";
 import { PrivacyHealthCheck } from "./privacy-health-check";
 import { PrivacyIndicator } from "./privacy-indicator";
 
-export interface PrivacyDashboardProps {
+export type PrivacyDashboardProps = {
   className?: string;
-}
+};
 
 /**
  * Verification documentation URL

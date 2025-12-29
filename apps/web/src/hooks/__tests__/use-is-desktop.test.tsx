@@ -20,9 +20,9 @@ const mockTauri = (enabled: boolean) => {
     globalThis.__TAURI_INTERNALS__ = {};
   } else {
     // @ts-expect-error - mocking Tauri detection
-    delete globalThis.__TAURI__;
+    globalThis.__TAURI__ = undefined;
     // @ts-expect-error - mocking Tauri internals
-    delete globalThis.__TAURI_INTERNALS__;
+    globalThis.__TAURI_INTERNALS__ = undefined;
   }
 };
 
@@ -41,7 +41,7 @@ describe("useIsDesktop", () => {
       globalThis.__TAURI__ = originalTauri;
     } else {
       // @ts-expect-error - cleaning up
-      delete globalThis.__TAURI__;
+      globalThis.__TAURI__ = undefined;
     }
 
     if (originalTauriInternals !== undefined) {
@@ -49,7 +49,7 @@ describe("useIsDesktop", () => {
       globalThis.__TAURI_INTERNALS__ = originalTauriInternals;
     } else {
       // @ts-expect-error - cleaning up
-      delete globalThis.__TAURI_INTERNALS__;
+      globalThis.__TAURI_INTERNALS__ = undefined;
     }
   });
 

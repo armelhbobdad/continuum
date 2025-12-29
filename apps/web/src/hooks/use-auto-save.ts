@@ -28,14 +28,14 @@ const DEBOUNCE_MS = 500;
 /**
  * Auto-save hook return type.
  */
-interface UseAutoSaveReturn {
+type UseAutoSaveReturn = {
   /** Debounced save function for use during typing */
   save: () => void;
   /** Immediate save function for use at explicit save points */
   triggerSave: () => void;
   /** Current dirty state */
   isDirty: boolean;
-}
+};
 
 /**
  * Hook for automatic session persistence.

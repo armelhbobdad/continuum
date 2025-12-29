@@ -305,9 +305,9 @@ describe("Model Store", () => {
     };
 
     it("should return models with may-be-slow when no hardware detected", async () => {
-      const { useModelStore, useModelsWithRecommendations } = await import(
-        "../models"
-      );
+      // Note: useModelsWithRecommendations is tested through manual simulation
+      // because hooks require React context. The logic is tested directly below.
+      const { useModelStore } = await import("../models");
 
       // Setup mock - no hardware
       mockedUseHardwareStore.mockImplementation((selector) => {

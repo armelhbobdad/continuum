@@ -17,7 +17,7 @@ import { create } from "zustand";
 /** Polling interval in milliseconds (60 seconds per ADR-HARDWARE-003) */
 const POLLING_INTERVAL_MS = 60_000;
 
-interface HardwareState {
+type HardwareState = {
   /** Detected hardware capabilities */
   capabilities: HardwareCapabilities | null;
   /** Loading state */
@@ -35,7 +35,7 @@ interface HardwareState {
   startPolling: () => void;
   /** Stop polling */
   stopPolling: () => void;
-}
+};
 
 /**
  * Hardware capability store (memory-only, no persist).

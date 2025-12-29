@@ -97,7 +97,7 @@ describe("useModelDownload", () => {
 
       // Clean up
       await act(async () => {
-        resolveStorage!({
+        resolveStorage?.({
           hasSpace: true,
           availableMb: 10_000,
           requiredMb: 4000,

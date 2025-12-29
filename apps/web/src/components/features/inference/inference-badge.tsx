@@ -22,7 +22,7 @@ import type { InferenceBadgeState, InferenceSource } from "@/types/inference";
 // Re-export types for consumers
 export type { InferenceBadgeState, InferenceSource } from "@/types/inference";
 
-export interface InferenceBadgeProps {
+export type InferenceBadgeProps = {
   /** Current inference state */
   state: InferenceBadgeState;
   /** Source of inference (local/stub/cloud:provider) */
@@ -37,7 +37,7 @@ export interface InferenceBadgeProps {
   switchingTo?: string;
   /** Additional CSS classes */
   className?: string;
-}
+};
 
 /**
  * InferenceBadge Component
@@ -71,7 +71,11 @@ export function InferenceBadge({
 
   // Show timing info only when complete and both values are present
   const timingText =
-    state === "complete" && duration != null && tokenCount != null
+    state === "complete" &&
+    duration !== undefined &&
+    duration !== null &&
+    tokenCount !== undefined &&
+    tokenCount !== null
       ? `${(duration / 1000).toFixed(1)}s • ${tokenCount} tokens`
       : null;
 
@@ -99,7 +103,7 @@ export function InferenceBadge({
   };
 
   return (
-    <div
+    <output
       aria-atomic="true"
       aria-live="polite"
       className={cn(
@@ -112,7 +116,6 @@ export function InferenceBadge({
       data-slot="inference-badge"
       data-source={source}
       data-state={state}
-      role="status"
     >
       {/* Indicator dot */}
       <span
@@ -126,7 +129,9 @@ export function InferenceBadge({
 
       <span>{stateText}</span>
 
-      {timingText && <span className="text-xs opacity-70">{timingText}</span>}
-    </div>
+      {Boolean(timingText) && (
+        <span className="text-xs opacity-70">{timingText}</span>
+      )}
+    </output>
   );
 }

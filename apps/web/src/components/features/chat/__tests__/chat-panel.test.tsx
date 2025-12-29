@@ -10,6 +10,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { useSessionStore } from "@/stores/session";
 import { ChatPanel } from "../chat-panel";
 
+// Top-level regex patterns for performance
+const START_CONVERSATION_PATTERN = /start a new conversation/i;
+
 describe("ChatPanel Component", () => {
   beforeEach(() => {
     // Reset session store
@@ -30,7 +33,7 @@ describe("ChatPanel Component", () => {
   describe("Empty State (AC #1)", () => {
     it("shows welcoming message when no messages", () => {
       render(<ChatPanel />);
-      expect(screen.getByText(/start a new conversation/i)).toBeInTheDocument();
+      expect(screen.getByText(START_CONVERSATION_PATTERN)).toBeInTheDocument();
     });
 
     it("shows empty state when no active session", () => {

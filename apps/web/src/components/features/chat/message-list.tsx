@@ -25,11 +25,11 @@ import type { StreamingMetadata } from "@/types/inference";
 import { Message } from "./message";
 import { StreamingMessage } from "./streaming-message";
 
-interface MessageListProps {
+type MessageListProps = {
   messages: MessageType[];
   /** Current streaming metadata for in-progress generation (Story 1.5) */
   streamingMetadata?: StreamingMetadata | null;
-}
+};
 
 /**
  * Message List Component
@@ -48,6 +48,7 @@ export function MessageList({ messages, streamingMetadata }: MessageListProps) {
       data-testid="message-list"
       role="log"
     >
+      {/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex message rendering logic */}
       {messages.map((message) => {
         // For user messages, render regular Message
         if (message.role === "user") {

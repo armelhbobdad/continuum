@@ -20,9 +20,9 @@ import type {
 } from "../types";
 
 /** Token event payload from Tauri */
-interface TokenPayload {
+type TokenPayload = {
   text: string;
-}
+};
 
 /** Polling interval for token yield */
 const TOKEN_POLL_INTERVAL_MS = 10;
@@ -87,7 +87,7 @@ export class KalosmAdapter implements InferenceAdapter {
           const token = tokens[currentIndex];
           if (token) {
             yield token;
-            currentIndex++;
+            currentIndex += 1;
           }
         } else if (!isComplete) {
           // Wait for more tokens

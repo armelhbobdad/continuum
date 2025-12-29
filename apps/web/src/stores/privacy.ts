@@ -27,14 +27,14 @@ export type NetworkRequestType = "fetch" | "xhr" | "websocket" | "eventsource";
  * Network log entry for tracking network activity
  * ADR-PRIVACY-004: Memory-only, never persisted, never synced
  */
-export interface NetworkLogEntry {
+export type NetworkLogEntry = {
   id: string;
   timestamp: number;
   type: NetworkRequestType;
   url: string;
   blocked: boolean;
   reason?: string;
-}
+};
 
 /**
  * Maximum number of log entries to keep (FIFO)

@@ -18,17 +18,17 @@ import { isDesktop } from "./capabilities";
 // ============================================================================
 
 /** GPU information (if detected) */
-export interface GpuInfo {
+export type GpuInfo = {
   /** GPU name (e.g., "NVIDIA RTX 4090") */
   name: string;
   /** Video RAM in MB */
   vram: number;
   /** Whether GPU supports CUDA (NVIDIA) or Metal (Apple) */
   computeCapable: boolean;
-}
+};
 
 /** Complete hardware capability profile */
-export interface HardwareCapabilities {
+export type HardwareCapabilities = {
   /** Available RAM in MB */
   ram: number;
   /** CPU core count */
@@ -41,7 +41,7 @@ export interface HardwareCapabilities {
   detectedBy: "desktop" | "web";
   /** Timestamp of detection */
   detectedAt: Date;
-}
+};
 
 /** Model recommendation based on hardware */
 export type ModelRecommendation =
@@ -50,32 +50,32 @@ export type ModelRecommendation =
   | "not-recommended";
 
 /** Model requirements for recommendation calculation */
-export interface ModelRequirements {
+export type ModelRequirements = {
   /** Minimum RAM in MB */
   ramMb: number;
   /** GPU VRAM in MB (0 if CPU-only) */
   gpuVramMb: number;
   /** Storage needed in MB */
   storageMb: number;
-}
+};
 
 // ============================================================================
 // Tauri Response Types (internal)
 // ============================================================================
 
 /** Rust SystemInfo struct from get_system_info command */
-interface TauriSystemInfo {
+type TauriSystemInfo = {
   ram_mb: number;
   cpu_cores: number;
   storage_available_mb: number;
-}
+};
 
 /** Rust GpuInfo struct from get_gpu_info command */
-interface TauriGpuInfo {
+type TauriGpuInfo = {
   name: string;
   vram_mb: number;
   compute_capable: boolean;
-}
+};
 
 // ============================================================================
 // Hardware Detection (Task 1.4, Task 3)
@@ -88,6 +88,7 @@ interface TauriGpuInfo {
  *
  * @returns Promise<HardwareCapabilities> - Detected hardware profile
  */
+// biome-ignore lint/suspicious/useAwait: Returns awaited promise from called function
 export async function getHardwareCapabilities(): Promise<HardwareCapabilities> {
   if (isDesktop()) {
     return getDesktopCapabilities();

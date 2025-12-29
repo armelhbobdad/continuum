@@ -14,6 +14,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelSelector } from "../model-selector";
 
+// Top-level regex patterns for performance
+const PHI_3_MINI_PATTERN = /phi.?3.?mini/i;
+const MISTRAL_7B_PATTERN = /mistral.?7b/i;
+const NO_MODELS_DOWNLOADED_PATTERN = /no models downloaded/i;
+const MAY_BE_SLOW_PATTERN = /may be slow/i;
+const RECOMMENDED_PATTERN = /recommended/i;
+
 // Mock the stores
 vi.mock("@/stores/hardware", () => ({
   useHardwareStore: vi.fn(),
@@ -162,7 +169,9 @@ function setupMocks(options: {
 
   // Mock getModelRecommendation to return appropriate recommendations
   mockedGetModelRecommendation.mockImplementation((requirements) => {
-    if (requirements.ramMb > 6000) return "may-be-slow";
+    if (requirements.ramMb > 6000) {
+      return "may-be-slow";
+    }
     return "recommended";
   });
 
@@ -190,7 +199,7 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       const selectedOption = screen.getByRole("option", {
-        name: /phi-3 mini/i,
+        name: PHI_3_MINI_PATTERN,
         selected: true,
       });
       expect(selectedOption).toBeInTheDocument();
@@ -209,7 +218,9 @@ describe("ModelSelector", () => {
 
       render(<ModelSelector />);
 
-      expect(screen.getByText(/no models downloaded/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(NO_MODELS_DOWNLOADED_PATTERN)
+      ).toBeInTheDocument();
     });
   });
 
@@ -219,7 +230,9 @@ describe("ModelSelector", () => {
 
       render(<ModelSelector />);
 
-      const mistralOption = screen.getByRole("option", { name: /mistral 7b/i });
+      const mistralOption = screen.getByRole("option", {
+        name: MISTRAL_7B_PATTERN,
+      });
       fireEvent.click(mistralOption);
 
       expect(storeState.selectModel).toHaveBeenCalledWith("mistral-7b");
@@ -230,7 +243,9 @@ describe("ModelSelector", () => {
 
       render(<ModelSelector />);
 
-      const phiOption = screen.getByRole("option", { name: /phi-3 mini/i });
+      const phiOption = screen.getByRole("option", {
+        name: PHI_3_MINI_PATTERN,
+      });
       fireEvent.click(phiOption);
 
       expect(storeState.selectModel).not.toHaveBeenCalled();
@@ -244,8 +259,10 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       // Mistral 7B requires 8GB RAM, marked as "may-be-slow"
-      const mistralOption = screen.getByRole("option", { name: /mistral 7b/i });
-      expect(mistralOption).toHaveTextContent(/may be slow/i);
+      const mistralOption = screen.getByRole("option", {
+        name: MISTRAL_7B_PATTERN,
+      });
+      expect(mistralOption).toHaveTextContent(MAY_BE_SLOW_PATTERN);
     });
 
     it("should show recommended badge for compatible models", () => {
@@ -254,8 +271,10 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       // Phi-3 Mini requires 4GB RAM, marked as "recommended"
-      const phiOption = screen.getByRole("option", { name: /phi-3 mini/i });
-      expect(phiOption).toHaveTextContent(/recommended/i);
+      const phiOption = screen.getByRole("option", {
+        name: PHI_3_MINI_PATTERN,
+      });
+      expect(phiOption).toHaveTextContent(RECOMMENDED_PATTERN);
     });
   });
 
@@ -275,7 +294,7 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       const selectedOption = screen.getByRole("option", {
-        name: /phi-3 mini/i,
+        name: PHI_3_MINI_PATTERN,
       });
       expect(selectedOption).toHaveAttribute("aria-selected", "true");
     });
@@ -296,7 +315,7 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       const selectedOption = screen.getByRole("option", {
-        name: /phi-3 mini/i,
+        name: PHI_3_MINI_PATTERN,
       });
       expect(selectedOption).toHaveAttribute("data-state", "selected");
     });
@@ -307,7 +326,7 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       const unselectedOption = screen.getByRole("option", {
-        name: /mistral 7b/i,
+        name: MISTRAL_7B_PATTERN,
       });
       expect(unselectedOption).toHaveAttribute("data-state", "default");
     });
@@ -332,14 +351,18 @@ describe("ModelSelector", () => {
 
       // Override recommendation to trigger warning
       mockedGetModelRecommendation.mockImplementation((requirements) => {
-        if (requirements.ramMb >= 6000) return "may-be-slow";
+        if (requirements.ramMb >= 6000) {
+          return "may-be-slow";
+        }
         return "recommended";
       });
 
       render(<ModelSelector />);
 
       // Click on Mistral 7B (demanding model)
-      const mistralOption = screen.getByRole("option", { name: /mistral 7b/i });
+      const mistralOption = screen.getByRole("option", {
+        name: MISTRAL_7B_PATTERN,
+      });
       fireEvent.click(mistralOption);
 
       // Should show hardware warning dialog
@@ -355,7 +378,9 @@ describe("ModelSelector", () => {
       render(<ModelSelector />);
 
       // Click on Phi-3 Mini (recommended model)
-      const phiOption = screen.getByRole("option", { name: /phi-3 mini/i });
+      const phiOption = screen.getByRole("option", {
+        name: PHI_3_MINI_PATTERN,
+      });
       fireEvent.click(phiOption);
 
       // Should NOT show hardware warning dialog
@@ -378,14 +403,16 @@ describe("ModelSelector", () => {
       });
 
       mockedGetModelRecommendation.mockImplementation((requirements) => {
-        if (requirements.ramMb >= 6000) return "may-be-slow";
+        if (requirements.ramMb >= 6000) {
+          return "may-be-slow";
+        }
         return "recommended";
       });
 
       render(<ModelSelector />);
 
       // Click on Mistral 7B
-      fireEvent.click(screen.getByRole("option", { name: /mistral 7b/i }));
+      fireEvent.click(screen.getByRole("option", { name: MISTRAL_7B_PATTERN }));
 
       // Confirm in warning dialog
       fireEvent.click(screen.getByText("Proceed Anyway"));
@@ -410,14 +437,16 @@ describe("ModelSelector", () => {
       });
 
       mockedGetModelRecommendation.mockImplementation((requirements) => {
-        if (requirements.ramMb >= 6000) return "may-be-slow";
+        if (requirements.ramMb >= 6000) {
+          return "may-be-slow";
+        }
         return "recommended";
       });
 
       render(<ModelSelector />);
 
       // Click on Mistral 7B
-      fireEvent.click(screen.getByRole("option", { name: /mistral 7b/i }));
+      fireEvent.click(screen.getByRole("option", { name: MISTRAL_7B_PATTERN }));
 
       // Cancel in warning dialog
       fireEvent.click(screen.getByText("Choose Different"));

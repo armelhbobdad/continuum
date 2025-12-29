@@ -32,23 +32,23 @@ import { MessageInput } from "./message-input";
 import { MessageList } from "./message-list";
 
 /** Inference state for UI feedback */
-interface InferenceState {
+type InferenceState = {
   isGenerating: boolean;
   isLoadingModel: boolean;
   isSwitchingModel: boolean;
   error: InferenceError | null;
   lastPrompt: string | null;
-}
+};
 
 /** Context for the current generation (for abort) */
-interface GenerationContext {
+type GenerationContext = {
   sessionId: string;
   messageId: string;
   adapter: InferenceAdapter;
   aborted: boolean;
   streamingMetadata: StreamingMetadata;
   modelId: string;
-}
+};
 
 /**
  * Chat Panel Component
@@ -109,23 +109,14 @@ export function ChatPanel() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
-
-  // Escape key handler for abort (AC4: Escape to abort)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && generationRef.current) {
-        handleAbort();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Handle abort callback - defined before the useEffect that uses it
   const handleAbort = useCallback(async () => {
     const ctx = generationRef.current;
-    if (!ctx || ctx.aborted) return;
+    if (!ctx || ctx.aborted) {
+      return;
+    }
 
     // Mark as aborted
     ctx.aborted = true;
@@ -159,12 +150,25 @@ export function ChatPanel() {
     }));
   }, [finalizeMessage, setMessageInferenceMetadata]);
 
+  // Escape key handler for abort (AC4: Escape to abort)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && generationRef.current) {
+        handleAbort();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleAbort]);
+
   // Dismiss error (AC6)
   const handleDismissError = useCallback(() => {
     setInferenceState((prev) => ({ ...prev, error: null }));
   }, []);
 
   const handleSendMessage = useCallback(
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex streaming logic required for chat functionality
     async (content: string) => {
       let sessionId = activeSessionId;
 
@@ -299,7 +303,7 @@ export function ChatPanel() {
           }
 
           fullContent += token.text;
-          tokenCount++;
+          tokenCount += 1;
 
           // Update streaming metadata with token count (Story 1.5)
           if (generationRef.current) {
@@ -453,7 +457,7 @@ export function ChatPanel() {
       </div>
 
       {/* Switching indicator (Story 2.4 Task 9.3) */}
-      {isSwitching && (
+      {Boolean(isSwitching) && (
         <div
           className="border-t bg-amber-50 px-4 py-2 text-center text-amber-700 text-sm dark:bg-amber-950/20 dark:text-amber-400"
           data-testid="model-switching"
@@ -473,7 +477,7 @@ export function ChatPanel() {
       )}
 
       {/* Generation status bar with abort button (AC4) */}
-      {inferenceState.isGenerating && (
+      {Boolean(inferenceState.isGenerating) && (
         <div
           className="flex items-center justify-between border-t bg-muted/50 px-4 py-2"
           data-testid="generation-status"

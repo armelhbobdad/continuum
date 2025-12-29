@@ -24,20 +24,20 @@ export type ModelLimitation =
   | "english-only";
 
 /** License types */
-export interface ModelLicense {
+export type ModelLicense = {
   /** License name (e.g., "Apache 2.0", "MIT") */
   name: string;
   /** Link to license text */
   url: string;
   /** Whether commercial use is allowed */
   commercial: boolean;
-}
+};
 
 /**
  * Security vulnerability info (FR33)
  * AC4: Vulnerability warnings display
  */
-export interface ModelVulnerability {
+export type ModelVulnerability = {
   /** Vulnerability identifier (e.g., "CVE-2024-XXXX") */
   id: string;
   /** Severity level */
@@ -48,13 +48,13 @@ export interface ModelVulnerability {
   moreInfoUrl: string;
   /** Version that fixes the issue (if applicable) */
   patchedInVersion?: string;
-}
+};
 
 /**
  * Complete model metadata (FR26)
  * AC2: Model Card Details
  */
-export interface ModelMetadata {
+export type ModelMetadata = {
   /** Unique identifier (e.g., "phi-3-mini") */
   id: string;
   /** Display name (e.g., "Phi-3 Mini") */
@@ -96,4 +96,4 @@ export interface ModelMetadata {
    * Required because GGUF files often don't embed tokenizers in a format Kalosm can use.
    */
   tokenizerUrl: string;
-}
+};

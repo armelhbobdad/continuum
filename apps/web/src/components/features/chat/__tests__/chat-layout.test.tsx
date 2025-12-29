@@ -9,6 +9,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ChatLayout } from "../chat-layout";
 
+// Top-level regex patterns for performance
+const SESSIONS_PATTERN = /sessions/i;
+const CLOSE_PATTERN = /close/i;
+
 describe("ChatLayout Component", () => {
   describe("Rendering", () => {
     it("renders with data-slot attribute", () => {
@@ -54,7 +58,7 @@ describe("ChatLayout Component", () => {
     it("renders mobile toggle button", () => {
       render(<ChatLayout />);
       expect(
-        screen.getByRole("button", { name: /sessions/i })
+        screen.getByRole("button", { name: SESSIONS_PATTERN })
       ).toBeInTheDocument();
     });
 
@@ -62,7 +66,7 @@ describe("ChatLayout Component", () => {
       const user = userEvent.setup();
       render(<ChatLayout />);
 
-      const toggleBtn = screen.getByRole("button", { name: /sessions/i });
+      const toggleBtn = screen.getByRole("button", { name: SESSIONS_PATTERN });
       await user.click(toggleBtn);
 
       const sidebar = screen.getByRole("complementary");
@@ -74,11 +78,11 @@ describe("ChatLayout Component", () => {
       render(<ChatLayout />);
 
       // Open sidebar
-      const toggleBtn = screen.getByRole("button", { name: /sessions/i });
+      const toggleBtn = screen.getByRole("button", { name: SESSIONS_PATTERN });
       await user.click(toggleBtn);
 
       // Close sidebar
-      const closeBtn = screen.getByRole("button", { name: /close/i });
+      const closeBtn = screen.getByRole("button", { name: CLOSE_PATTERN });
       await user.click(closeBtn);
 
       const sidebar = screen.getByRole("complementary");
@@ -89,14 +93,13 @@ describe("ChatLayout Component", () => {
       const user = userEvent.setup();
       render(<ChatLayout />);
 
-      const toggleBtn = screen.getByRole("button", { name: /sessions/i });
+      const toggleBtn = screen.getByRole("button", { name: SESSIONS_PATTERN });
       expect(toggleBtn).toHaveAttribute("aria-expanded", "false");
 
       await user.click(toggleBtn);
-      expect(screen.getByRole("button", { name: /close/i })).toHaveAttribute(
-        "aria-expanded",
-        "true"
-      );
+      expect(
+        screen.getByRole("button", { name: CLOSE_PATTERN })
+      ).toHaveAttribute("aria-expanded", "true");
     });
   });
 

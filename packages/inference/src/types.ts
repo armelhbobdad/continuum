@@ -5,18 +5,18 @@
  */
 
 /** Token emitted during streaming generation */
-export interface InferenceToken {
+export type InferenceToken = {
   text: string;
   logprob?: number;
-}
+};
 
 /** Request parameters for text generation */
-export interface InferenceRequest {
+export type InferenceRequest = {
   prompt: string;
   maxTokens?: number;
   temperature?: number;
   stopSequences?: string[];
-}
+};
 
 /** Finish reasons for generation */
 export type InferenceFinishReason =
@@ -27,11 +27,11 @@ export type InferenceFinishReason =
   | "error";
 
 /** Response from completed generation */
-export interface InferenceResponse {
+export type InferenceResponse = {
   text: string;
   tokensGenerated: number;
   finishReason: InferenceFinishReason;
-}
+};
 
 /** Error codes for inference failures - mapped to user-friendly messages */
 export type InferenceErrorCode =
@@ -46,11 +46,11 @@ export type InferenceErrorCode =
  * Inference error with user-friendly message
  * Per project-context.md: UserError pattern with userMessage and technicalDetails
  */
-export interface InferenceError {
+export type InferenceError = {
   code: InferenceErrorCode;
   userMessage: string;
   technicalDetails?: Record<string, unknown>;
-}
+};
 
 /** Model status states */
 export type InferenceStatus =
@@ -61,12 +61,12 @@ export type InferenceStatus =
   | "error";
 
 /** Adapter capabilities for UI adaptation */
-export interface InferenceCapabilities {
+export type InferenceCapabilities = {
   supportsStreaming: boolean;
   supportsAbort: boolean;
   maxContextLength: number;
   modelName: string;
-}
+};
 
 /**
  * Core inference adapter interface
@@ -75,7 +75,7 @@ export interface InferenceCapabilities {
  * ADR-INF-001: Use adapter pattern with platform-specific implementations
  * Source: architecture/core-architectural-decisions.md - Platform Abstraction
  */
-export interface InferenceAdapter {
+export type InferenceAdapter = {
   /**
    * Generate tokens from prompt. Returns async iterator for streaming.
    * AC2: Warm model latency - first token within 2 seconds
@@ -117,7 +117,7 @@ export interface InferenceAdapter {
    * Used to show loading indicators and generation state.
    */
   getStatus(): InferenceStatus;
-}
+};
 
 /**
  * Error message mapping for user-friendly display
@@ -175,19 +175,19 @@ export function createInferenceError(
 // ============================================================================
 
 /** Result from Rust verification command */
-export interface VerificationResult {
+export type VerificationResult = {
   verified: boolean;
   computedHash: string;
   expectedHash: string;
   fileSize: number;
-}
+};
 
 /** Verification status stored in model store */
-export interface VerificationInfo {
+export type VerificationInfo = {
   verified: boolean;
   timestamp: number; // Unix timestamp for JSON serialization
   hash: string;
-}
+};
 
 /** Verification status for UI display */
 export type VerificationStatus =
@@ -197,7 +197,7 @@ export type VerificationStatus =
   | "verifying";
 
 /** Quarantined file information from Rust backend */
-export interface QuarantinedFile {
+export type QuarantinedFile = {
   id: string;
   modelId: string;
   timestamp: string;
@@ -205,4 +205,4 @@ export interface QuarantinedFile {
   actualHash: string;
   filePath: string;
   fileSizeMb: number;
-}
+};

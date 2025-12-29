@@ -18,9 +18,9 @@ import { cn } from "@/lib/utils";
 import type { NetworkLogEntry } from "@/stores/privacy";
 import { usePrivacyStore } from "@/stores/privacy";
 
-export interface NetworkLogProps {
+export type NetworkLogProps = {
   className?: string;
-}
+};
 
 /**
  * Format timestamp as relative time (e.g., "2s ago", "5m ago")
@@ -77,9 +77,9 @@ function truncateUrl(url: string, maxLength = 40): string {
   return `${url.slice(0, maxLength - 3)}...`;
 }
 
-interface NetworkLogRowProps {
+type NetworkLogRowProps = {
   entry: NetworkLogEntry;
-}
+};
 
 /**
  * Single row in the network log table
@@ -134,14 +134,13 @@ export function NetworkLog({ className }: NetworkLogProps) {
 
   if (networkLog.length === 0) {
     return (
-      <div
+      <output
         aria-live="polite"
         className={cn(
           "flex flex-col items-center justify-center py-12 text-center",
           className
         )}
         data-slot="network-log"
-        role="status"
       >
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
           <HugeiconsIcon
@@ -157,7 +156,7 @@ export function NetworkLog({ className }: NetworkLogProps) {
         <p className="mt-1 text-slate-500 text-sm dark:text-slate-400">
           Your data stayed local
         </p>
-      </div>
+      </output>
     );
   }
 

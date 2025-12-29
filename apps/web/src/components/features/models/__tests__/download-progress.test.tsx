@@ -11,6 +11,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { DownloadProgress } from "../download-progress";
 
+// Top-level regex patterns for performance
+const SIZE_512_MB_PATTERN = /512\.0 MB/;
+const SIZE_1_GB_PATTERN = /1\.00 GB/;
+const REMAINING_PATTERN = /remaining/i;
+
 // Helper to create test progress data
 function createProgress(
   overrides: Partial<DownloadProgressData> = {}
@@ -105,8 +110,8 @@ describe("DownloadProgress", () => {
       const progress = createProgress();
       render(<DownloadProgress progress={progress} />);
 
-      expect(screen.getByText(/512\.0 MB/)).toBeInTheDocument();
-      expect(screen.getByText(/1\.00 GB/)).toBeInTheDocument();
+      expect(screen.getByText(SIZE_512_MB_PATTERN)).toBeInTheDocument();
+      expect(screen.getByText(SIZE_1_GB_PATTERN)).toBeInTheDocument();
     });
 
     it("should display download speed when downloading", () => {
@@ -120,7 +125,7 @@ describe("DownloadProgress", () => {
       const progress = createProgress();
       render(<DownloadProgress progress={progress} />);
 
-      expect(screen.getByText(/remaining/)).toBeInTheDocument();
+      expect(screen.getByText(REMAINING_PATTERN)).toBeInTheDocument();
     });
 
     it("should display 'Paused' when status is paused", () => {
@@ -148,7 +153,7 @@ describe("DownloadProgress", () => {
       const progress = createProgress();
       render(<DownloadProgress progress={progress} showDetails={false} />);
 
-      expect(screen.queryByText(/512\.0 MB/)).not.toBeInTheDocument();
+      expect(screen.queryByText(SIZE_512_MB_PATTERN)).not.toBeInTheDocument();
       expect(screen.queryByText("10.0 MB/s")).not.toBeInTheDocument();
     });
   });

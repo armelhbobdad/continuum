@@ -14,11 +14,11 @@ import type { InferenceError } from "@continuum/inference";
 import { INFERENCE_ERROR_MESSAGES } from "@continuum/inference";
 import { Button } from "@/components/ui/button";
 
-interface InferenceErrorDisplayProps {
+type InferenceErrorDisplayProps = {
   error: InferenceError;
   onRetry?: () => void;
   onDismiss?: () => void;
-}
+};
 
 /**
  * Get user-friendly message and recovery hint for an error code

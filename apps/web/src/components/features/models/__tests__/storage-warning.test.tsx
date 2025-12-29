@@ -11,6 +11,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { StorageWarning, StorageWarningInline } from "../storage-warning";
 
+// Top-level regex patterns for performance
+const NOT_ENOUGH_SPACE_PHI3_PATTERN =
+  /Not enough disk space to download Phi-3 Mini/;
+const NEED_2GB_MORE_SPACE_PATTERN = /Need 2.0 GB more space/;
+
 // Helper to create storage result
 function createStorageResult(
   overrides: Partial<StorageCheckResult> = {}
@@ -110,7 +115,7 @@ describe("StorageWarning", () => {
       render(<StorageWarning modelName="Phi-3 Mini" result={result} />);
 
       expect(
-        screen.getByText(/Not enough disk space to download Phi-3 Mini/)
+        screen.getByText(NOT_ENOUGH_SPACE_PHI3_PATTERN)
       ).toBeInTheDocument();
     });
 
@@ -262,7 +267,7 @@ describe("StorageWarningInline", () => {
 
       render(<StorageWarningInline result={result} />);
 
-      expect(screen.getByText(/Need 2.0 GB more space/)).toBeInTheDocument();
+      expect(screen.getByText(NEED_2GB_MORE_SPACE_PATTERN)).toBeInTheDocument();
     });
   });
 

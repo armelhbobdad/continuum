@@ -107,7 +107,7 @@ export function VerificationBadge({
       aria-label={statusAriaLabels[status]}
       className={cn(badgeVariants({ status }), className)}
       data-slot="verification-badge"
-      role="status"
+      role="img"
       title={tooltipText}
     >
       <span aria-hidden="true">{statusIcons[status]}</span>
@@ -122,14 +122,14 @@ export function VerificationBadge({
  * Button to trigger manual verification (AC4).
  * Used alongside VerificationBadge for user-initiated verification.
  */
-export interface VerifyNowButtonProps {
+export type VerifyNowButtonProps = {
   /** Callback when verify is clicked */
   onVerify: () => void;
   /** Whether verification is in progress */
   isVerifying?: boolean;
   /** Additional CSS classes */
   className?: string;
-}
+};
 
 export function VerifyNowButton({
   onVerify,

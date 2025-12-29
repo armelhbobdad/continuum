@@ -16,12 +16,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-interface MessageInputProps {
+type MessageInputProps = {
   onSend: (content: string) => void;
   disabled?: boolean;
   /** Reason for disabled state (shown in tooltip) */
   disabledReason?: string;
-}
+};
 
 /**
  * Message Input Component
@@ -44,7 +44,9 @@ export function MessageInput({
 
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
 
     onSend(trimmed);
     setValue("");

@@ -9,6 +9,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { MessageInput } from "../message-input";
 
+// Top-level regex patterns for performance
+const SEND_PATTERN = /send/i;
+
 describe("MessageInput Component", () => {
   describe("Rendering", () => {
     it("renders with data-slot attribute", () => {
@@ -24,7 +27,9 @@ describe("MessageInput Component", () => {
 
     it("renders send button", () => {
       render(<MessageInput onSend={vi.fn()} />);
-      expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: SEND_PATTERN })
+      ).toBeInTheDocument();
     });
   });
 
@@ -69,7 +74,7 @@ describe("MessageInput Component", () => {
       const input = screen.getByRole("textbox");
       await user.type(input, "Test message");
 
-      const sendBtn = screen.getByRole("button", { name: /send/i });
+      const sendBtn = screen.getByRole("button", { name: SEND_PATTERN });
       await user.click(sendBtn);
 
       expect(handleSend).toHaveBeenCalledWith("Test message");
@@ -123,7 +128,7 @@ describe("MessageInput Component", () => {
   describe("Send Button State", () => {
     it("send button is disabled when input is empty", () => {
       render(<MessageInput onSend={vi.fn()} />);
-      const sendBtn = screen.getByRole("button", { name: /send/i });
+      const sendBtn = screen.getByRole("button", { name: SEND_PATTERN });
       expect(sendBtn).toBeDisabled();
     });
 
@@ -134,7 +139,7 @@ describe("MessageInput Component", () => {
       const input = screen.getByRole("textbox");
       await user.type(input, "Hello");
 
-      const sendBtn = screen.getByRole("button", { name: /send/i });
+      const sendBtn = screen.getByRole("button", { name: SEND_PATTERN });
       expect(sendBtn).not.toBeDisabled();
     });
   });
@@ -148,7 +153,7 @@ describe("MessageInput Component", () => {
 
     it("send button has aria-label", () => {
       render(<MessageInput onSend={vi.fn()} />);
-      const sendBtn = screen.getByRole("button", { name: /send/i });
+      const sendBtn = screen.getByRole("button", { name: SEND_PATTERN });
       expect(sendBtn).toHaveAttribute("aria-label", "Send message");
     });
   });
@@ -193,7 +198,7 @@ describe("MessageInput Component", () => {
         />
       );
 
-      const sendBtn = screen.getByRole("button", { name: /send/i });
+      const sendBtn = screen.getByRole("button", { name: SEND_PATTERN });
       expect(sendBtn).toBeDisabled();
       expect(sendBtn).toHaveAttribute("title", "Switching model...");
     });
@@ -203,7 +208,7 @@ describe("MessageInput Component", () => {
         <MessageInput disabledReason="Switching model..." onSend={vi.fn()} />
       );
 
-      const sendBtn = screen.getByRole("button", { name: /send/i });
+      const sendBtn = screen.getByRole("button", { name: SEND_PATTERN });
       expect(sendBtn).not.toHaveAttribute("title");
     });
 

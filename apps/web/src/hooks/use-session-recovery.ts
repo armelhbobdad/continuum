@@ -15,10 +15,10 @@ import { useSessionStore } from "@/stores/session";
 /**
  * Options for session recovery hook.
  */
-interface UseSessionRecoveryOptions {
+type UseSessionRecoveryOptions = {
   /** Whether to show toast notification on recovery */
   showNotification?: boolean;
-}
+};
 
 /**
  * Hook for detecting and handling session recovery.

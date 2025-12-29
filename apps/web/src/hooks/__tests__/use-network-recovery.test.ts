@@ -106,7 +106,7 @@ describe("useNetworkRecovery", () => {
 
       // Simulate going online
       await act(async () => {
-        capturedNetworkCallback!(true);
+        capturedNetworkCallback?.(true);
       });
 
       expect(mockResumeModelDownload).toHaveBeenCalledWith("test-123");
@@ -136,7 +136,7 @@ describe("useNetworkRecovery", () => {
       renderHook(() => useNetworkRecovery());
 
       await act(async () => {
-        capturedNetworkCallback!(true);
+        capturedNetworkCallback?.(true);
       });
 
       expect(mockResumeModelDownload).toHaveBeenCalledWith("test-1");
@@ -168,7 +168,7 @@ describe("useNetworkRecovery", () => {
       renderHook(() => useNetworkRecovery());
 
       await act(async () => {
-        capturedNetworkCallback!(true);
+        capturedNetworkCallback?.(true);
       });
 
       expect(mockResumeModelDownload).toHaveBeenCalledTimes(1);
@@ -188,7 +188,7 @@ describe("useNetworkRecovery", () => {
 
       // Receive online status but wasn't offline before
       await act(async () => {
-        capturedNetworkCallback!(true);
+        capturedNetworkCallback?.(true);
       });
 
       expect(mockResumeModelDownload).not.toHaveBeenCalled();
@@ -209,14 +209,14 @@ describe("useNetworkRecovery", () => {
 
       // Go offline
       await act(async () => {
-        capturedNetworkCallback!(false);
+        capturedNetworkCallback?.(false);
       });
 
       expect(mockResumeModelDownload).not.toHaveBeenCalled();
 
       // Go back online - should now resume
       await act(async () => {
-        capturedNetworkCallback!(true);
+        capturedNetworkCallback?.(true);
       });
 
       expect(mockResumeModelDownload).toHaveBeenCalledWith("test-123");
@@ -244,14 +244,14 @@ describe("useNetworkRecovery", () => {
         .mockRejectedValueOnce(new Error("Failed"))
         .mockResolvedValueOnce(undefined);
 
-      const consoleSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {
+        // Suppress console.error in test
+      });
 
       renderHook(() => useNetworkRecovery());
 
       await act(async () => {
-        capturedNetworkCallback!(true);
+        capturedNetworkCallback?.(true);
       });
 
       // Both should have been attempted
@@ -278,7 +278,7 @@ describe("useNetworkRecovery", () => {
       renderHook(() => useNetworkRecovery());
 
       await act(async () => {
-        capturedNetworkCallback!(true);
+        capturedNetworkCallback?.(true);
       });
 
       expect(mockResumeModelDownload).not.toHaveBeenCalled();

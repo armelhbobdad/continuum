@@ -16,6 +16,9 @@ import {
   shouldShowHardwareWarning,
 } from "../hardware-warning-dialog";
 
+// Top-level regex patterns for performance
+const DONT_SHOW_AGAIN_PATTERN = /don't show this warning again/i;
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -265,7 +268,7 @@ describe("HardwareWarningDialog", () => {
       );
 
       // Check the "Don't show again" checkbox
-      fireEvent.click(screen.getByLabelText(/don't show this warning again/i));
+      fireEvent.click(screen.getByLabelText(DONT_SHOW_AGAIN_PATTERN));
 
       // Confirm
       fireEvent.click(screen.getByText("Proceed Anyway"));

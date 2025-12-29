@@ -9,8 +9,11 @@
  */
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { VerificationBadge, VerifyNowButton } from "../verification-badge";
+
+// Top-level regex patterns for performance
+const VERIFY_NOW_PATTERN = /verify now/i;
 
 describe("VerificationBadge", () => {
   describe("status display", () => {
@@ -18,28 +21,28 @@ describe("VerificationBadge", () => {
       render(<VerificationBadge status="verified" />);
 
       expect(screen.getByText("Verified")).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveClass("text-green-700");
+      expect(screen.getByRole("img")).toHaveClass("text-green-700");
     });
 
     it("shows 'Unverified' for unverified status", () => {
       render(<VerificationBadge status="unverified" />);
 
       expect(screen.getByText("Unverified")).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveClass("text-gray-600");
+      expect(screen.getByRole("img")).toHaveClass("text-gray-600");
     });
 
     it("shows 'Failed' for failed status", () => {
       render(<VerificationBadge status="failed" />);
 
       expect(screen.getByText("Failed")).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveClass("text-red-700");
+      expect(screen.getByRole("img")).toHaveClass("text-red-700");
     });
 
     it("shows 'Verifying...' for verifying status", () => {
       render(<VerificationBadge status="verifying" />);
 
       expect(screen.getByText("Verifying...")).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveClass("text-blue-700");
+      expect(screen.getByRole("img")).toHaveClass("text-blue-700");
     });
   });
 
@@ -47,18 +50,18 @@ describe("VerificationBadge", () => {
     it("has role='status' for screen readers", () => {
       render(<VerificationBadge status="verified" />);
 
-      expect(screen.getByRole("status")).toBeInTheDocument();
+      expect(screen.getByRole("img")).toBeInTheDocument();
     });
 
     it("has appropriate aria-label for each status", () => {
       const { rerender } = render(<VerificationBadge status="verified" />);
-      expect(screen.getByRole("status")).toHaveAttribute(
+      expect(screen.getByRole("img")).toHaveAttribute(
         "aria-label",
         "Model integrity verified"
       );
 
       rerender(<VerificationBadge status="failed" />);
-      expect(screen.getByRole("status")).toHaveAttribute(
+      expect(screen.getByRole("img")).toHaveAttribute(
         "aria-label",
         "Model verification failed - integrity may be compromised"
       );
@@ -67,7 +70,7 @@ describe("VerificationBadge", () => {
     it("includes data-slot for styling hooks", () => {
       render(<VerificationBadge status="verified" />);
 
-      expect(screen.getByRole("status")).toHaveAttribute(
+      expect(screen.getByRole("img")).toHaveAttribute(
         "data-slot",
         "verification-badge"
       );
@@ -79,7 +82,7 @@ describe("VerificationBadge", () => {
       const timestamp = new Date("2025-01-15T10:30:00").getTime();
       render(<VerificationBadge status="verified" timestamp={timestamp} />);
 
-      const badge = screen.getByRole("status");
+      const badge = screen.getByRole("img");
       expect(badge.title).toContain("Verified on");
       expect(badge.title).toContain("Jan");
       expect(badge.title).toContain("15");
@@ -88,7 +91,7 @@ describe("VerificationBadge", () => {
     it("shows status only when no timestamp", () => {
       render(<VerificationBadge status="unverified" />);
 
-      const badge = screen.getByRole("status");
+      const badge = screen.getByRole("img");
       expect(badge.title).toBe("Unverified");
     });
   });
@@ -97,22 +100,35 @@ describe("VerificationBadge", () => {
     it("applies custom className", () => {
       render(<VerificationBadge className="custom-class" status="verified" />);
 
-      expect(screen.getByRole("status")).toHaveClass("custom-class");
+      expect(screen.getByRole("img")).toHaveClass("custom-class");
     });
   });
 });
 
 describe("VerifyNowButton", () => {
   it("renders with 'Verify Now' text", () => {
-    render(<VerifyNowButton onVerify={() => {}} />);
+    render(
+      <VerifyNowButton
+        onVerify={() => {
+          // Test callback
+        }}
+      />
+    );
 
     expect(
-      screen.getByRole("button", { name: /verify now/i })
+      screen.getByRole("button", { name: VERIFY_NOW_PATTERN })
     ).toBeInTheDocument();
   });
 
   it("shows 'Verifying...' when isVerifying is true", () => {
-    render(<VerifyNowButton isVerifying onVerify={() => {}} />);
+    render(
+      <VerifyNowButton
+        isVerifying
+        onVerify={() => {
+          // Test callback
+        }}
+      />
+    );
 
     expect(screen.getByRole("button")).toHaveTextContent("Verifying...");
     expect(screen.getByRole("button")).toBeDisabled();
@@ -127,7 +143,14 @@ describe("VerifyNowButton", () => {
   });
 
   it("is disabled while verifying", () => {
-    render(<VerifyNowButton isVerifying onVerify={() => {}} />);
+    render(
+      <VerifyNowButton
+        isVerifying
+        onVerify={() => {
+          // Test callback
+        }}
+      />
+    );
 
     expect(screen.getByRole("button")).toBeDisabled();
     expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");

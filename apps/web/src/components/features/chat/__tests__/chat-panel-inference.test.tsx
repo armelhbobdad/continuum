@@ -86,13 +86,24 @@ function createMockAdapter(
   };
 }
 
-// Helper to create async generator from tokens
-async function* tokenGenerator(
-  tokens: string[]
-): AsyncIterable<{ text: string }> {
+// Helper to create generator from tokens
+function* tokenGenerator(tokens: string[]): Generator<{ text: string }> {
   for (const text of tokens) {
     yield { text };
   }
+}
+
+// Helper to create a throwing async iterable for error tests
+function throwingGenerator(error: Error): AsyncIterable<{ text: string }> {
+  return {
+    [Symbol.asyncIterator]() {
+      return {
+        next() {
+          return Promise.reject(error);
+        },
+      };
+    },
+  };
 }
 
 // Import stores to set up model selection (Story 2.4)
@@ -219,7 +230,7 @@ describe("ChatPanel Inference Integration", () => {
       });
 
       // Resolve and finish
-      resolveGeneration!();
+      resolveGeneration?.();
     });
   });
 
@@ -250,8 +261,8 @@ describe("ChatPanel Inference Integration", () => {
       });
 
       // Resolve load
-      await act(async () => {
-        resolveLoad!();
+      await act(() => {
+        resolveLoad?.();
       });
 
       // Should no longer show loading
@@ -315,7 +326,7 @@ describe("ChatPanel Inference Integration", () => {
         expect(screen.getByTestId("abort-button")).toBeInTheDocument();
       });
 
-      resolveGeneration!();
+      resolveGeneration?.();
     });
 
     it("calls adapter abort when button clicked", async () => {
@@ -347,7 +358,7 @@ describe("ChatPanel Inference Integration", () => {
       await user.click(screen.getByTestId("abort-button"));
 
       expect(mockAdapter.abort).toHaveBeenCalled();
-      resolveGeneration!();
+      resolveGeneration?.();
     });
 
     it("preserves partial response on abort", async () => {
@@ -379,7 +390,7 @@ describe("ChatPanel Inference Integration", () => {
 
       // Click abort
       await user.click(screen.getByTestId("abort-button"));
-      resolveGeneration!();
+      resolveGeneration?.();
 
       // Partial content should be preserved
       await waitFor(() => {
@@ -396,9 +407,11 @@ describe("ChatPanel Inference Integration", () => {
   describe("Error Handling (AC #6)", () => {
     it("shows error message on inference failure", async () => {
       mockAdapter = createMockAdapter({
-        generate: vi.fn().mockImplementation(async function* () {
-          throw new Error("Test inference error");
-        }),
+        generate: vi
+          .fn()
+          .mockReturnValue(
+            throwingGenerator(new Error("Test inference error"))
+          ),
       });
       (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
@@ -416,9 +429,9 @@ describe("ChatPanel Inference Integration", () => {
 
     it("shows retry button for recoverable errors", async () => {
       mockAdapter = createMockAdapter({
-        generate: vi.fn().mockImplementation(async function* () {
-          throw new Error("Recoverable error");
-        }),
+        generate: vi
+          .fn()
+          .mockReturnValue(throwingGenerator(new Error("Recoverable error"))),
       });
       (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
@@ -436,9 +449,9 @@ describe("ChatPanel Inference Integration", () => {
 
     it("allows dismissing error", async () => {
       mockAdapter = createMockAdapter({
-        generate: vi.fn().mockImplementation(async function* () {
-          throw new Error("Error");
-        }),
+        generate: vi
+          .fn()
+          .mockReturnValue(throwingGenerator(new Error("Error"))),
       });
       (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
@@ -487,7 +500,7 @@ describe("ChatPanel Inference Integration", () => {
         expect(screen.getByRole("textbox")).toBeDisabled();
       });
 
-      resolveGeneration!();
+      resolveGeneration?.();
     });
 
     it("disables input while loading model", async () => {
@@ -514,8 +527,8 @@ describe("ChatPanel Inference Integration", () => {
         expect(screen.getByRole("textbox")).toBeDisabled();
       });
 
-      await act(async () => {
-        resolveLoad!();
+      await act(() => {
+        resolveLoad?.();
       });
     });
   });

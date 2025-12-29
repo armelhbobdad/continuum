@@ -126,10 +126,10 @@ export function partializeSessionState(
  * Partial session state that gets persisted.
  * Excludes transient UI state like isDirty, lastSavedAt, wasRecovered.
  */
-export interface PartialSessionState {
+export type PartialSessionState = {
   sessions: SessionState["sessions"];
   activeSessionId: SessionState["activeSessionId"];
-}
+};
 
 /**
  * Migration function for handling schema changes between versions.

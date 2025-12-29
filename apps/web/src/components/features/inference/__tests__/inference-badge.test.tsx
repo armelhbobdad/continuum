@@ -9,6 +9,23 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { InferenceBadge } from "../inference-badge";
 
+// Top-level regex patterns for performance
+const GENERATING_LOCALLY_VIA_TEST_MODEL_PATTERN =
+  /generating locally via test-model/i;
+const GENERATED_LOCALLY_VIA_TEST_MODEL_PATTERN =
+  /generated locally via test-model/i;
+const GENERATION_FAILED_PATTERN = /generation failed/i;
+const PHI_3_MINI_PATTERN = /phi-3-mini/;
+const GENERATING_VIA_GPT4_PATTERN = /generating via gpt-4/i;
+const LOCALLY_PATTERN = /locally/i;
+const TIMING_2_3S_PATTERN = /2.3s/;
+const TIMING_1_0S_PATTERN = /1.0s/;
+const TOKENS_156_PATTERN = /156 tokens/;
+const TOKENS_50_PATTERN = /50 tokens/;
+const TOKENS_PATTERN = /tokens/;
+const SWITCHING_TO_MISTRAL_PATTERN = /switching to mistral-7b/i;
+const SWITCHING_TO_MODEL_PATTERN = /switching to model/i;
+
 describe("InferenceBadge", () => {
   describe("Badge states (AC1, AC3)", () => {
     it("renders with generating state", () => {
@@ -21,7 +38,7 @@ describe("InferenceBadge", () => {
       );
 
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generating locally via test-model/i
+        GENERATING_LOCALLY_VIA_TEST_MODEL_PATTERN
       );
     });
 
@@ -35,7 +52,7 @@ describe("InferenceBadge", () => {
       );
 
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generated locally via test-model/i
+        GENERATED_LOCALLY_VIA_TEST_MODEL_PATTERN
       );
     });
 
@@ -45,7 +62,7 @@ describe("InferenceBadge", () => {
       );
 
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generation failed/i
+        GENERATION_FAILED_PATTERN
       );
     });
   });
@@ -60,7 +77,7 @@ describe("InferenceBadge", () => {
         />
       );
 
-      expect(screen.getByRole("status")).toHaveTextContent(/phi-3-mini/);
+      expect(screen.getByRole("status")).toHaveTextContent(PHI_3_MINI_PATTERN);
     });
   });
 
@@ -101,9 +118,9 @@ describe("InferenceBadge", () => {
       );
 
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generating via gpt-4/i
+        GENERATING_VIA_GPT4_PATTERN
       );
-      expect(screen.getByRole("status")).not.toHaveTextContent(/locally/i);
+      expect(screen.getByRole("status")).not.toHaveTextContent(LOCALLY_PATTERN);
     });
 
     it("works with stub source for web fallback (BC-003)", () => {
@@ -133,8 +150,8 @@ describe("InferenceBadge", () => {
         />
       );
 
-      expect(screen.getByRole("status")).toHaveTextContent(/2.3s/);
-      expect(screen.getByRole("status")).toHaveTextContent(/156 tokens/);
+      expect(screen.getByRole("status")).toHaveTextContent(TIMING_2_3S_PATTERN);
+      expect(screen.getByRole("status")).toHaveTextContent(TOKENS_156_PATTERN);
     });
 
     it("does not show timing when generating", () => {
@@ -148,8 +165,12 @@ describe("InferenceBadge", () => {
         />
       );
 
-      expect(screen.getByRole("status")).not.toHaveTextContent(/1.0s/);
-      expect(screen.getByRole("status")).not.toHaveTextContent(/50 tokens/);
+      expect(screen.getByRole("status")).not.toHaveTextContent(
+        TIMING_1_0S_PATTERN
+      );
+      expect(screen.getByRole("status")).not.toHaveTextContent(
+        TOKENS_50_PATTERN
+      );
     });
 
     it("does not show timing when duration or tokenCount is missing", () => {
@@ -161,7 +182,7 @@ describe("InferenceBadge", () => {
         />
       );
 
-      expect(screen.getByRole("status")).not.toHaveTextContent(/tokens/);
+      expect(screen.getByRole("status")).not.toHaveTextContent(TOKENS_PATTERN);
     });
   });
 
@@ -229,7 +250,7 @@ describe("InferenceBadge", () => {
       // Badge should still be visible and show completed state
       expect(screen.getByRole("status")).toBeInTheDocument();
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generated locally via test-model/i
+        GENERATED_LOCALLY_VIA_TEST_MODEL_PATTERN
       );
     });
   });
@@ -274,7 +295,7 @@ describe("InferenceBadge", () => {
       );
 
       expect(screen.getByRole("status")).toHaveTextContent(
-        /switching to mistral-7b/i
+        SWITCHING_TO_MISTRAL_PATTERN
       );
     });
 
@@ -288,7 +309,7 @@ describe("InferenceBadge", () => {
       );
 
       expect(screen.getByRole("status")).toHaveTextContent(
-        /switching to model/i
+        SWITCHING_TO_MODEL_PATTERN
       );
     });
 

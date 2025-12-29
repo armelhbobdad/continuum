@@ -10,8 +10,18 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CorruptionDialog } from "../corruption-dialog";
+
+// Top-level regex patterns for performance
+const APPEARS_CORRUPTED_PATTERN = /appears to be corrupted/i;
+const NETWORK_INTERRUPTION_PATTERN = /network interruption/i;
+const DISK_STORAGE_ERRORS_PATTERN = /disk storage errors/i;
+const FILE_TAMPERING_PATTERN = /file tampering/i;
+const MOVED_TO_QUARANTINE_PATTERN = /moved to quarantine/i;
+const RE_DOWNLOAD_PATTERN = /re-download/i;
+const VIEW_QUARANTINE_PATTERN = /view quarantine/i;
+const CLOSE_PATTERN = /close/i;
 
 const defaultProps = {
   open: true,
@@ -37,7 +47,7 @@ describe("CorruptionDialog", () => {
       expect(
         screen.getByText("Download Verification Failed")
       ).toBeInTheDocument();
-      expect(screen.getByText(/appears to be corrupted/i)).toBeInTheDocument();
+      expect(screen.getByText(APPEARS_CORRUPTED_PATTERN)).toBeInTheDocument();
     });
 
     it("displays model ID", () => {
@@ -58,15 +68,17 @@ describe("CorruptionDialog", () => {
     it("explains possible causes", () => {
       render(<CorruptionDialog {...defaultProps} />);
 
-      expect(screen.getByText(/network interruption/i)).toBeInTheDocument();
-      expect(screen.getByText(/disk storage errors/i)).toBeInTheDocument();
-      expect(screen.getByText(/file tampering/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(NETWORK_INTERRUPTION_PATTERN)
+      ).toBeInTheDocument();
+      expect(screen.getByText(DISK_STORAGE_ERRORS_PATTERN)).toBeInTheDocument();
+      expect(screen.getByText(FILE_TAMPERING_PATTERN)).toBeInTheDocument();
     });
 
     it("shows quarantine notice", () => {
       render(<CorruptionDialog {...defaultProps} />);
 
-      expect(screen.getByText(/moved to quarantine/i)).toBeInTheDocument();
+      expect(screen.getByText(MOVED_TO_QUARANTINE_PATTERN)).toBeInTheDocument();
     });
   });
 
@@ -75,7 +87,9 @@ describe("CorruptionDialog", () => {
       const user = userEvent.setup();
       render(<CorruptionDialog {...defaultProps} />);
 
-      await user.click(screen.getByRole("button", { name: /re-download/i }));
+      await user.click(
+        screen.getByRole("button", { name: RE_DOWNLOAD_PATTERN })
+      );
 
       expect(defaultProps.onRedownload).toHaveBeenCalledOnce();
       expect(defaultProps.onClose).toHaveBeenCalledOnce();
@@ -86,7 +100,7 @@ describe("CorruptionDialog", () => {
       render(<CorruptionDialog {...defaultProps} />);
 
       await user.click(
-        screen.getByRole("button", { name: /view quarantine/i })
+        screen.getByRole("button", { name: VIEW_QUARANTINE_PATTERN })
       );
 
       expect(defaultProps.onViewQuarantine).toHaveBeenCalledOnce();
@@ -120,7 +134,7 @@ describe("CorruptionDialog", () => {
       render(<CorruptionDialog {...defaultProps} />);
 
       expect(
-        screen.getByRole("button", { name: /close/i })
+        screen.getByRole("button", { name: CLOSE_PATTERN })
       ).toBeInTheDocument();
     });
   });

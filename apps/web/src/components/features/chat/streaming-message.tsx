@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import type { InferenceSource } from "../inference";
 import { InferenceBadge } from "../inference";
 
-export interface StreamingMessageProps {
+export type StreamingMessageProps = {
   /** Current message content */
   content: string;
   /** Whether tokens are still being generated */
@@ -32,7 +32,7 @@ export interface StreamingMessageProps {
   tokenCount: number;
   /** Callback fired when streaming completes */
   onComplete?: () => void;
-}
+};
 
 /**
  * StreamingMessage Component
@@ -74,7 +74,7 @@ export function StreamingMessage({
         data-slot="message-content"
       >
         {content}
-        {isStreaming && (
+        {Boolean(isStreaming) && (
           <span
             aria-hidden="true"
             className="ml-0.5 inline-block h-4 w-2 animate-blink bg-current"

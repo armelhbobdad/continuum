@@ -10,6 +10,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { usePrivacyStore } from "@/stores/privacy";
 import { NetworkLog } from "../network-log";
 
+// Top-level regex patterns for performance
+const RELATIVE_TIME_PATTERN = /\d+s ago/;
+
 describe("NetworkLog Component", () => {
   beforeEach(() => {
     // Reset store to initial state
@@ -145,7 +148,7 @@ describe("NetworkLog Component", () => {
       render(<NetworkLog />);
 
       // Should show something like "5s ago" for the first entry
-      expect(screen.getByText(/\d+s ago/)).toBeInTheDocument();
+      expect(screen.getByText(RELATIVE_TIME_PATTERN)).toBeInTheDocument();
     });
   });
 

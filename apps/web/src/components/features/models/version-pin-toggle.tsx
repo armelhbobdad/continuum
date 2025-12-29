@@ -16,7 +16,7 @@
 import { cn } from "@/lib/utils";
 import { useModelStore } from "@/stores/models";
 
-export interface VersionPinToggleProps {
+export type VersionPinToggleProps = {
   /** Model ID to pin */
   modelId: string;
   /** Current model version */
@@ -27,7 +27,7 @@ export interface VersionPinToggleProps {
   newerVersion?: string;
   /** Additional CSS classes */
   className?: string;
-}
+};
 
 /**
  * VersionPinToggle Component
@@ -79,7 +79,7 @@ export function VersionPinToggle({
       </button>
 
       {/* Newer version notification */}
-      {isPinned && newerVersionAvailable && newerVersion && (
+      {Boolean(isPinned && newerVersionAvailable && newerVersion) && (
         <div
           className="flex items-center gap-2 rounded border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs dark:border-yellow-600/30 dark:bg-yellow-900/20"
           role="alert"
@@ -109,12 +109,12 @@ export function VersionPinToggle({
  * Small badge showing pinned status.
  * For use in compact spaces like model cards.
  */
-export interface PinnedVersionBadgeProps {
+export type PinnedVersionBadgeProps = {
   /** Model ID to check */
   modelId: string;
   /** Additional CSS classes */
   className?: string;
-}
+};
 
 export function PinnedVersionBadge({
   modelId,
@@ -123,7 +123,9 @@ export function PinnedVersionBadge({
   const isPinned = useModelStore((s) => s.isVersionPinned(modelId));
   const pinnedVersion = useModelStore((s) => s.pinnedVersions[modelId]);
 
-  if (!isPinned) return null;
+  if (!isPinned) {
+    return null;
+  }
 
   return (
     <span

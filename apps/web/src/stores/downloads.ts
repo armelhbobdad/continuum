@@ -12,7 +12,7 @@
 import type { DownloadProgress } from "@continuum/inference";
 import { create } from "zustand";
 
-interface DownloadState {
+type DownloadState = {
   /** Active downloads (keyed by downloadId) */
   activeDownloads: Map<string, DownloadProgress>;
   /** Queue of model IDs waiting to download */
@@ -39,7 +39,7 @@ interface DownloadState {
   removeDownload: (downloadId: string) => void;
   /** Add a new download to active downloads */
   addDownload: (progress: DownloadProgress) => void;
-}
+};
 
 /**
  * Download store (memory-only, no persist).
@@ -85,7 +85,9 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   getDownloadByModelId: (modelId: string) => {
     const downloads = get().activeDownloads;
     for (const download of downloads.values()) {
-      if (download.modelId === modelId) return download;
+      if (download.modelId === modelId) {
+        return download;
+      }
     }
     return;
   },

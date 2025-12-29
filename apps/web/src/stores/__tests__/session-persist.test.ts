@@ -81,7 +81,7 @@ describe("Session Store - Persistence", () => {
       expect(sessionStoreCalls.length).toBeGreaterThan(0);
 
       // Verify the value passed was a string (JSON serialized)
-      const lastCall = sessionStoreCalls[sessionStoreCalls.length - 1];
+      const lastCall = sessionStoreCalls.at(-1);
       expect(typeof lastCall[1]).toBe("string");
 
       const parsed = JSON.parse(lastCall[1] as string);
@@ -305,7 +305,7 @@ describe("Session Store - Persistence", () => {
       );
       expect(sessionStoreCalls.length).toBeGreaterThan(0);
 
-      const lastCall = sessionStoreCalls[sessionStoreCalls.length - 1];
+      const lastCall = sessionStoreCalls.at(-1);
       const parsed = JSON.parse(lastCall[1] as string);
 
       // Session data should be persisted

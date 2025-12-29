@@ -16,13 +16,13 @@ import { useCallback, useState } from "react";
 import { useModelStore } from "@/stores/models";
 
 /** Model switch result */
-export interface ModelSwitchResult {
+export type ModelSwitchResult = {
   success: boolean;
   error?: string;
-}
+};
 
 /** Model switch state */
-export interface ModelSwitchState {
+export type ModelSwitchState = {
   /** Whether a switch is in progress */
   isSwitching: boolean;
   /** Model being switched to */
@@ -31,7 +31,7 @@ export interface ModelSwitchState {
   switchProgress: "unloading" | "loading" | null;
   /** Last error message */
   error: string | null;
-}
+};
 
 /**
  * useModelSwitch Hook
@@ -59,6 +59,7 @@ export function useModelSwitch() {
    * @returns Promise<ModelSwitchResult>
    */
   const switchModel = useCallback(
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex model switching logic with multiple state transitions
     async (modelId: string): Promise<ModelSwitchResult> => {
       // Skip if already selected
       if (modelId === selectedModelId) {

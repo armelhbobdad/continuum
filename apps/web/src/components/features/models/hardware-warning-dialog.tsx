@@ -31,7 +31,18 @@ const SUPPRESS_WARNING_KEY = "continuum:suppress-hardware-warning";
 /** RAM usage threshold for showing warning (80%) */
 const RAM_WARNING_THRESHOLD = 0.8;
 
-export interface HardwareWarningDialogProps {
+/** Get color class for RAM usage indicator based on percentage */
+function getRamUsageColor(percent: number): string {
+  if (percent > 90) {
+    return "bg-red-500";
+  }
+  if (percent > 80) {
+    return "bg-yellow-500";
+  }
+  return "bg-green-500";
+}
+
+export type HardwareWarningDialogProps = {
   /** Model being selected */
   model: ModelMetadata;
   /** Detected hardware capabilities */
@@ -44,7 +55,7 @@ export interface HardwareWarningDialogProps {
   onCancel: () => void;
   /** Whether the dialog is visible */
   open: boolean;
-}
+};
 
 /**
  * Check if we should show the warning based on RAM usage.
@@ -113,7 +124,9 @@ export function HardwareWarningDialog({
 
   // Handle escape key
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -125,7 +138,9 @@ export function HardwareWarningDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onCancel]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   // Get recommendation-specific styling
   const getRecommendationColor = () => {
@@ -185,11 +200,7 @@ export function HardwareWarningDialog({
                 <div
                   className={cn(
                     "h-full rounded-full transition-all",
-                    ramUsagePercent > 90
-                      ? "bg-red-500"
-                      : ramUsagePercent > 80
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
+                    getRamUsageColor(ramUsagePercent)
                   )}
                   style={{ width: `${Math.min(100, ramUsagePercent)}%` }}
                 />
@@ -233,9 +244,9 @@ export function HardwareWarningDialog({
       </div>
 
       {/* ARIA live region for announcements */}
-      <div aria-live="polite" className="sr-only" role="status">
+      <output aria-live="polite" className="sr-only">
         Hardware warning dialog opened for model {model.name}
-      </div>
+      </output>
     </div>
   );
 }

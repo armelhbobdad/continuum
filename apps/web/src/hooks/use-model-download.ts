@@ -62,6 +62,7 @@ export function useModelDownload(): UseModelDownloadResult {
   const addDownload = useDownloadStore((s) => s.addDownload);
 
   const initiateDownload = useCallback(
+    // biome-ignore lint/nursery/useMaxParams: Download requires all model parameters
     async (
       modelId: string,
       url: string,

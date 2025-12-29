@@ -10,6 +10,14 @@ import { describe, expect, it } from "vitest";
 import type { Message } from "@/stores/session";
 import { MessageList } from "../message-list";
 
+// Top-level regex patterns for performance
+const TIMESTAMP_PATTERN = /just now|min ago|ago/i;
+const GENERATING_LOCAL_PHI3_PATTERN = /generating locally via phi-3/i;
+const GENERATED_LOCAL_PHI3_PATTERN = /generated locally via phi-3/i;
+const GENERATED_GPT4_PATTERN = /generated via gpt-4/i;
+const DURATION_2_5S_PATTERN = /2.5s/;
+const TOKENS_50_PATTERN = /50 tokens/;
+
 const createMessage = (
   role: "user" | "assistant",
   content: string,
@@ -72,7 +80,7 @@ describe("MessageList Component", () => {
       render(<MessageList messages={messages} />);
 
       // Should have a <time> element
-      const timeElement = screen.getByText(/just now|min ago|ago/i);
+      const timeElement = screen.getByText(TIMESTAMP_PATTERN);
       expect(timeElement.tagName.toLowerCase()).toBe("time");
     });
 
@@ -80,7 +88,7 @@ describe("MessageList Component", () => {
       const messages = [createMessage("user", "Test message")];
       render(<MessageList messages={messages} />);
 
-      const timeElement = screen.getByText(/just now|min ago|ago/i);
+      const timeElement = screen.getByText(TIMESTAMP_PATTERN);
       expect(timeElement).toHaveAttribute("datetime");
     });
   });
@@ -146,7 +154,7 @@ describe("MessageList Component", () => {
 
       // Should show InferenceBadge with generating state
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generating locally via phi-3/i
+        GENERATING_LOCAL_PHI3_PATTERN
       );
     });
 
@@ -171,10 +179,12 @@ describe("MessageList Component", () => {
 
       // Badge should persist with complete state and timing
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generated locally via phi-3/i
+        GENERATED_LOCAL_PHI3_PATTERN
       );
-      expect(screen.getByRole("status")).toHaveTextContent(/2.5s/);
-      expect(screen.getByRole("status")).toHaveTextContent(/50 tokens/);
+      expect(screen.getByRole("status")).toHaveTextContent(
+        DURATION_2_5S_PATTERN
+      );
+      expect(screen.getByRole("status")).toHaveTextContent(TOKENS_50_PATTERN);
     });
 
     it("shows cloud badge for cloud source (AC4)", () => {
@@ -198,7 +208,7 @@ describe("MessageList Component", () => {
       const badge = container.querySelector('[data-slot="inference-badge"]');
       expect(badge).toHaveClass("bg-slate-50");
       expect(screen.getByRole("status")).toHaveTextContent(
-        /generated via gpt-4/i
+        GENERATED_GPT4_PATTERN
       );
     });
 

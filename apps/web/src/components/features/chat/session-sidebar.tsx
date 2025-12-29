@@ -60,7 +60,9 @@ export function SessionSidebar() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (sortedSessions.length === 0) return;
+      if (sortedSessions.length === 0) {
+        return;
+      }
 
       switch (e.key) {
         case "ArrowDown":
@@ -88,6 +90,9 @@ export function SessionSidebar() {
           if (focusedIndex >= 0 && focusedIndex < sortedSessions.length) {
             handleSelectSession(sortedSessions[focusedIndex].id);
           }
+          break;
+        default:
+          // Other keys don't need special handling
           break;
       }
     },
@@ -148,10 +153,11 @@ export function SessionSidebar() {
                   <span className="flex items-center gap-1.5">
                     <span className="truncate">{session.title}</span>
                     {/* Story 1.7 Task 4.4: Unsaved changes indicator */}
-                    {hasUnsavedChanges && (
+                    {Boolean(hasUnsavedChanges) && (
                       <span
                         aria-label="Unsaved changes"
                         className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                        role="img"
                         title="Unsaved changes"
                       />
                     )}

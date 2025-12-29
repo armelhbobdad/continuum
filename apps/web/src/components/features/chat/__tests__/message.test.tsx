@@ -8,6 +8,9 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Message, messageVariants } from "../message";
 
+// Top-level regex patterns for performance
+const LINE_1_PATTERN = /Line 1/;
+
 describe("Message Component", () => {
   describe("Rendering", () => {
     it("renders with data-slot attribute", () => {
@@ -41,7 +44,7 @@ describe("Message Component", () => {
       render(
         <Message content="Line 1\nLine 2" role="user" timestamp={new Date()} />
       );
-      const content = screen.getByText(/Line 1/);
+      const content = screen.getByText(LINE_1_PATTERN);
       expect(content.className).toContain("whitespace-pre-wrap");
     });
   });
