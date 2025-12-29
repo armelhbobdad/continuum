@@ -68,7 +68,7 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl:
       "https://huggingface.co/QuantFactory/Meta-Llama-3-8B-GGUF/resolve/main/Meta-Llama-3-8B.Q4_K_M.gguf",
-    sha256: "c57380038ea85d8f234bc5e0c9b5c1c4a8d1a4e5f6b7c8d9e0f1a2b3c4d5e6f7",
+    sha256: "2a19e7532fb544cfd164c65a1b045bb415e14924890a8abee0ec84644f66f61f",
     tokenizerUrl:
       "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct/resolve/main/tokenizer.json",
   },
@@ -96,8 +96,8 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     },
     vulnerabilities: [],
     downloadUrl:
-      "https://huggingface.co/google/gemma-2b-it-GGUF/resolve/main/gemma-2b-it.Q4_K_M.gguf",
-    sha256: "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+      "https://huggingface.co/MaziyarPanahi/gemma-2b-it-GGUF/resolve/main/gemma-2b-it.Q4_K_M.gguf",
+    sha256: "f551e32944bb95f79ff69f45271cb4f885b75b4b933dd547c69ba013688133ff",
     tokenizerUrl:
       "https://huggingface.co/google/gemma-2b-it/resolve/main/tokenizer.json",
   },
@@ -128,7 +128,7 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl:
       "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
-    sha256: "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+    sha256: "3e0039fd0273fcbebb49228943b17831aadd55cbcbf56f0af00499be2040ccf9",
     tokenizerUrl:
       "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2/resolve/main/tokenizer.json",
   },
@@ -159,7 +159,7 @@ export const MODEL_REGISTRY: ModelMetadata[] = [
     vulnerabilities: [],
     downloadUrl:
       "https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8b-chat-q4_k_m.gguf",
-    sha256: "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+    sha256: "702e983c77883426806a2af75d34ab3e462e1b822f9dc23b49e02280c24b2b18",
     tokenizerUrl:
       "https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat/resolve/main/tokenizer.json",
   },

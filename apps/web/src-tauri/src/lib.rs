@@ -1,10 +1,12 @@
 mod downloads;
 mod hardware;
 mod inference;
+mod verification;
 
 use downloads::DownloadState;
 use hardware::HardwareState;
 use inference::InferenceState;
+use verification::commands::VerificationState;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,6 +34,11 @@ pub fn run() {
             downloads::get_model_path,
             downloads::get_partial_download_size,
             downloads::delete_model,
+            // Verification commands (Story 2.5)
+            verification::commands::verify_model_integrity,
+            verification::commands::compute_model_checksum,
+            verification::commands::list_quarantined_files,
+            verification::commands::delete_quarantined_file,
         ])
         .setup(|app| {
             // Initialize download state with app data directory
@@ -39,7 +46,8 @@ pub fn run() {
                 .path()
                 .app_data_dir()
                 .expect("Failed to get app data directory");
-            app.manage(DownloadState::new(app_data_dir));
+            app.manage(DownloadState::new(app_data_dir.clone()));
+            app.manage(VerificationState::new(app_data_dir));
 
             // Notification plugin (Story 2.3)
             app.handle().plugin(tauri_plugin_notification::init())?;

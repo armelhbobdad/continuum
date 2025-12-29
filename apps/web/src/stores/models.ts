@@ -6,17 +6,21 @@
  *
  * Story 2.2: Model Catalog & Cards
  * Story 2.4: Model Selection & Switching
+ * Story 2.5: Model Integrity Verification
  * ADR-MODEL-002: Zustand with Persist for User Model Selections
+ * ADR-VERIFY-004: Verification status persisted
  *
  * Persistence Boundary:
  * - downloadedModels: Persisted (user's installed models)
  * - selectedModelId: Persisted (last active model)
+ * - verificationStatus: Persisted (user expects badges across restarts)
+ * - pinnedVersions: Persisted (version pinning is intentional)
  * - availableModels: NOT persisted (fetched from registry)
  * - isLoading/error: NOT persisted (transient UI state)
  * - switchingTo/switchProgress: NOT persisted (transient switch state)
  */
 
-import type { ModelMetadata } from "@continuum/inference";
+import type { ModelMetadata, VerificationInfo } from "@continuum/inference";
 import { getModelMetadata, listModels } from "@continuum/inference";
 import {
   getModelRecommendation,
@@ -49,6 +53,12 @@ export interface ModelState {
   /** Error message */
   error: string | null;
 
+  // Story 2.5: Verification state (persisted)
+  /** Verification status for each model */
+  verificationStatus: Record<string, VerificationInfo>;
+  /** Pinned model versions (modelId -> version) */
+  pinnedVersions: Record<string, string>;
+
   /** Load models from registry */
   loadModels: () => Promise<void>;
   /**
@@ -67,6 +77,18 @@ export interface ModelState {
   removeDownloadedModel: (modelId: string) => void;
   /** Get full metadata for selected model */
   getSelectedModel: () => ModelMetadata | null;
+
+  // Story 2.5: Verification actions
+  /** Set verification status for a model */
+  setVerificationStatus: (modelId: string, info: VerificationInfo) => void;
+  /** Clear verification status for a model */
+  clearVerificationStatus: (modelId: string) => void;
+  /** Pin a model to a specific version */
+  pinVersion: (modelId: string, version: string) => void;
+  /** Unpin a model (allow auto-updates) */
+  unpinVersion: (modelId: string) => void;
+  /** Check if a model is pinned */
+  isVersionPinned: (modelId: string) => boolean;
 }
 
 /**
@@ -83,6 +105,9 @@ export const useModelStore = create<ModelState>()(
       switchProgress: null,
       isLoading: false,
       error: null,
+      // Story 2.5: Verification state
+      verificationStatus: {},
+      pinnedVersions: {},
 
       loadModels: async () => {
         set({ isLoading: true, error: null });
@@ -118,6 +143,18 @@ export const useModelStore = create<ModelState>()(
           // Clear selection if removed model was selected
           selectedModelId:
             state.selectedModelId === modelId ? null : state.selectedModelId,
+          // Clear verification status for removed model
+          verificationStatus: Object.fromEntries(
+            Object.entries(state.verificationStatus).filter(
+              ([id]) => id !== modelId
+            )
+          ),
+          // Clear pinned version for removed model
+          pinnedVersions: Object.fromEntries(
+            Object.entries(state.pinnedVersions).filter(
+              ([id]) => id !== modelId
+            )
+          ),
         }));
       },
 
@@ -126,15 +163,59 @@ export const useModelStore = create<ModelState>()(
         if (!selectedModelId) return null;
         return getModelMetadata(selectedModelId) ?? null;
       },
+
+      // Story 2.5: Verification actions
+      setVerificationStatus: (modelId: string, info: VerificationInfo) => {
+        set((state) => ({
+          verificationStatus: {
+            ...state.verificationStatus,
+            [modelId]: info,
+          },
+        }));
+      },
+
+      clearVerificationStatus: (modelId: string) => {
+        set((state) => ({
+          verificationStatus: Object.fromEntries(
+            Object.entries(state.verificationStatus).filter(
+              ([id]) => id !== modelId
+            )
+          ),
+        }));
+      },
+
+      pinVersion: (modelId: string, version: string) => {
+        set((state) => ({
+          pinnedVersions: {
+            ...state.pinnedVersions,
+            [modelId]: version,
+          },
+        }));
+      },
+
+      unpinVersion: (modelId: string) => {
+        set((state) => ({
+          pinnedVersions: Object.fromEntries(
+            Object.entries(state.pinnedVersions).filter(
+              ([id]) => id !== modelId
+            )
+          ),
+        }));
+      },
+
+      isVersionPinned: (modelId: string) => modelId in get().pinnedVersions,
     }),
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
       // Only persist user data, not transient state
       // Story 2.4: switchingTo/switchProgress are NOT persisted
+      // Story 2.5: verificationStatus and pinnedVersions ARE persisted
       partialize: (state) => ({
         downloadedModels: state.downloadedModels,
         selectedModelId: state.selectedModelId,
+        verificationStatus: state.verificationStatus,
+        pinnedVersions: state.pinnedVersions,
       }),
     }
   )

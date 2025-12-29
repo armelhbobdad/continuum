@@ -153,7 +153,8 @@ describe("useModelDownload", () => {
       expect(mockStartModelDownload).toHaveBeenCalledWith(
         "phi-3-mini",
         "https://example.com/model.gguf",
-        "https://example.com/tokenizer.json"
+        "https://example.com/tokenizer.json",
+        undefined // sha256 is optional
       );
     });
   });

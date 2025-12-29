@@ -106,6 +106,8 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
@@ -135,6 +137,8 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: true,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
@@ -166,6 +170,8 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
@@ -199,10 +205,13 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
         removeDownloadedModel: vi.fn(),
+        isVersionPinned: vi.fn().mockReturnValue(false),
       };
       mockedUseModelStore.mockImplementation((selector?: unknown) => {
         if (typeof selector === "function") {
@@ -243,10 +252,13 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
         removeDownloadedModel: vi.fn(),
+        isVersionPinned: vi.fn().mockReturnValue(false),
       };
       mockedUseModelStore.mockImplementation((selector?: unknown) => {
         if (typeof selector === "function") {
@@ -291,10 +303,13 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
         removeDownloadedModel: vi.fn(),
+        isVersionPinned: vi.fn().mockReturnValue(false),
       };
       mockedUseModelStore.mockImplementation((selector?: unknown) => {
         if (typeof selector === "function") {
@@ -334,6 +349,8 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: loadModelsMock,
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
@@ -365,6 +382,8 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: "Failed to load models",
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: vi.fn(),
         addDownloadedModel: vi.fn(),
@@ -399,10 +418,13 @@ describe("ModelCatalog", () => {
         selectedModelId: null,
         isLoading: false,
         error: null,
+        verificationStatus: {},
+        pinnedVersions: {},
         loadModels: vi.fn(),
         selectModel: selectModelMock,
         addDownloadedModel: vi.fn(),
         removeDownloadedModel: vi.fn(),
+        isVersionPinned: vi.fn().mockReturnValue(false),
       };
 
       mockedUseModelStore.mockImplementation((selector?: unknown) => {

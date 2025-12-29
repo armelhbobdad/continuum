@@ -28,6 +28,7 @@ use tauri::{AppHandle, State};
 /// * `model_id` - The model identifier
 /// * `url` - The download URL for the GGUF model
 /// * `tokenizer_url` - The download URL for the tokenizer.json
+/// * `expected_hash` - Optional SHA-256 hash for verification (Story 2.5)
 ///
 /// # Returns
 /// * `download_id` - Unique ID for tracking this download
@@ -37,9 +38,10 @@ pub async fn start_download(
     model_id: String,
     url: String,
     tokenizer_url: String,
+    expected_hash: Option<String>,
     state: State<'_, DownloadState>,
 ) -> Result<String, String> {
-    manager::start_download(&app, &state, &model_id, &url, &tokenizer_url).await
+    manager::start_download(&app, &state, &model_id, &url, &tokenizer_url, expected_hash.as_deref()).await
 }
 
 /// Pause an active download

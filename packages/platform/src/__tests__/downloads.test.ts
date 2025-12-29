@@ -63,8 +63,28 @@ describe("Download Adapter", () => {
         modelId: "phi-3-mini",
         url: "https://example.com/model.gguf",
         tokenizerUrl: "https://example.com/tokenizer.json",
+        expectedHash: null,
       });
       expect(result).toBe("download-123");
+    });
+
+    it("should pass expectedHash when provided (Story 2.5)", async () => {
+      mockInvoke.mockResolvedValue("download-456");
+
+      const result = await startModelDownload(
+        "phi-3-mini",
+        "https://example.com/model.gguf",
+        "https://example.com/tokenizer.json",
+        "abc123def456"
+      );
+
+      expect(mockInvoke).toHaveBeenCalledWith("start_download", {
+        modelId: "phi-3-mini",
+        url: "https://example.com/model.gguf",
+        tokenizerUrl: "https://example.com/tokenizer.json",
+        expectedHash: "abc123def456",
+      });
+      expect(result).toBe("download-456");
     });
 
     it("should throw error on non-desktop platform", async () => {

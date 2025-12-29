@@ -119,7 +119,8 @@ export function ModelDownloadButton({
       model.id,
       downloadUrl,
       model.tokenizerUrl,
-      model.requirements.storageMb
+      model.requirements.storageMb,
+      model.sha256
     );
   };
 

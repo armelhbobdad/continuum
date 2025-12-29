@@ -9,11 +9,16 @@
 /**
  * Download status states
  * Used to track the current state of a model download.
+ *
+ * Story 2.5 additions: verifying, verified, corrupted
  */
 export type DownloadStatus =
   | "queued"
   | "downloading"
   | "paused"
+  | "verifying" // Story 2.5: hash verification in progress
+  | "verified" // Story 2.5: hash verification succeeded
+  | "corrupted" // Story 2.5: hash verification failed
   | "completed"
   | "failed"
   | "cancelled";

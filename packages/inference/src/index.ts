@@ -48,6 +48,11 @@ export type {
   InferenceResponse,
   InferenceStatus,
   InferenceToken,
+  // Story 2.5: Verification types
+  QuarantinedFile,
+  VerificationInfo,
+  VerificationResult,
+  VerificationStatus,
 } from "./types";
 // Utilities
 export { createInferenceError, INFERENCE_ERROR_MESSAGES } from "./types";

@@ -1,15 +1,18 @@
 /**
  * useDownloadCompletion Hook
  * Story 2.3: Model Download Manager - Task 10
+ * Story 2.5: Model Integrity Verification
  *
  * Monitors download completion and triggers:
  * - Notification on download complete/failed
  * - Model store update on download complete
+ * - Verification status update on verification success
  *
  * AC3: Download completion handling
  */
 
-import type { DownloadProgress } from "@continuum/inference";
+import type { DownloadProgress, VerificationInfo } from "@continuum/inference";
+import { getModelMetadata } from "@continuum/inference";
 import { useEffect, useRef } from "react";
 import {
   notifyDownloadComplete,
@@ -24,22 +27,42 @@ import { useModelStore } from "@/stores/models";
 function handleStatusTransition(
   download: DownloadProgress,
   prevStatus: string | undefined,
-  addDownloadedModel: (modelId: string) => void
+  addDownloadedModel: (modelId: string) => void,
+  setVerificationStatus: (modelId: string, info: VerificationInfo) => void
 ): void {
   // Only handle transitions (not initial states)
   if (!prevStatus || prevStatus === download.status) {
     return;
   }
 
-  if (download.status === "completed") {
+  // Handle both "completed" (no hash) and "verified" (hash matched) as success
+  if (download.status === "completed" || download.status === "verified") {
     addDownloadedModel(download.modelId);
     notifyDownloadComplete(download.modelId);
+
+    // Story 2.5: Update verification status for verified downloads
+    if (download.status === "verified") {
+      const model = getModelMetadata(download.modelId);
+      setVerificationStatus(download.modelId, {
+        verified: true,
+        timestamp: Date.now(),
+        hash: model?.sha256 ?? "",
+      });
+    }
   }
 
   if (download.status === "failed") {
     notifyDownloadFailed(
       download.modelId,
       download.error?.message ?? "Unknown error"
+    );
+  }
+
+  // Story 2.5: Handle corrupted status (verification failed)
+  if (download.status === "corrupted") {
+    notifyDownloadFailed(
+      download.modelId,
+      "Download verification failed - file may be corrupted"
     );
   }
 }
@@ -51,6 +74,7 @@ function handleStatusTransition(
 export function useDownloadCompletion(): void {
   const activeDownloads = useDownloadStore((s) => s.activeDownloads);
   const addDownloadedModel = useModelStore((s) => s.addDownloadedModel);
+  const setVerificationStatus = useModelStore((s) => s.setVerificationStatus);
   const clearCompletedDownloads = useDownloadStore(
     (s) => s.clearCompletedDownloads
   );
@@ -66,7 +90,8 @@ export function useDownloadCompletion(): void {
       handleStatusTransition(
         download,
         prevStatuses.get(downloadId),
-        addDownloadedModel
+        addDownloadedModel,
+        setVerificationStatus
       );
       prevStatuses.set(downloadId, download.status);
     }
@@ -77,12 +102,15 @@ export function useDownloadCompletion(): void {
         prevStatuses.delete(downloadId);
       }
     }
-  }, [activeDownloads, addDownloadedModel]);
+  }, [activeDownloads, addDownloadedModel, setVerificationStatus]);
 
-  // Auto-clear completed downloads
+  // Auto-clear completed/verified/corrupted downloads
   useEffect(() => {
     const hasCompleted = [...activeDownloads.values()].some(
-      (d) => d.status === "completed"
+      (d) =>
+        d.status === "completed" ||
+        d.status === "verified" ||
+        d.status === "corrupted"
     );
 
     if (hasCompleted) {

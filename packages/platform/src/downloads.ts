@@ -18,6 +18,58 @@ import type {
 import { isDesktop } from "./capabilities";
 
 // ============================================================================
+// Tauri API Access
+// ============================================================================
+
+/**
+ * Get the Tauri invoke function from the global __TAURI__ object.
+ * With `withGlobalTauri: true` in tauri.conf.json, the API is available globally.
+ */
+function getTauriInvoke(): <T>(
+  cmd: string,
+  args?: Record<string, unknown>
+) => Promise<T> {
+  const global = globalThis as unknown as {
+    __TAURI__?: {
+      core?: {
+        invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
+      };
+    };
+  };
+
+  if (!global.__TAURI__?.core?.invoke) {
+    throw new Error("Tauri API not available");
+  }
+
+  return global.__TAURI__.core.invoke;
+}
+
+/**
+ * Get the Tauri listen function from the global __TAURI__ object.
+ */
+function getTauriListen(): <T>(
+  event: string,
+  handler: (event: { payload: T }) => void
+) => Promise<() => void> {
+  const global = globalThis as unknown as {
+    __TAURI__?: {
+      event?: {
+        listen: <T>(
+          event: string,
+          handler: (event: { payload: T }) => void
+        ) => Promise<() => void>;
+      };
+    };
+  };
+
+  if (!global.__TAURI__?.event?.listen) {
+    throw new Error("Tauri Event API not available");
+  }
+
+  return global.__TAURI__.event.listen;
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -53,20 +105,27 @@ interface TauriStorageCheckResult {
  * @param modelId - The model identifier
  * @param url - The download URL for the GGUF model
  * @param tokenizerUrl - The download URL for the tokenizer.json
+ * @param expectedHash - Optional SHA-256 hash for integrity verification (Story 2.5)
  * @returns Promise<string> - The download ID for tracking
  * @throws Error if not on desktop or if download fails to start
  */
 export async function startModelDownload(
   modelId: string,
   url: string,
-  tokenizerUrl: string
+  tokenizerUrl: string,
+  expectedHash?: string
 ): Promise<string> {
   if (!isDesktop()) {
     throw new Error("Model downloads are only supported on desktop");
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
-  return invoke<string>("start_download", { modelId, url, tokenizerUrl });
+  const invoke = getTauriInvoke();
+  return invoke<string>("start_download", {
+    modelId,
+    url,
+    tokenizerUrl,
+    expectedHash: expectedHash ?? null,
+  });
 }
 
 /**
@@ -81,7 +140,7 @@ export async function pauseModelDownload(downloadId: string): Promise<void> {
     throw new Error("Model downloads are only supported on desktop");
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
+  const invoke = getTauriInvoke();
   await invoke<void>("pause_download", { downloadId });
 }
 
@@ -97,7 +156,7 @@ export async function resumeModelDownload(downloadId: string): Promise<void> {
     throw new Error("Model downloads are only supported on desktop");
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
+  const invoke = getTauriInvoke();
   await invoke<void>("resume_download", { downloadId });
 }
 
@@ -112,7 +171,7 @@ export async function cancelModelDownload(downloadId: string): Promise<void> {
     throw new Error("Model downloads are only supported on desktop");
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
+  const invoke = getTauriInvoke();
   await invoke<void>("cancel_download", { downloadId });
 }
 
@@ -131,7 +190,7 @@ export async function checkStorageSpace(
     return checkWebStorageSpace(requiredMb);
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
+  const invoke = getTauriInvoke();
   const result = await invoke<TauriStorageCheckResult>("check_storage_space", {
     requiredMb,
   });
@@ -155,7 +214,7 @@ export async function getModelPath(modelId: string): Promise<string | null> {
     return null;
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
+  const invoke = getTauriInvoke();
   return invoke<string | null>("get_model_path", { modelId });
 }
 
@@ -173,7 +232,7 @@ export async function getPartialDownloadSize(
     return null;
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
+  const invoke = getTauriInvoke();
   return invoke<number | null>("get_partial_download_size", { modelId });
 }
 
@@ -187,7 +246,7 @@ export async function deleteModel(modelId: string): Promise<void> {
     throw new Error("Model deletion is only supported on desktop");
   }
 
-  const { invoke } = await import("@tauri-apps/api/core");
+  const invoke = getTauriInvoke();
   await invoke<void>("delete_model", { modelId });
 }
 
@@ -213,7 +272,7 @@ export async function subscribeToDownloadProgress(
     return () => {};
   }
 
-  const { listen } = await import("@tauri-apps/api/event");
+  const listen = getTauriListen();
 
   const unlisten = await listen<TauriDownloadProgressEvent>(
     "download_progress",
@@ -233,6 +292,58 @@ export async function subscribeToDownloadProgress(
       };
 
       callback(progress);
+    }
+  );
+
+  return unlisten;
+}
+
+/** Corruption event data from Tauri */
+export interface CorruptionEvent {
+  modelId: string;
+  expectedHash: string;
+  actualHash: string;
+  quarantinePath: string;
+}
+
+/** Callback for corruption events */
+export type CorruptionEventCallback = (event: CorruptionEvent) => void;
+
+/** Tauri corruption event payload */
+interface TauriCorruptionEvent {
+  model_id: string;
+  expected_hash: string;
+  actual_hash: string;
+  quarantine_path: string;
+}
+
+/**
+ * Subscribe to download corruption events.
+ * Emitted when checksum verification fails (Story 2.5).
+ *
+ * @param callback - Function to call with corruption details
+ * @returns Promise<UnlistenFn> - Function to unsubscribe from events
+ */
+export async function subscribeToCorruptionEvents(
+  callback: CorruptionEventCallback
+): Promise<UnlistenFn> {
+  if (!isDesktop()) {
+    return () => {};
+  }
+
+  const listen = getTauriListen();
+
+  const unlisten = await listen<TauriCorruptionEvent>(
+    "download_corrupted",
+    (event) => {
+      const payload = event.payload;
+
+      callback({
+        modelId: payload.model_id,
+        expectedHash: payload.expected_hash,
+        actualHash: payload.actual_hash,
+        quarantinePath: payload.quarantine_path,
+      });
     }
   );
 

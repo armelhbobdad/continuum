@@ -10,8 +10,12 @@ export {
   hasWebGPU,
   isDesktop,
 } from "./capabilities";
-// Download management (Story 2.3)
-export type { DownloadProgressCallback } from "./downloads";
+// Download management (Story 2.3, Story 2.5)
+export type {
+  CorruptionEvent,
+  CorruptionEventCallback,
+  DownloadProgressCallback,
+} from "./downloads";
 export {
   cancelModelDownload,
   checkStorageSpace,
@@ -22,6 +26,7 @@ export {
   pauseModelDownload,
   resumeModelDownload,
   startModelDownload,
+  subscribeToCorruptionEvents,
   subscribeToDownloadProgress,
   subscribeToNetworkStatus,
 } from "./downloads";

@@ -65,7 +65,16 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
     set((state) => {
       const downloads = new Map(state.activeDownloads);
       for (const [id, download] of downloads) {
-        if (["completed", "failed", "cancelled"].includes(download.status)) {
+        // Include "verified" and "corrupted" status (Story 2.5)
+        if (
+          [
+            "completed",
+            "verified",
+            "corrupted",
+            "failed",
+            "cancelled",
+          ].includes(download.status)
+        ) {
           downloads.delete(id);
         }
       }
@@ -135,7 +144,12 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
 export const selectActiveDownloads = (state: DownloadState) => {
   const result: DownloadProgress[] = [];
   for (const download of state.activeDownloads.values()) {
-    if (!["completed", "failed", "cancelled"].includes(download.status)) {
+    // Include "verified" and "corrupted" status (Story 2.5)
+    if (
+      !["completed", "verified", "corrupted", "failed", "cancelled"].includes(
+        download.status
+      )
+    ) {
       result.push(download);
     }
   }

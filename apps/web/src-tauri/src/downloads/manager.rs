@@ -4,9 +4,12 @@
 //! Uses .part files to track partial downloads.
 //!
 //! Story 2.3: Model Download Manager
+//! Story 2.5: Model Integrity Verification
 //! ADR-DOWNLOAD-002: Chunked downloads with resume capability
+//! ADR-VERIFY-001: SHA-256 verification on download completion
 
 use super::state::{Download, DownloadProgressEvent, DownloadState, DownloadStatus};
+use crate::verification;
 use futures_util::StreamExt;
 use log::{error, info, warn};
 use std::fs::OpenOptions;
@@ -21,10 +24,88 @@ use uuid::Uuid;
 /// Progress update interval (100ms per ADR-DOWNLOAD-003)
 const PROGRESS_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
 
+/// Threshold for emitting verification progress (500MB per Task 12)
+const VERIFICATION_PROGRESS_THRESHOLD: u64 = 500 * 1024 * 1024;
+
+/// Verify file integrity with progress events for large files (Task 12)
+/// Emits verification:progress events for files larger than 500MB
+fn verify_with_progress(
+    app: &AppHandle,
+    file_path: &PathBuf,
+    expected_hash: &str,
+    download_id: &str,
+    model_id: &str,
+    file_size: u64,
+) -> Result<verification::VerificationResult, verification::VerificationError> {
+    use sha2::{Digest, Sha256};
+    use std::io::Read;
+
+    // For small files, use simple verification (no progress needed)
+    if file_size < VERIFICATION_PROGRESS_THRESHOLD {
+        return verification::verify_integrity(file_path, expected_hash);
+    }
+
+    // For large files, use chunked reading with progress events
+    let file = std::fs::File::open(file_path).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            verification::VerificationError::file_not_found(file_path)
+        } else {
+            verification::VerificationError::io_error(file_path, &e)
+        }
+    })?;
+
+    let mut reader = std::io::BufReader::new(file);
+    let mut hasher = Sha256::new();
+    let mut buffer = vec![0u8; 8 * 1024 * 1024]; // 8MB chunks
+    let mut bytes_processed: u64 = 0;
+    let mut last_progress_emit = std::time::Instant::now();
+
+    loop {
+        let bytes_read = reader.read(&mut buffer).map_err(|e| {
+            verification::VerificationError::io_error(file_path, &e)
+        })?;
+
+        if bytes_read == 0 {
+            break;
+        }
+
+        hasher.update(&buffer[..bytes_read]);
+        bytes_processed += bytes_read as u64;
+
+        // Emit progress every 500ms
+        if last_progress_emit.elapsed() >= Duration::from_millis(500) {
+            let percent = (bytes_processed as f64 / file_size as f64 * 100.0) as u64;
+            let _ = app.emit(
+                "verification_progress",
+                serde_json::json!({
+                    "download_id": download_id,
+                    "model_id": model_id,
+                    "bytes_processed": bytes_processed,
+                    "total_bytes": file_size,
+                    "percent": percent,
+                }),
+            );
+            last_progress_emit = std::time::Instant::now();
+        }
+    }
+
+    let computed_hash = format!("{:x}", hasher.finalize());
+    let expected_lower = expected_hash.to_lowercase();
+    let verified = computed_hash == expected_lower;
+
+    Ok(verification::VerificationResult {
+        verified,
+        computed_hash,
+        expected_hash: expected_lower,
+        file_size,
+    })
+}
+
 /// Start a new download for model and tokenizer
 ///
 /// Returns the download_id for tracking.
 /// Downloads are stored as .part files until complete.
+/// If expected_hash is provided, verification runs before finalizing (Story 2.5).
 ///
 /// File structure:
 /// ```
@@ -40,6 +121,7 @@ pub async fn start_download(
     model_id: &str,
     url: &str,
     tokenizer_url: &str,
+    expected_hash: Option<&str>,
 ) -> Result<String, String> {
     let download_id = Uuid::new_v4().to_string();
     let models_dir = state.models_dir();
@@ -85,6 +167,7 @@ pub async fn start_download(
         total_bytes,
         status: DownloadStatus::Downloading,
         cancel_token: Arc::new(cancel_tx),
+        expected_hash: expected_hash.map(|s| s.to_string()),
     };
 
     state.add_download(download).await;
@@ -95,6 +178,8 @@ pub async fn start_download(
     let url = url.to_string();
     let model_id = model_id.to_string();
     let id = download_id.clone();
+    let expected_hash = expected_hash.map(|s| s.to_string());
+    let quarantine_dir = state.quarantine_dir();
 
     // Spawn download task
     tokio::spawn(async move {
@@ -108,6 +193,8 @@ pub async fn start_download(
             total_bytes,
             &id,
             &model_id,
+            expected_hash.as_deref(),
+            &quarantine_dir,
             cancel_rx,
         )
         .await;
@@ -190,7 +277,7 @@ async fn get_content_length(client: &reqwest::Client, url: &str) -> Result<u64, 
         .ok_or_else(|| "Could not determine file size".to_string())
 }
 
-/// Download file with resume support
+/// Download file with resume support and optional integrity verification (Story 2.5)
 #[allow(clippy::too_many_arguments)]
 async fn download_file(
     app: &AppHandle,
@@ -202,6 +289,8 @@ async fn download_file(
     total_bytes: u64,
     download_id: &str,
     model_id: &str,
+    expected_hash: Option<&str>,
+    quarantine_dir: &std::path::Path,
     #[allow(unused_mut)] mut cancel_rx: watch::Receiver<bool>,
 ) -> Result<(), String> {
     // Build request with Range header for resume
@@ -285,11 +374,100 @@ async fn download_file(
         .map_err(|e| format!("Sync error: {}", e))?;
     drop(file);
 
-    // TODO(Story 2.5): Add checksum verification before rename
-    // - Compute SHA256 of downloaded .part file
-    // - Compare against expected checksum from model registry
-    // - Fail with specific error if mismatch (corrupted download)
-    // See: Task 3.7 in story file
+    // Story 2.5: Checksum verification before rename
+    if let Some(hash) = expected_hash {
+        info!("Verifying integrity of downloaded file: {}", model_id);
+
+        // Emit verifying status
+        let _ = app.emit(
+            "download_progress",
+            DownloadProgressEvent {
+                download_id: download_id.to_string(),
+                model_id: model_id.to_string(),
+                status: "verifying".to_string(),
+                bytes_downloaded: total_bytes,
+                total_bytes,
+                speed_bps: 0,
+                eta_seconds: 0,
+            },
+        );
+
+        // Task 12: Use streaming verification with progress events for large files
+        // Note: We emit progress via download_progress event with "verifying" status
+        // and percentage in eta_seconds field (repurposed for verification progress)
+        let verification_result = verify_with_progress(
+            app,
+            part_path,
+            hash,
+            download_id,
+            model_id,
+            total_bytes,
+        );
+
+        match verification_result {
+            Ok(result) if result.verified => {
+                info!(
+                    "Checksum verified for {}: {}",
+                    model_id, result.computed_hash
+                );
+            }
+            Ok(result) => {
+                // Verification failed - quarantine the file
+                warn!(
+                    "Checksum mismatch for {}: expected {}, got {}",
+                    model_id, result.expected_hash, result.computed_hash
+                );
+
+                // Move to quarantine
+                let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+                let quarantine_filename = format!("{}_{}.gguf.corrupted", model_id, timestamp);
+                let quarantine_path = quarantine_dir.join(&quarantine_filename);
+
+                std::fs::rename(part_path, &quarantine_path).map_err(|e| {
+                    format!(
+                        "Failed to quarantine corrupted file: {}. Source: {}, Dest: {}",
+                        e,
+                        part_path.display(),
+                        quarantine_path.display()
+                    )
+                })?;
+
+                // Emit corrupted event
+                let _ = app.emit(
+                    "download_progress",
+                    DownloadProgressEvent {
+                        download_id: download_id.to_string(),
+                        model_id: model_id.to_string(),
+                        status: "corrupted".to_string(),
+                        bytes_downloaded: total_bytes,
+                        total_bytes,
+                        speed_bps: 0,
+                        eta_seconds: 0,
+                    },
+                );
+
+                // Also emit a detailed corruption event for the UI
+                let _ = app.emit(
+                    "download_corrupted",
+                    serde_json::json!({
+                        "model_id": model_id,
+                        "expected_hash": result.expected_hash,
+                        "actual_hash": result.computed_hash,
+                        "quarantine_path": quarantine_path.to_string_lossy(),
+                    }),
+                );
+
+                return Err(format!(
+                    "Checksum verification failed: expected {}, got {}",
+                    result.expected_hash, result.computed_hash
+                ));
+            }
+            Err(e) => {
+                error!("Verification error for {}: {:?}", model_id, e);
+                return Err(format!("Verification failed: {}", e.message));
+            }
+        }
+    }
 
     // Rename .part to final file
     std::fs::rename(part_path, final_path)
@@ -297,13 +475,19 @@ async fn download_file(
 
     info!("Download completed: {}", model_id);
 
-    // Emit completion event
+    // Emit completion event with verified status if hash was checked
+    let status = if expected_hash.is_some() {
+        "verified"
+    } else {
+        "completed"
+    };
+
     let _ = app.emit(
         "download_progress",
         DownloadProgressEvent {
             download_id: download_id.to_string(),
             model_id: model_id.to_string(),
-            status: "completed".to_string(),
+            status: status.to_string(),
             bytes_downloaded: total_bytes,
             total_bytes,
             speed_bps: 0,
@@ -345,12 +529,14 @@ pub async fn resume_download(
 
         // Start a new download (will resume from .part file)
         // Tokenizer should already be downloaded since it downloads first
+        // Story 2.5: Pass stored expected_hash for verification on resume
         start_download(
             app,
             state,
             &download.model_id,
             &download.url,
             &download.tokenizer_url,
+            download.expected_hash.as_deref(),
         )
         .await?;
 
@@ -417,6 +603,7 @@ mod tests {
             total_bytes: 2_500_000_000,
             status: DownloadStatus::Downloading,
             cancel_token: Arc::new(tx),
+            expected_hash: Some("abc123".to_string()),
         };
 
         let event = download.to_progress_event(10_000_000, 200);

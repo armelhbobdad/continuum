@@ -138,18 +138,21 @@ checksum = "170433209e817da6aae2c51aa0dd443009a613425dd041ebfb2492d1c4c11a25"
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "futures-util",
  "kalosm",
  "log",
  "reqwest 0.12.26",
  "serde",
  "serde_json",
+ "sha2",
  "sysinfo",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
  "tauri-plugin-mcp-bridge",
  "tauri-plugin-notification",
+ "tempfile",
  "tokio",
  "uuid",
 ]

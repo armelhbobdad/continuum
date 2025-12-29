@@ -52,6 +52,9 @@ pub struct Download {
     pub status: DownloadStatus,
     /// Cancel token for aborting download
     pub cancel_token: Arc<tokio::sync::watch::Sender<bool>>,
+    /// Expected SHA-256 hash for verification (Story 2.5)
+    /// Stored to allow verification on resume
+    pub expected_hash: Option<String>,
 }
 
 impl Download {
@@ -83,6 +86,8 @@ pub struct DownloadState {
     downloads: RwLock<HashMap<String, Download>>,
     /// App data directory for storing models
     models_dir: std::path::PathBuf,
+    /// Quarantine directory for corrupted downloads (Story 2.5)
+    quarantine_dir: std::path::PathBuf,
     /// HTTP client for downloads
     client: reqwest::Client,
 }
@@ -91,10 +96,16 @@ impl DownloadState {
     /// Create new download state
     pub fn new(app_data_dir: std::path::PathBuf) -> Self {
         let models_dir = app_data_dir.join("models");
+        let quarantine_dir = app_data_dir.join("quarantine");
 
         // Ensure models directory exists
         if let Err(e) = std::fs::create_dir_all(&models_dir) {
             log::warn!("Failed to create models directory: {}", e);
+        }
+
+        // Ensure quarantine directory exists (Story 2.5)
+        if let Err(e) = std::fs::create_dir_all(&quarantine_dir) {
+            log::warn!("Failed to create quarantine directory: {}", e);
         }
 
         // Configure client for large file downloads:
@@ -110,6 +121,7 @@ impl DownloadState {
         Self {
             downloads: RwLock::new(HashMap::new()),
             models_dir,
+            quarantine_dir,
             client,
         }
     }
@@ -117,6 +129,11 @@ impl DownloadState {
     /// Get the models directory path
     pub fn models_dir(&self) -> &std::path::Path {
         &self.models_dir
+    }
+
+    /// Get the quarantine directory path (Story 2.5)
+    pub fn quarantine_dir(&self) -> std::path::PathBuf {
+        self.quarantine_dir.clone()
     }
 
     /// Get the HTTP client

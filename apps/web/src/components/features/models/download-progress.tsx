@@ -31,6 +31,9 @@ const progressVariants = cva(
         queued: "bg-muted-foreground/50",
         downloading: "bg-primary",
         paused: "bg-yellow-500",
+        verifying: "bg-blue-500", // Story 2.5: verification in progress
+        verified: "bg-green-500", // Story 2.5: verification succeeded
+        corrupted: "bg-red-500", // Story 2.5: verification failed
         completed: "bg-green-500",
         failed: "bg-red-500",
         cancelled: "bg-muted-foreground/30",
@@ -66,6 +69,12 @@ function getAriaLabel(
       return `Downloading ${displayName}: ${percent}%`;
     case "paused":
       return `Download paused for ${displayName}: ${percent}%`;
+    case "verifying":
+      return `Verifying integrity of ${displayName}`;
+    case "verified":
+      return `Download verified for ${displayName}`;
+    case "corrupted":
+      return `Download corrupted for ${displayName}`;
     case "completed":
       return `Download complete for ${displayName}`;
     case "failed":
@@ -162,6 +171,22 @@ function StatusIndicator({ progress }: StatusIndicatorProps) {
 
   if (status === "paused") {
     return <span className="text-yellow-600 dark:text-yellow-400">Paused</span>;
+  }
+
+  if (status === "verifying") {
+    return (
+      <span className="text-blue-600 dark:text-blue-400">
+        Verifying integrity...
+      </span>
+    );
+  }
+
+  if (status === "verified") {
+    return <span className="text-green-600 dark:text-green-400">Verified</span>;
+  }
+
+  if (status === "corrupted") {
+    return <span className="text-red-600 dark:text-red-400">Corrupted</span>;
   }
 
   if (status === "completed") {

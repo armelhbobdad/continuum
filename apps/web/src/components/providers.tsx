@@ -10,9 +10,11 @@
  * Story 1.6: Privacy Dashboard MVP
  * Story 1.7: Session Persistence & Auto-Save
  * Story 2.3: Model Download Manager (network recovery, completion handling)
+ * Story 2.5: Model Integrity Verification (corruption dialog)
  */
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { CorruptionDialogProvider } from "@/components/features/models/corruption-dialog-provider";
 import { PrivacyDashboard } from "@/components/features/privacy/privacy-dashboard";
 import { PrivacyGateProvider } from "@/components/features/privacy/privacy-gate-provider";
 import { usePrivacyKeyboardShortcuts } from "@/components/features/privacy/use-privacy-keyboard-shortcuts";
@@ -78,6 +80,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 <SessionPersistence />
                 {/* Enable download completion handling and network recovery (Story 2.3) */}
                 <DownloadMonitoring />
+                {/* Corruption dialog for failed verification (Story 2.5) */}
+                <CorruptionDialogProvider />
                 {/* Privacy Dashboard overlay (Story 1.6) */}
                 <PrivacyDashboard />
                 {/*

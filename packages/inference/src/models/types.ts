@@ -88,8 +88,8 @@ export interface ModelMetadata {
 
   /** Download URL for GGUF model weights */
   downloadUrl: string;
-  /** Expected SHA-256 hash for verification (Story 2.5) */
-  sha256: string;
+  /** Expected SHA-256 hash for verification (Story 2.5). Optional - if not provided, verification is skipped. */
+  sha256?: string;
   /**
    * Direct URL to tokenizer.json file on HuggingFace.
    * Downloaded alongside the model and stored in the app's models folder.

@@ -4,6 +4,7 @@
  * ModelCard Component
  * Story 2.2: Model Catalog & Cards
  * Story 2.3: Model Download Manager (download button integration)
+ * Story 2.5: Model Integrity Verification (verification badge, version pinning)
  *
  * Displays model specifications, capabilities, and hardware compatibility.
  * Uses CVA for recommendation-based styling variants.
@@ -11,15 +12,20 @@
  * AC2: Model Card Details (FR26)
  * AC4: Vulnerability Warnings (FR33)
  * Story 2.3 AC1-5: Download lifecycle integration
+ * Story 2.5 AC2: Verified badge display
+ * Story 2.5 AC5: Version pinning badge
  *
  * ADR-MODEL-003: CVA variants for card visual states
  */
 
-import type { ModelMetadata } from "@continuum/inference";
+import type { ModelMetadata, VerificationStatus } from "@continuum/inference";
 import type { ModelRecommendation } from "@continuum/platform";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+import { useModelStore } from "@/stores/models";
 import { ModelDownloadButton } from "./model-download-button";
+import { VerificationBadge } from "./verification-badge";
+import { PinnedVersionBadge } from "./version-pin-toggle";
 
 /**
  * CVA variants for ModelCard based on hardware recommendation.
@@ -68,6 +74,17 @@ export function ModelCard({
   className,
 }: ModelCardProps) {
   const hasVulnerabilities = model.vulnerabilities.length > 0;
+  const downloadedModels = useModelStore((s) => s.downloadedModels);
+  const verificationStatus = useModelStore((s) => s.verificationStatus);
+  const isDownloaded = downloadedModels.includes(model.id);
+  const verification = verificationStatus[model.id];
+
+  // Derive verification display status
+  const getVerificationDisplayStatus = (): VerificationStatus => {
+    if (!isDownloaded) return "unverified";
+    if (!verification) return "unverified";
+    return verification.verified ? "verified" : "failed";
+  };
 
   return (
     <article
@@ -82,9 +99,18 @@ export function ModelCard({
           <h3 className="font-semibold text-lg" id={`model-${model.id}-name`}>
             {model.name}
           </h3>
-          <span className="text-muted-foreground text-xs">
-            v{model.version}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-xs">
+              v{model.version}
+            </span>
+            <PinnedVersionBadge modelId={model.id} />
+            {isDownloaded && (
+              <VerificationBadge
+                status={getVerificationDisplayStatus()}
+                timestamp={verification?.timestamp}
+              />
+            )}
+          </div>
         </div>
         <RecommendationBadge recommendation={recommendation} />
       </div>

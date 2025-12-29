@@ -1,10 +1,13 @@
 /**
  * Model Store Tests
  * Story 2.2: Model Catalog & Cards
+ * Story 2.5: Model Integrity Verification
  *
  * Tests for model state management with persistence.
  * AC1: Model Catalog Display
  * AC3: Hardware-Based Recommendations
+ * Story 2.5 AC2: Verification status storage
+ * Story 2.5 AC5: Version pinning
  */
 
 import type { HardwareCapabilities } from "@continuum/platform";
@@ -414,6 +417,156 @@ describe("Model Store", () => {
         expect(call[0]).toHaveProperty("ramMb");
         expect(call[0]).toHaveProperty("storageMb");
       }
+    });
+  });
+
+  // Story 2.5: Verification State Tests
+  describe("Verification State (Story 2.5)", () => {
+    it("should start with empty verificationStatus", async () => {
+      const { useModelStore } = await import("../models");
+      const state = useModelStore.getState();
+
+      expect(state.verificationStatus).toEqual({});
+    });
+
+    it("should set verification status for a model", async () => {
+      const { useModelStore } = await import("../models");
+
+      const info = {
+        verified: true,
+        timestamp: Date.now(),
+        hash: "abc123",
+      };
+
+      useModelStore.getState().setVerificationStatus("phi-3-mini", info);
+
+      const state = useModelStore.getState();
+      expect(state.verificationStatus["phi-3-mini"]).toEqual(info);
+    });
+
+    it("should clear verification status for a model", async () => {
+      const { useModelStore } = await import("../models");
+
+      const info = {
+        verified: true,
+        timestamp: Date.now(),
+        hash: "abc123",
+      };
+
+      useModelStore.getState().setVerificationStatus("phi-3-mini", info);
+      useModelStore.getState().clearVerificationStatus("phi-3-mini");
+
+      const state = useModelStore.getState();
+      expect(state.verificationStatus["phi-3-mini"]).toBeUndefined();
+    });
+
+    it("should persist verificationStatus to localStorage", async () => {
+      const { useModelStore } = await import("../models");
+
+      const info = {
+        verified: true,
+        timestamp: Date.now(),
+        hash: "abc123",
+      };
+
+      useModelStore.getState().setVerificationStatus("phi-3-mini", info);
+
+      // Wait for persist to write
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const storedData = localStorageMock.setItem.mock.calls.at(-1)?.[1];
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        expect(parsed.state.verificationStatus["phi-3-mini"]).toEqual(info);
+      }
+    });
+
+    it("should clear verification status when model is removed", async () => {
+      const { useModelStore } = await import("../models");
+
+      // Add model and verification
+      useModelStore.getState().addDownloadedModel("phi-3-mini");
+      useModelStore.getState().setVerificationStatus("phi-3-mini", {
+        verified: true,
+        timestamp: Date.now(),
+        hash: "abc123",
+      });
+
+      // Remove model
+      useModelStore.getState().removeDownloadedModel("phi-3-mini");
+
+      const state = useModelStore.getState();
+      expect(state.verificationStatus["phi-3-mini"]).toBeUndefined();
+    });
+  });
+
+  // Story 2.5: Version Pinning Tests
+  describe("Version Pinning (Story 2.5)", () => {
+    it("should start with empty pinnedVersions", async () => {
+      const { useModelStore } = await import("../models");
+      const state = useModelStore.getState();
+
+      expect(state.pinnedVersions).toEqual({});
+    });
+
+    it("should pin a model to a version", async () => {
+      const { useModelStore } = await import("../models");
+
+      useModelStore.getState().pinVersion("phi-3-mini", "1.0.0");
+
+      const state = useModelStore.getState();
+      expect(state.pinnedVersions["phi-3-mini"]).toBe("1.0.0");
+    });
+
+    it("should unpin a model", async () => {
+      const { useModelStore } = await import("../models");
+
+      useModelStore.getState().pinVersion("phi-3-mini", "1.0.0");
+      useModelStore.getState().unpinVersion("phi-3-mini");
+
+      const state = useModelStore.getState();
+      expect(state.pinnedVersions["phi-3-mini"]).toBeUndefined();
+    });
+
+    it("should check if a model is pinned", async () => {
+      const { useModelStore } = await import("../models");
+
+      expect(useModelStore.getState().isVersionPinned("phi-3-mini")).toBe(
+        false
+      );
+
+      useModelStore.getState().pinVersion("phi-3-mini", "1.0.0");
+
+      expect(useModelStore.getState().isVersionPinned("phi-3-mini")).toBe(true);
+    });
+
+    it("should persist pinnedVersions to localStorage", async () => {
+      const { useModelStore } = await import("../models");
+
+      useModelStore.getState().pinVersion("phi-3-mini", "1.0.0");
+
+      // Wait for persist to write
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const storedData = localStorageMock.setItem.mock.calls.at(-1)?.[1];
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        expect(parsed.state.pinnedVersions["phi-3-mini"]).toBe("1.0.0");
+      }
+    });
+
+    it("should clear pinned version when model is removed", async () => {
+      const { useModelStore } = await import("../models");
+
+      // Add model and pin
+      useModelStore.getState().addDownloadedModel("phi-3-mini");
+      useModelStore.getState().pinVersion("phi-3-mini", "1.0.0");
+
+      // Remove model
+      useModelStore.getState().removeDownloadedModel("phi-3-mini");
+
+      const state = useModelStore.getState();
+      expect(state.pinnedVersions["phi-3-mini"]).toBeUndefined();
     });
   });
 });

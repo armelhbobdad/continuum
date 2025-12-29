@@ -31,7 +31,8 @@ type UseModelDownloadResult = {
     modelId: string,
     url: string,
     tokenizerUrl: string,
-    requiredMb: number
+    requiredMb: number,
+    sha256?: string
   ) => Promise<void>;
   /** Retry after storage warning */
   retryDownload: () => Promise<void>;
@@ -55,6 +56,7 @@ export function useModelDownload(): UseModelDownloadResult {
     url: string;
     tokenizerUrl: string;
     requiredMb: number;
+    sha256?: string;
   } | null>(null);
 
   const addDownload = useDownloadStore((s) => s.addDownload);
@@ -64,10 +66,11 @@ export function useModelDownload(): UseModelDownloadResult {
       modelId: string,
       url: string,
       tokenizerUrl: string,
-      requiredMb: number
+      requiredMb: number,
+      sha256?: string
     ) => {
       // Save for potential retry
-      setPendingDownload({ modelId, url, tokenizerUrl, requiredMb });
+      setPendingDownload({ modelId, url, tokenizerUrl, requiredMb, sha256 });
 
       // Check storage first
       setState({ status: "checking-storage" });
@@ -81,10 +84,15 @@ export function useModelDownload(): UseModelDownloadResult {
           return;
         }
 
-        // Start download
+        // Start download with optional hash for verification (Story 2.5)
         setState({ status: "starting" });
 
-        const downloadId = await startModelDownload(modelId, url, tokenizerUrl);
+        const downloadId = await startModelDownload(
+          modelId,
+          url,
+          tokenizerUrl,
+          sha256
+        );
 
         // Add to store
         addDownload({
@@ -114,7 +122,8 @@ export function useModelDownload(): UseModelDownloadResult {
         pendingDownload.modelId,
         pendingDownload.url,
         pendingDownload.tokenizerUrl,
-        pendingDownload.requiredMb
+        pendingDownload.requiredMb,
+        pendingDownload.sha256
       );
     }
   }, [pendingDownload, initiateDownload]);
