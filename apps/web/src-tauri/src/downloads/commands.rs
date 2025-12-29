@@ -7,6 +7,10 @@
 //! AC4: Network recovery (via resume capability)
 //! AC5: Storage space validation
 
+// Tauri-specific patterns that clippy flags but are correct
+#![allow(clippy::needless_pass_by_value)] // Tauri State is designed to be passed by value
+#![allow(clippy::unnecessary_wraps)] // Tauri commands require Result return type
+
 use super::manager;
 use super::state::{DownloadProgressEvent, DownloadState, StorageCheckResult};
 use sysinfo::Disks;
@@ -41,7 +45,15 @@ pub async fn start_download(
     expected_hash: Option<String>,
     state: State<'_, DownloadState>,
 ) -> Result<String, String> {
-    manager::start_download(&app, &state, &model_id, &url, &tokenizer_url, expected_hash.as_deref()).await
+    manager::start_download(
+        &app,
+        &state,
+        &model_id,
+        &url,
+        &tokenizer_url,
+        expected_hash.as_deref(),
+    )
+    .await
 }
 
 /// Pause an active download
@@ -99,11 +111,10 @@ pub async fn get_download_progress(
     download_id: String,
     state: State<'_, DownloadState>,
 ) -> Result<Option<DownloadProgressEvent>, String> {
-    if let Some(download) = state.get_download(&download_id).await {
-        Ok(Some(download.to_progress_event(0, 0)))
-    } else {
-        Ok(None)
-    }
+    Ok(state
+        .get_download(&download_id)
+        .await
+        .map(|d| d.to_progress_event(0, 0)))
 }
 
 /// Check if there's enough storage space for a download (AC5)
@@ -116,7 +127,7 @@ pub async fn get_download_progress(
 #[tauri::command]
 pub fn check_storage_space(required_mb: u64) -> Result<StorageCheckResult, String> {
     let disks = Disks::new_with_refreshed_list();
-    let available_bytes: u64 = disks.iter().map(|d| d.available_space()).sum();
+    let available_bytes: u64 = disks.iter().map(sysinfo::Disk::available_space).sum();
 
     let available_mb = available_bytes / 1024 / 1024;
     let has_space = available_mb >= required_mb;
@@ -174,7 +185,7 @@ pub async fn get_partial_download_size(
 
     if part_path.exists() {
         let metadata = std::fs::metadata(&part_path)
-            .map_err(|e| format!("Failed to read partial file: {}", e))?;
+            .map_err(|e| format!("Failed to read partial file: {e}"))?;
         Ok(Some(metadata.len()))
     } else {
         Ok(None)
@@ -188,22 +199,20 @@ pub async fn get_partial_download_size(
 /// # Arguments
 /// * `model_id` - The model identifier
 #[tauri::command]
-pub async fn delete_model(
-    model_id: String,
-    state: State<'_, DownloadState>,
-) -> Result<(), String> {
+pub async fn delete_model(model_id: String, state: State<'_, DownloadState>) -> Result<(), String> {
     let model_dir = state.models_dir().join(&model_id);
 
     // Delete the entire model directory
     if model_dir.exists() {
         std::fs::remove_dir_all(&model_dir)
-            .map_err(|e| format!("Failed to delete model directory: {}", e))?;
+            .map_err(|e| format!("Failed to delete model directory: {e}"))?;
     }
 
     Ok(())
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
 

@@ -8,6 +8,11 @@
 //! ADR-DOWNLOAD-002: Chunked downloads with resume capability
 //! ADR-VERIFY-001: SHA-256 verification on download completion
 
+// Progress percentages intentionally use lossy casts - precision doesn't matter for UI display
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+
 use super::state::{Download, DownloadProgressEvent, DownloadState, DownloadStatus};
 use crate::verification;
 use futures_util::StreamExt;
@@ -61,9 +66,9 @@ fn verify_with_progress(
     let mut last_progress_emit = std::time::Instant::now();
 
     loop {
-        let bytes_read = reader.read(&mut buffer).map_err(|e| {
-            verification::VerificationError::io_error(file_path, &e)
-        })?;
+        let bytes_read = reader
+            .read(&mut buffer)
+            .map_err(|e| verification::VerificationError::io_error(file_path, &e))?;
 
         if bytes_read == 0 {
             break;
@@ -129,7 +134,7 @@ pub async fn start_download(
     // Create model-specific directory
     let model_dir = models_dir.join(model_id);
     std::fs::create_dir_all(&model_dir)
-        .map_err(|e| format!("Failed to create model directory: {}", e))?;
+        .map_err(|e| format!("Failed to create model directory: {e}"))?;
 
     // Download tokenizer first (small file, quick)
     download_tokenizer(state.client(), tokenizer_url, &model_dir).await?;
@@ -141,13 +146,8 @@ pub async fn start_download(
     // Check for existing partial download
     let mut bytes_downloaded = 0u64;
     if part_path.exists() {
-        bytes_downloaded = std::fs::metadata(&part_path)
-            .map(|m| m.len())
-            .unwrap_or(0);
-        info!(
-            "Resuming download for {} from {} bytes",
-            model_id, bytes_downloaded
-        );
+        bytes_downloaded = std::fs::metadata(&part_path).map(|m| m.len()).unwrap_or(0);
+        info!("Resuming download for {model_id} from {bytes_downloaded} bytes");
     }
 
     // Get total size with HEAD request
@@ -167,7 +167,7 @@ pub async fn start_download(
         total_bytes,
         status: DownloadStatus::Downloading,
         cancel_token: Arc::new(cancel_tx),
-        expected_hash: expected_hash.map(|s| s.to_string()),
+        expected_hash: expected_hash.map(std::string::ToString::to_string),
     };
 
     state.add_download(download).await;
@@ -178,7 +178,7 @@ pub async fn start_download(
     let url = url.to_string();
     let model_id = model_id.to_string();
     let id = download_id.clone();
-    let expected_hash = expected_hash.map(|s| s.to_string());
+    let expected_hash = expected_hash.map(std::string::ToString::to_string);
     let quarantine_dir = state.quarantine_dir();
 
     // Spawn download task
@@ -203,9 +203,9 @@ pub async fn start_download(
             // Don't emit failure for intentional cancellation (pause/cancel)
             // The frontend already handles status updates for these actions
             if e == "cancelled" {
-                info!("Download cancelled/paused for {}", model_id);
+                info!("Download cancelled/paused for {model_id}");
             } else {
-                error!("Download failed for {}: {}", model_id, e);
+                error!("Download failed for {model_id}: {e}");
                 // Emit failure event only for actual errors
                 let _ = app_handle.emit(
                     "download_progress",
@@ -236,17 +236,17 @@ async fn download_tokenizer(
 
     // Skip if already downloaded
     if tokenizer_path.exists() {
-        info!("Tokenizer already exists at {:?}", tokenizer_path);
+        info!("Tokenizer already exists at {}", tokenizer_path.display());
         return Ok(());
     }
 
-    info!("Downloading tokenizer from {}", url);
+    info!("Downloading tokenizer from {url}");
 
     let response = client
         .get(url)
         .send()
         .await
-        .map_err(|e| format!("Tokenizer download failed: {}", e))?;
+        .map_err(|e| format!("Tokenizer download failed: {e}"))?;
 
     if !response.status().is_success() {
         return Err(format!(
@@ -258,12 +258,12 @@ async fn download_tokenizer(
     let bytes = response
         .bytes()
         .await
-        .map_err(|e| format!("Failed to read tokenizer: {}", e))?;
+        .map_err(|e| format!("Failed to read tokenizer: {e}"))?;
 
     std::fs::write(&tokenizer_path, &bytes)
-        .map_err(|e| format!("Failed to save tokenizer: {}", e))?;
+        .map_err(|e| format!("Failed to save tokenizer: {e}"))?;
 
-    info!("Tokenizer saved to {:?}", tokenizer_path);
+    info!("Tokenizer saved to {}", tokenizer_path.display());
     Ok(())
 }
 
@@ -273,7 +273,7 @@ async fn get_content_length(client: &reqwest::Client, url: &str) -> Result<u64, 
         .head(url)
         .send()
         .await
-        .map_err(|e| format!("HEAD request failed: {}", e))?;
+        .map_err(|e| format!("HEAD request failed: {e}"))?;
 
     response
         .headers()
@@ -302,13 +302,13 @@ async fn download_file(
     // Build request with Range header for resume
     let mut request = client.get(url);
     if bytes_downloaded > 0 {
-        request = request.header("Range", format!("bytes={}-", bytes_downloaded));
+        request = request.header("Range", format!("bytes={bytes_downloaded}-"));
     }
 
     let response = request
         .send()
         .await
-        .map_err(|e| format!("Download request failed: {}", e))?;
+        .map_err(|e| format!("Download request failed: {e}"))?;
 
     // Check for successful response
     if !response.status().is_success() && response.status().as_u16() != 206 {
@@ -320,7 +320,7 @@ async fn download_file(
         .create(true)
         .append(true)
         .open(part_path)
-        .map_err(|e| format!("Failed to open file: {}", e))?;
+        .map_err(|e| format!("Failed to open file: {e}"))?;
 
     let start_time = Instant::now();
     let mut last_update = Instant::now();
@@ -331,14 +331,14 @@ async fn download_file(
     while let Some(chunk_result) = stream.next().await {
         // Check for cancellation
         if *cancel_rx.borrow() {
-            info!("Download cancelled: {}", model_id);
+            info!("Download cancelled: {model_id}");
             return Err("cancelled".to_string());
         }
 
-        let chunk = chunk_result.map_err(|e| format!("Stream error: {}", e))?;
+        let chunk = chunk_result.map_err(|e| format!("Stream error: {e}"))?;
 
         file.write_all(&chunk)
-            .map_err(|e| format!("Write error: {}", e))?;
+            .map_err(|e| format!("Write error: {e}"))?;
 
         bytes_downloaded += chunk.len() as u64;
 
@@ -376,13 +376,12 @@ async fn download_file(
     }
 
     // Sync and close file
-    file.sync_all()
-        .map_err(|e| format!("Sync error: {}", e))?;
+    file.sync_all().map_err(|e| format!("Sync error: {e}"))?;
     drop(file);
 
     // Story 2.5: Checksum verification before rename
     if let Some(hash) = expected_hash {
-        info!("Verifying integrity of downloaded file: {}", model_id);
+        info!("Verifying integrity of downloaded file: {model_id}");
 
         // Emit verifying status
         let _ = app.emit(
@@ -401,14 +400,8 @@ async fn download_file(
         // Task 12: Use streaming verification with progress events for large files
         // Note: We emit progress via download_progress event with "verifying" status
         // and percentage in eta_seconds field (repurposed for verification progress)
-        let verification_result = verify_with_progress(
-            app,
-            part_path,
-            hash,
-            download_id,
-            model_id,
-            total_bytes,
-        );
+        let verification_result =
+            verify_with_progress(app, part_path, hash, download_id, model_id, total_bytes);
 
         match verification_result {
             Ok(result) if result.verified => {
@@ -416,7 +409,7 @@ async fn download_file(
                     "Checksum verified for {}: {}",
                     model_id, result.computed_hash
                 );
-            }
+            },
             Ok(result) => {
                 // Verification failed - quarantine the file
                 warn!(
@@ -426,7 +419,7 @@ async fn download_file(
 
                 // Move to quarantine
                 let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-                let quarantine_filename = format!("{}_{}.gguf.corrupted", model_id, timestamp);
+                let quarantine_filename = format!("{model_id}_{timestamp}.gguf.corrupted");
                 let quarantine_path = quarantine_dir.join(&quarantine_filename);
 
                 std::fs::rename(part_path, &quarantine_path).map_err(|e| {
@@ -467,19 +460,18 @@ async fn download_file(
                     "Checksum verification failed: expected {}, got {}",
                     result.expected_hash, result.computed_hash
                 ));
-            }
+            },
             Err(e) => {
-                error!("Verification error for {}: {:?}", model_id, e);
+                error!("Verification error for {model_id}: {e:?}");
                 return Err(format!("Verification failed: {}", e.message));
-            }
+            },
         }
     }
 
     // Rename .part to final file
-    std::fs::rename(part_path, final_path)
-        .map_err(|e| format!("Rename failed: {}", e))?;
+    std::fs::rename(part_path, final_path).map_err(|e| format!("Rename failed: {e}"))?;
 
-    info!("Download completed: {}", model_id);
+    info!("Download completed: {model_id}");
 
     // Emit completion event with verified status if hash was checked
     let status = if expected_hash.is_some() {
@@ -512,7 +504,7 @@ pub async fn pause_download(state: &DownloadState, download_id: &str) -> Result<
         state
             .update_status(download_id, DownloadStatus::Paused)
             .await;
-        info!("Download paused: {}", download_id);
+        info!("Download paused: {download_id}");
         Ok(())
     } else {
         Err("Download not found".to_string())
@@ -546,7 +538,7 @@ pub async fn resume_download(
         )
         .await?;
 
-        info!("Download resumed: {}", download_id);
+        info!("Download resumed: {download_id}");
         Ok(())
     } else {
         Err("Download not found".to_string())
@@ -566,7 +558,7 @@ pub async fn cancel_download(
         // Clean up partial file
         if download.part_path.exists() {
             if let Err(e) = std::fs::remove_file(&download.part_path) {
-                warn!("Failed to remove partial file: {}", e);
+                warn!("Failed to remove partial file: {e}");
             }
         }
 
@@ -584,7 +576,7 @@ pub async fn cancel_download(
             },
         );
 
-        info!("Download cancelled: {}", download_id);
+        info!("Download cancelled: {download_id}");
         Ok(())
     } else {
         Err("Download not found".to_string())
@@ -634,7 +626,7 @@ mod tests {
 
         for status in statuses {
             // Should not panic
-            let _ = format!("{:?}", status);
+            let _ = format!("{status:?}");
         }
     }
 }

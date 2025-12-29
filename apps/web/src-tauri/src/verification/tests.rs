@@ -1,5 +1,13 @@
 //! Unit tests for verification module (Story 2.5)
 
+// Tests use expect/unwrap for clarity - panics are desired on failure
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
+// Test file sizes use lossy casts which is fine for assertions
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+
 use super::*;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -131,7 +139,7 @@ fn test_verification_result_serialization() {
 
     let json = serde_json::to_string(&result).expect("Should serialize");
     assert!(json.contains("\"verified\":true"));
-    assert!(json.contains(&format!("\"computed_hash\":\"{}\"", TEST_CONTENT_HASH)));
+    assert!(json.contains(&format!("\"computed_hash\":\"{TEST_CONTENT_HASH}\"")));
 }
 
 #[test]
@@ -230,12 +238,16 @@ mod integration_tests {
 
         // 3. Verify with correct hash
         let result = verify_integrity(&model_path, &checksum).expect("Verification failed");
-        assert!(result.verified, "Verification should pass with correct hash");
+        assert!(
+            result.verified,
+            "Verification should pass with correct hash"
+        );
         assert_eq!(result.computed_hash, result.expected_hash);
 
         // 4. Verify with incorrect hash
         let wrong_hash = "0".repeat(64);
-        let result = verify_integrity(&model_path, &wrong_hash).expect("Verification should complete");
+        let result =
+            verify_integrity(&model_path, &wrong_hash).expect("Verification should complete");
         assert!(!result.verified, "Verification should fail with wrong hash");
         assert_ne!(result.computed_hash, result.expected_hash);
 

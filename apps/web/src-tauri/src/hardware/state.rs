@@ -3,6 +3,9 @@
 //! Caches hardware detection results to avoid re-querying every call.
 //! Story 2.1: Hardware Capability Detection
 
+// Option<Option<T>> is intentional: outer Option = cache miss, inner Option = no GPU detected
+#![allow(clippy::option_option)]
+
 use log::warn;
 use serde::Serialize;
 use std::sync::Mutex;
@@ -35,7 +38,7 @@ struct CachedInfo<T> {
 }
 
 impl<T> CachedInfo<T> {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             data: None,
             timestamp: None,
@@ -43,9 +46,7 @@ impl<T> CachedInfo<T> {
     }
 
     fn is_valid(&self) -> bool {
-        self.timestamp
-            .map(|t| t.elapsed() < CACHE_DURATION)
-            .unwrap_or(false)
+        self.timestamp.is_some_and(|t| t.elapsed() < CACHE_DURATION)
     }
 
     fn set(&mut self, data: T) {
@@ -71,7 +72,7 @@ pub struct HardwareState {
 }
 
 impl HardwareState {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             system_cache: Mutex::new(CachedInfo::new()),
             gpu_cache: Mutex::new(CachedInfo::new()),
@@ -83,9 +84,9 @@ impl HardwareState {
         match self.system_cache.lock() {
             Ok(cache) => cache.get(),
             Err(e) => {
-                warn!("Hardware cache mutex poisoned (system): {}", e);
+                warn!("Hardware cache mutex poisoned (system): {e}");
                 None
-            }
+            },
         }
     }
 
@@ -93,7 +94,7 @@ impl HardwareState {
     pub fn cache_system(&self, info: SystemInfo) {
         match self.system_cache.lock() {
             Ok(mut cache) => cache.set(info),
-            Err(e) => warn!("Hardware cache mutex poisoned (system write): {}", e),
+            Err(e) => warn!("Hardware cache mutex poisoned (system write): {e}"),
         }
     }
 
@@ -102,9 +103,9 @@ impl HardwareState {
         match self.gpu_cache.lock() {
             Ok(cache) => cache.get(),
             Err(e) => {
-                warn!("Hardware cache mutex poisoned (gpu): {}", e);
+                warn!("Hardware cache mutex poisoned (gpu): {e}");
                 None
-            }
+            },
         }
     }
 
@@ -112,7 +113,7 @@ impl HardwareState {
     pub fn cache_gpu(&self, info: Option<GpuInfo>) {
         match self.gpu_cache.lock() {
             Ok(mut cache) => cache.set(info),
-            Err(e) => warn!("Hardware cache mutex poisoned (gpu write): {}", e),
+            Err(e) => warn!("Hardware cache mutex poisoned (gpu write): {e}"),
         }
     }
 }

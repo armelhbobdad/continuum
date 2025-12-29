@@ -22,6 +22,8 @@ use tauri::State;
 /// - `cpu_cores`: Number of CPU cores
 /// - `storage_available_mb`: Total available storage across all disks in megabytes
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)] // Tauri State is designed to be passed by value
+#[allow(clippy::unnecessary_wraps)] // Tauri commands require Result return type
 pub fn get_system_info(state: State<'_, HardwareState>) -> Result<SystemInfo, String> {
     // Check cache first
     if let Some(cached) = state.get_cached_system() {
@@ -64,6 +66,8 @@ pub fn get_system_info(state: State<'_, HardwareState>) -> Result<SystemInfo, St
 /// - `Some(GpuInfo)`: GPU name, VRAM in MB, and compute capability
 /// - `None`: No GPU detected or nvidia-smi not available
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)] // Tauri State is designed to be passed by value
+#[allow(clippy::unnecessary_wraps)] // Tauri commands require Result return type
 pub fn get_gpu_info(state: State<'_, HardwareState>) -> Result<Option<GpuInfo>, String> {
     // Check cache first
     if let Some(cached) = state.get_cached_gpu() {
@@ -87,7 +91,10 @@ pub fn get_gpu_info(state: State<'_, HardwareState>) -> Result<Option<GpuInfo>, 
 /// - No NVIDIA GPU detected
 fn detect_nvidia_gpu() -> Option<GpuInfo> {
     let output = std::process::Command::new("nvidia-smi")
-        .args(["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
+        .args([
+            "--query-gpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ])
         .output()
         .ok()?;
 
@@ -106,7 +113,7 @@ fn detect_nvidia_gpu() -> Option<GpuInfo> {
     // e.g., "NVIDIA GeForce RTX 4090, 24576"
     let parts: Vec<&str> = line.split(',').collect();
     if parts.len() < 2 {
-        warn!("nvidia-smi output malformed: expected 'name,vram' but got: {}", line);
+        warn!("nvidia-smi output malformed: expected 'name,vram' but got: {line}");
         return None;
     }
 
@@ -114,9 +121,13 @@ fn detect_nvidia_gpu() -> Option<GpuInfo> {
     let vram_mb: u64 = match parts[1].trim().parse() {
         Ok(v) => v,
         Err(e) => {
-            warn!("nvidia-smi VRAM parse failed for '{}': {} - using 0", parts[1].trim(), e);
+            warn!(
+                "nvidia-smi VRAM parse failed for '{}': {} - using 0",
+                parts[1].trim(),
+                e
+            );
             0
-        }
+        },
     };
 
     Some(GpuInfo {
@@ -127,6 +138,7 @@ fn detect_nvidia_gpu() -> Option<GpuInfo> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
 
@@ -162,9 +174,9 @@ mod tests {
         let info = SystemInfo {
             ram_mb: 16384,
             cpu_cores: 8,
-            storage_available_mb: 512000,
+            storage_available_mb: 512_000,
         };
-        state.cache_system(info.clone());
+        state.cache_system(info);
 
         // Cache should now be populated
         let cached = state.get_cached_system();

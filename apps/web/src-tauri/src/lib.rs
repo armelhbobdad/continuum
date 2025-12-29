@@ -1,3 +1,18 @@
+//! Continuum Tauri Backend
+//!
+//! This crate provides the Rust backend for the Continuum desktop application,
+//! implementing local LLM inference, model management, and hardware detection.
+//!
+//! # Features
+//!
+//! - **Inference**: Local LLM generation using Kalosm (Story 1.4)
+//! - **Hardware Detection**: RAM, CPU, GPU, and storage detection (Story 2.1)
+//! - **Model Downloads**: Resumable downloads with pause/cancel (Story 2.3)
+//! - **Integrity Verification**: SHA-256 verification with quarantine (Story 2.5)
+
+// Application startup legitimately uses expect() for fatal initialization errors
+#![allow(clippy::expect_used)]
+
 mod downloads;
 mod hardware;
 mod inference;
@@ -6,9 +21,10 @@ mod verification;
 use downloads::DownloadState;
 use hardware::HardwareState;
 use inference::InferenceState;
-use verification::commands::VerificationState;
 use tauri::Manager;
+use verification::commands::VerificationState;
 
+/// Run the Tauri application
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

@@ -3,6 +3,12 @@
 //! Provides SHA-256 checksum computation and verification for downloaded models.
 //! Uses streaming approach for memory-efficient hashing of large files (2-10GB).
 
+// Large buffers are intentional for I/O performance on multi-GB model files
+#![allow(clippy::large_stack_arrays)]
+#![allow(clippy::large_stack_frames)]
+// Progress percentages don't need full f64 precision
+#![allow(clippy::cast_precision_loss)]
+
 pub mod commands;
 
 use sha2::{Digest, Sha256};
@@ -49,11 +55,11 @@ impl VerificationError {
         }
     }
 
-    pub fn from_io_error(error: io::Error, path: &Path) -> Self {
+    pub fn from_io_error(error: &io::Error, path: &Path) -> Self {
         match error.kind() {
             io::ErrorKind::NotFound => Self::file_not_found(path),
             io::ErrorKind::PermissionDenied => Self::permission_denied(path),
-            _ => Self::io_error(path, &error),
+            _ => Self::io_error(path, error),
         }
     }
 }
@@ -75,13 +81,13 @@ pub struct VerificationProgress {
 /// * `Ok(String)` - Lowercase hex-encoded SHA-256 hash
 /// * `Err(VerificationError)` - Error with clear message
 pub fn compute_checksum(path: &Path) -> Result<String, VerificationError> {
-    let mut file = File::open(path).map_err(|e| VerificationError::from_io_error(e, path))?;
+    let mut file = File::open(path).map_err(|e| VerificationError::from_io_error(&e, path))?;
 
     let mut hasher = Sha256::new();
-    io::copy(&mut file, &mut hasher).map_err(|e| VerificationError::from_io_error(e, path))?;
+    io::copy(&mut file, &mut hasher).map_err(|e| VerificationError::from_io_error(&e, path))?;
 
     let hash = hasher.finalize();
-    Ok(format!("{:x}", hash)) // lowercase hex
+    Ok(format!("{hash:x}")) // lowercase hex
 }
 
 /// Compute SHA-256 checksum with progress reporting for large files
@@ -97,10 +103,10 @@ pub fn compute_checksum_with_progress(
     path: &Path,
     progress_channel: Option<&Channel<VerificationProgress>>,
 ) -> Result<String, VerificationError> {
-    let file = File::open(path).map_err(|e| VerificationError::from_io_error(e, path))?;
+    let file = File::open(path).map_err(|e| VerificationError::from_io_error(&e, path))?;
     let total_bytes = file
         .metadata()
-        .map_err(|e| VerificationError::from_io_error(e, path))?
+        .map_err(|e| VerificationError::from_io_error(&e, path))?
         .len();
 
     let mut reader = io::BufReader::with_capacity(8 * 1024 * 1024, file); // 8MB buffer
@@ -115,7 +121,7 @@ pub fn compute_checksum_with_progress(
     loop {
         let bytes_read = reader
             .read(&mut buffer)
-            .map_err(|e| VerificationError::from_io_error(e, path))?;
+            .map_err(|e| VerificationError::from_io_error(&e, path))?;
 
         if bytes_read == 0 {
             break;
@@ -141,7 +147,7 @@ pub fn compute_checksum_with_progress(
     }
 
     let hash = hasher.finalize();
-    Ok(format!("{:x}", hash))
+    Ok(format!("{hash:x}"))
 }
 
 /// Verify file integrity against expected hash
@@ -158,7 +164,7 @@ pub fn verify_integrity(
     expected_hash: &str,
 ) -> Result<VerificationResult, VerificationError> {
     let file_size = std::fs::metadata(path)
-        .map_err(|e| VerificationError::from_io_error(e, path))?
+        .map_err(|e| VerificationError::from_io_error(&e, path))?
         .len();
 
     let computed_hash = compute_checksum(path)?;
@@ -180,7 +186,7 @@ pub fn verify_integrity_with_progress(
     progress_channel: Option<&Channel<VerificationProgress>>,
 ) -> Result<VerificationResult, VerificationError> {
     let file_size = std::fs::metadata(path)
-        .map_err(|e| VerificationError::from_io_error(e, path))?
+        .map_err(|e| VerificationError::from_io_error(&e, path))?
         .len();
 
     let computed_hash = compute_checksum_with_progress(path, progress_channel)?;

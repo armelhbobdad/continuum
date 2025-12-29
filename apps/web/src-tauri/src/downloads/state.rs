@@ -5,13 +5,15 @@
 //!
 //! Story 2.3: Model Download Manager
 
+#![allow(clippy::needless_pass_by_value)] // PathBuf is consumed via .join()
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Download status enum matching TypeScript DownloadStatus
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DownloadStatus {
     Queued,
@@ -100,12 +102,12 @@ impl DownloadState {
 
         // Ensure models directory exists
         if let Err(e) = std::fs::create_dir_all(&models_dir) {
-            log::warn!("Failed to create models directory: {}", e);
+            log::warn!("Failed to create models directory: {e}");
         }
 
         // Ensure quarantine directory exists (Story 2.5)
         if let Err(e) = std::fs::create_dir_all(&quarantine_dir) {
-            log::warn!("Failed to create quarantine directory: {}", e);
+            log::warn!("Failed to create quarantine directory: {e}");
         }
 
         // Configure client for large file downloads:
@@ -137,7 +139,7 @@ impl DownloadState {
     }
 
     /// Get the HTTP client
-    pub fn client(&self) -> &reqwest::Client {
+    pub const fn client(&self) -> &reqwest::Client {
         &self.client
     }
 
@@ -201,6 +203,7 @@ pub struct StorageCheckResult {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
 

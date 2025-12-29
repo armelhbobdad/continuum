@@ -62,11 +62,8 @@ impl InferenceError {
     pub fn model_not_found(model_id: &str) -> Self {
         Self {
             code: InferenceErrorCode::ModelNotFound,
-            message: format!(
-                "Model '{}' not found. Please download it first.",
-                model_id
-            ),
-            details: Some(format!("Model file not found for ID: {}", model_id)),
+            message: format!("Model '{model_id}' not found. Please download it first."),
+            details: Some(format!("Model file not found for ID: {model_id}")),
         }
     }
 
@@ -137,7 +134,7 @@ pub async fn load_model(
     // Verify model exists before loading (Task 1.6)
     if !model_path.exists() {
         state.set_status(ModelStatus::Error).await;
-        log::error!("Model file not found: {:?}", model_path);
+        log::error!("Model file not found: {}", model_path.display());
         return Err(InferenceError::model_not_found(&model_id));
     }
 
@@ -147,15 +144,14 @@ pub async fn load_model(
     // Verify tokenizer exists
     if !tokenizer_path.exists() {
         state.set_status(ModelStatus::Error).await;
-        log::error!("Tokenizer file not found: {:?}", tokenizer_path);
+        log::error!("Tokenizer file not found: {}", tokenizer_path.display());
         return Err(InferenceError::model_load_failed(&format!(
-            "Tokenizer not found for {}. Please re-download the model.",
-            model_id
+            "Tokenizer not found for {model_id}. Please re-download the model."
         )));
     }
 
-    log::info!("Loading model from: {:?}", model_path);
-    log::info!("Loading tokenizer from: {:?}", tokenizer_path);
+    log::info!("Loading model from: {}", model_path.display());
+    log::info!("Loading tokenizer from: {}", tokenizer_path.display());
 
     // Load model from local path using FileSource::Local
     // Both model and tokenizer are local files managed by the app
@@ -167,13 +163,13 @@ pub async fn load_model(
             let mut model_guard = state.model.write().await;
             *model_guard = Some(model);
             state.set_status(ModelStatus::Loaded).await;
-            log::info!("Model loaded successfully: {}", model_id);
+            log::info!("Model loaded successfully: {model_id}");
             Ok(())
-        }
+        },
         Err(e) => {
             state.set_status(ModelStatus::Error).await;
             let error_msg = e.to_string();
-            log::error!("Failed to load model {}: {}", model_id, error_msg);
+            log::error!("Failed to load model {model_id}: {error_msg}");
 
             // Check for OOM errors
             if error_msg.contains("memory") || error_msg.contains("OOM") {
@@ -181,7 +177,7 @@ pub async fn load_model(
             } else {
                 Err(InferenceError::model_load_failed(&error_msg))
             }
-        }
+        },
     }
 }
 
@@ -203,12 +199,9 @@ pub async fn generate(
 
     // Get model - need to hold the lock for the entire generation
     let model_guard = state.model.read().await;
-    let model = match model_guard.as_ref() {
-        Some(m) => m,
-        None => {
-            state.set_status(ModelStatus::Unloaded).await;
-            return Err(InferenceError::model_not_loaded());
-        }
+    let Some(model) = model_guard.as_ref() else {
+        state.set_status(ModelStatus::Unloaded).await;
+        return Err(InferenceError::model_not_loaded());
     };
 
     // Use .complete(prompt) which returns a stream
@@ -228,7 +221,7 @@ pub async fn generate(
         // Emit token to frontend via Tauri event
         let payload = TokenPayload { text: token };
         if let Err(e) = app.emit("inference:token", payload) {
-            log::error!("Failed to emit token: {}", e);
+            log::error!("Failed to emit token: {e}");
         }
     }
 
@@ -262,7 +255,7 @@ pub async fn get_model_status(
             // Status says loaded but model is gone - correct it
             state.set_status(ModelStatus::Unloaded).await;
             Ok(ModelStatus::Unloaded)
-        }
+        },
         _ => Ok(status),
     }
 }

@@ -1,5 +1,8 @@
 //! Tauri commands for model integrity verification (Story 2.5)
 
+// File sizes displayed in MB don't need full f64 precision
+#![allow(clippy::cast_precision_loss)]
+
 use super::{VerificationProgress, VerificationResult};
 use std::path::PathBuf;
 use tauri::ipc::Channel;
@@ -23,7 +26,7 @@ pub struct VerificationState {
 }
 
 impl VerificationState {
-    pub fn new(app_data_dir: PathBuf) -> Self {
+    pub const fn new(app_data_dir: PathBuf) -> Self {
         Self { app_data_dir }
     }
 
@@ -36,7 +39,6 @@ impl VerificationState {
     pub fn quarantine_dir(&self) -> PathBuf {
         self.app_data_dir.join("quarantine")
     }
-
 }
 
 /// Verify a downloaded model's integrity
@@ -87,7 +89,7 @@ pub async fn list_quarantined_files(
     let mut files = Vec::new();
 
     let entries = std::fs::read_dir(&quarantine_dir)
-        .map_err(|e| format!("Failed to read quarantine directory: {}", e))?;
+        .map_err(|e| format!("Failed to read quarantine directory: {e}"))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -101,9 +103,7 @@ pub async fn list_quarantined_files(
             // Try to parse the filename pattern
             if let Some((model_id, timestamp)) = parse_quarantine_filename(filename) {
                 let metadata = std::fs::metadata(&path).ok();
-                let file_size_mb = metadata
-                    .map(|m| m.len() as f64 / (1024.0 * 1024.0))
-                    .unwrap_or(0.0);
+                let file_size_mb = metadata.map_or(0.0, |m| m.len() as f64 / (1024.0 * 1024.0));
 
                 files.push(QuarantinedFile {
                     id: filename.to_string(),
@@ -131,7 +131,7 @@ pub async fn delete_quarantined_file(
 
     // Find the file matching the ID
     let entries = std::fs::read_dir(&quarantine_dir)
-        .map_err(|e| format!("Failed to read quarantine directory: {}", e))?;
+        .map_err(|e| format!("Failed to read quarantine directory: {e}"))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -142,12 +142,12 @@ pub async fn delete_quarantined_file(
 
         if filename == file_id {
             std::fs::remove_file(&path)
-                .map_err(|e| format!("Failed to delete quarantined file: {}", e))?;
+                .map_err(|e| format!("Failed to delete quarantined file: {e}"))?;
             return Ok(());
         }
     }
 
-    Err(format!("Quarantined file not found: {}", file_id))
+    Err(format!("Quarantined file not found: {file_id}"))
 }
 
 /// Parse quarantine filename: {model_id}_{timestamp}.gguf -> (model_id, timestamp)
