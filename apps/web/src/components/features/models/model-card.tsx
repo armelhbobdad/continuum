@@ -76,7 +76,9 @@ export function ModelCard({
   const hasVulnerabilities = model.vulnerabilities.length > 0;
   const downloadedModels = useModelStore((s) => s.downloadedModels);
   const verificationStatus = useModelStore((s) => s.verificationStatus);
+  const selectedModelId = useModelStore((s) => s.selectedModelId);
   const isDownloaded = downloadedModels.includes(model.id);
+  const isSelected = selectedModelId === model.id;
   const verification = verificationStatus[model.id];
 
   // Derive verification display status
@@ -225,14 +227,20 @@ export function ModelCard({
         />
       </div>
 
-      {/* Select Action */}
-      {onSelect && (
+      {/* Select Action - only show for downloaded models */}
+      {onSelect && isDownloaded && (
         <button
-          className="mt-2 w-full rounded bg-secondary px-4 py-2 font-medium text-secondary-foreground text-sm hover:bg-secondary/90"
+          className={cn(
+            "mt-2 w-full rounded px-4 py-2 font-medium text-sm",
+            isSelected
+              ? "cursor-default border border-primary bg-primary/10 text-primary"
+              : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+          )}
+          disabled={isSelected}
           onClick={() => onSelect(model.id)}
           type="button"
         >
-          Select Model
+          {isSelected ? "Selected" : "Select Model"}
         </button>
       )}
     </article>

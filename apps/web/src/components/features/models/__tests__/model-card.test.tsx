@@ -12,6 +12,32 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ModelCard } from "../model-card";
 
+// Default mock state
+const defaultMockState = {
+  downloadedModels: [] as string[],
+  verificationStatus: {},
+  selectedModelId: null as string | null,
+  pinnedVersions: {} as Record<string, string>,
+  isVersionPinned: () => false,
+};
+
+// Mock useModelStore to provide test state
+vi.mock("@/stores/models", () => ({
+  useModelStore: vi.fn((selector) => selector(defaultMockState)),
+}));
+
+// Import the mocked module for manipulation
+import { useModelStore } from "@/stores/models";
+
+const mockedUseModelStore = vi.mocked(useModelStore);
+
+// Helper to reset mock to default state
+const resetMock = () => {
+  mockedUseModelStore.mockImplementation((selector) =>
+    selector({ ...defaultMockState, downloadedModels: [] })
+  );
+};
+
 const mockModel: ModelMetadata = {
   id: "test-model",
   name: "Test Model",
@@ -269,7 +295,19 @@ describe("ModelCard", () => {
   });
 
   describe("Select Action", () => {
-    it("should render select button when onSelect provided", () => {
+    // Helper to mock store with model downloaded
+    const mockDownloadedState = () => {
+      mockedUseModelStore.mockImplementation((selector) => {
+        const state = {
+          ...defaultMockState,
+          downloadedModels: ["test-model"],
+        };
+        return selector(state);
+      });
+    };
+
+    it("should render select button when onSelect provided and model downloaded", () => {
+      mockDownloadedState();
       const mockOnSelect = vi.fn();
       render(
         <ModelCard
@@ -284,7 +322,27 @@ describe("ModelCard", () => {
       ).toBeInTheDocument();
     });
 
+    it("should not render select button when model not downloaded", () => {
+      // Reset mock to empty downloadedModels
+      mockedUseModelStore.mockImplementation((selector) =>
+        selector({ ...defaultMockState, downloadedModels: [] })
+      );
+      const mockOnSelect = vi.fn();
+      render(
+        <ModelCard
+          model={mockModel}
+          onSelect={mockOnSelect}
+          recommendation="recommended"
+        />
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Select Model" })
+      ).not.toBeInTheDocument();
+    });
+
     it("should not render select button when onSelect not provided", () => {
+      mockDownloadedState();
       render(<ModelCard model={mockModel} recommendation="recommended" />);
 
       expect(
@@ -293,6 +351,7 @@ describe("ModelCard", () => {
     });
 
     it("should call onSelect with model id when clicked", async () => {
+      mockDownloadedState();
       const mockOnSelect = vi.fn();
       render(
         <ModelCard

@@ -411,10 +411,10 @@ describe("ModelCatalog", () => {
         stopPolling: vi.fn(),
       });
 
-      // Mock store with selector support
+      // Mock store with selector support - model-a must be downloaded for Select button to show
       const storeState = {
         availableModels: mockModels,
-        downloadedModels: [],
+        downloadedModels: ["model-a"],
         selectedModelId: null,
         isLoading: false,
         error: null,

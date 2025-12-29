@@ -26,6 +26,7 @@ import { useModelStore } from "@/stores/models";
 import { useSessionStore } from "@/stores/session";
 import type { StreamingMetadata } from "@/types/inference";
 import { AbortButton } from "./abort-button";
+import { ChatModelSelector } from "./chat-model-selector";
 import { InferenceErrorDisplay } from "./inference-error";
 import { MessageInput } from "./message-input";
 import { MessageList } from "./message-list";
@@ -422,6 +423,14 @@ export function ChatPanel() {
       data-slot="chat-panel"
       data-testid="chat-panel"
     >
+      {/* Model selector header (Story 2.4 Task 9.5) */}
+      <div
+        className="flex items-center justify-between border-b px-4 py-2"
+        data-testid="chat-header"
+      >
+        <ChatModelSelector disabled={isInputDisabled} />
+      </div>
+
       {/* Message area with scroll */}
       <div className="flex-1 overflow-hidden" ref={scrollRef}>
         {messages.length === 0 ? (
