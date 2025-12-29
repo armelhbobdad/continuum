@@ -58,6 +58,7 @@ export default defineConfig({
             "**/stack-knowledge/**",
             "**/.turbo/**",
             "tests/privacy-gate/**",
+            "tests/e2e/**",
           ],
           environment: "jsdom",
           alias: {
