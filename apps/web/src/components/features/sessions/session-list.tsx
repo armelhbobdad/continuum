@@ -46,6 +46,12 @@ export interface SessionListProps {
   sessions?: FilteredSession[];
   /** Ref for scroll control (React 19 ref-as-prop pattern) */
   ref?: React.Ref<SessionListRef>;
+  /** Handler factory for delete action (Story 3.3) */
+  onDeleteSession?: (sessionId: string) => void;
+  /** Handler factory for JSON export action (Story 3.3) */
+  onExportJson?: (sessionId: string) => void;
+  /** Handler factory for Markdown export action (Story 3.3) */
+  onExportMarkdown?: (sessionId: string) => void;
 }
 
 /** Estimated height per session item in pixels */
@@ -63,6 +69,9 @@ const OVERSCAN = 5;
 export function SessionList({
   sessions: filteredSessions,
   ref,
+  onDeleteSession,
+  onExportJson,
+  onExportMarkdown,
 }: SessionListProps) {
   const storeSessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
@@ -235,6 +244,17 @@ export function SessionList({
               isActive={isActive}
               key={session.id}
               matchRanges={session.matchRanges}
+              onDelete={
+                onDeleteSession ? () => onDeleteSession(session.id) : undefined
+              }
+              onExportJson={
+                onExportJson ? () => onExportJson(session.id) : undefined
+              }
+              onExportMarkdown={
+                onExportMarkdown
+                  ? () => onExportMarkdown(session.id)
+                  : undefined
+              }
               onFocus={() => handleItemFocus(virtualRow.index)}
               onSelect={() => setActiveSession(session.id)}
               session={session}

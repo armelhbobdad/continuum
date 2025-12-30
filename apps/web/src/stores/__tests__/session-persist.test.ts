@@ -32,9 +32,17 @@ const localStorageMock = (() => {
 })();
 
 describe("Session Store - Persistence", () => {
+  let originalLocalStorage: Storage;
+
   beforeEach(() => {
-    // Setup localStorage mock
-    vi.stubGlobal("localStorage", localStorageMock);
+    // Store original localStorage
+    originalLocalStorage = globalThis.localStorage;
+    // Setup localStorage mock using Object.defineProperty for bun/vitest compatibility
+    Object.defineProperty(globalThis, "localStorage", {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
     localStorageMock.clear();
     vi.clearAllMocks();
 
@@ -49,7 +57,12 @@ describe("Session Store - Persistence", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    // Restore original localStorage
+    Object.defineProperty(globalThis, "localStorage", {
+      value: originalLocalStorage,
+      writable: true,
+      configurable: true,
+    });
   });
 
   describe("Storage Configuration (Task 1.1, 1.3, 1.4)", () => {
@@ -343,14 +356,25 @@ describe("Privacy Store - No Persistence", () => {
 });
 
 describe("Performance Constraints (NFR-STATE-3)", () => {
+  let originalLocalStorage: Storage;
+
   beforeEach(() => {
-    vi.stubGlobal("localStorage", localStorageMock);
+    originalLocalStorage = globalThis.localStorage;
+    Object.defineProperty(globalThis, "localStorage", {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
     localStorageMock.clear();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    Object.defineProperty(globalThis, "localStorage", {
+      value: originalLocalStorage,
+      writable: true,
+      configurable: true,
+    });
   });
 
   it("persistence completes within 50ms budget", async () => {
@@ -386,15 +410,216 @@ describe("Performance Constraints (NFR-STATE-3)", () => {
   });
 });
 
-describe("Version Migration (Task 1.6)", () => {
+describe("Session Deletion (Story 3.3 - Task 2)", () => {
+  let originalLocalStorage: Storage;
+
   beforeEach(() => {
-    vi.stubGlobal("localStorage", localStorageMock);
+    originalLocalStorage = globalThis.localStorage;
+    Object.defineProperty(globalThis, "localStorage", {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
+    localStorageMock.clear();
+    vi.clearAllMocks();
+
+    // Reset store to initial state with some test sessions
+    useSessionStore.setState({
+      sessions: [
+        {
+          id: "session-1",
+          title: "First Session",
+          messages: [],
+          createdAt: new Date("2025-12-30T10:00:00Z"),
+          updatedAt: new Date("2025-12-30T12:00:00Z"),
+        },
+        {
+          id: "session-2",
+          title: "Second Session",
+          messages: [],
+          createdAt: new Date("2025-12-30T09:00:00Z"),
+          updatedAt: new Date("2025-12-30T11:00:00Z"),
+        },
+        {
+          id: "session-3",
+          title: "Third Session",
+          messages: [],
+          createdAt: new Date("2025-12-30T08:00:00Z"),
+          updatedAt: new Date("2025-12-30T10:00:00Z"),
+        },
+      ],
+      activeSessionId: "session-1",
+      lastSavedAt: null,
+      isDirty: false,
+      wasRecovered: false,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, "localStorage", {
+      value: originalLocalStorage,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  describe("deleteSession (Task 2.1, 2.3, 2.4, 2.5)", () => {
+    it("removes session from sessions array", () => {
+      const { deleteSession } = useSessionStore.getState();
+
+      deleteSession("session-2");
+
+      const { sessions } = useSessionStore.getState();
+      expect(sessions).toHaveLength(2);
+      expect(sessions.find((s) => s.id === "session-2")).toBeUndefined();
+    });
+
+    it("returns the deleted session for undo cache", () => {
+      const { deleteSession } = useSessionStore.getState();
+
+      const deletedSession = deleteSession("session-2");
+
+      expect(deletedSession).toBeDefined();
+      expect(deletedSession?.id).toBe("session-2");
+      expect(deletedSession?.title).toBe("Second Session");
+    });
+
+    it("marks state as dirty", () => {
+      expect(useSessionStore.getState().isDirty).toBe(false);
+
+      useSessionStore.getState().deleteSession("session-2");
+
+      expect(useSessionStore.getState().isDirty).toBe(true);
+    });
+
+    it("sets activeSessionId to next session when active session deleted", () => {
+      // session-1 is active, session-2 is next
+      const { deleteSession } = useSessionStore.getState();
+
+      deleteSession("session-1");
+
+      const { activeSessionId } = useSessionStore.getState();
+      expect(activeSessionId).toBe("session-2");
+    });
+
+    it("sets activeSessionId to previous session if deleted session was last", () => {
+      useSessionStore.setState({ activeSessionId: "session-3" });
+
+      const { deleteSession } = useSessionStore.getState();
+      deleteSession("session-3");
+
+      const { activeSessionId } = useSessionStore.getState();
+      expect(activeSessionId).toBe("session-2");
+    });
+
+    it("sets activeSessionId to null when no sessions remain", () => {
+      // Start with only one session
+      useSessionStore.setState({
+        sessions: [
+          {
+            id: "only-session",
+            title: "Only Session",
+            messages: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        activeSessionId: "only-session",
+      });
+
+      const { deleteSession } = useSessionStore.getState();
+      deleteSession("only-session");
+
+      const { sessions, activeSessionId } = useSessionStore.getState();
+      expect(sessions).toHaveLength(0);
+      expect(activeSessionId).toBeNull();
+    });
+
+    it("does not change activeSessionId when non-active session deleted", () => {
+      // session-1 is active, delete session-2
+      const { deleteSession } = useSessionStore.getState();
+
+      deleteSession("session-2");
+
+      const { activeSessionId } = useSessionStore.getState();
+      expect(activeSessionId).toBe("session-1");
+    });
+
+    it("returns undefined for non-existent session", () => {
+      const { deleteSession } = useSessionStore.getState();
+
+      const result = deleteSession("non-existent-session");
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("restoreSession (Task 2.2)", () => {
+    it("adds session back to sessions array", () => {
+      const { deleteSession, restoreSession } = useSessionStore.getState();
+
+      const deletedSession = deleteSession("session-2");
+      expect(deletedSession).toBeDefined();
+      expect(useSessionStore.getState().sessions).toHaveLength(2);
+
+      if (deletedSession) {
+        restoreSession(deletedSession);
+      }
+
+      expect(useSessionStore.getState().sessions).toHaveLength(3);
+    });
+
+    it("marks state as dirty", () => {
+      const session = useSessionStore.getState().sessions[0];
+      useSessionStore.setState({
+        sessions: useSessionStore.getState().sessions.slice(1),
+        isDirty: false,
+      });
+
+      useSessionStore.getState().restoreSession(session);
+
+      expect(useSessionStore.getState().isDirty).toBe(true);
+    });
+
+    it("restores session in correct sorted order by updatedAt", () => {
+      const { deleteSession, restoreSession } = useSessionStore.getState();
+
+      // Delete and restore session-2
+      const deletedSession = deleteSession("session-2");
+      expect(deletedSession).toBeDefined();
+      if (deletedSession) {
+        restoreSession(deletedSession);
+      }
+
+      // Sessions should be sorted by updatedAt descending
+      const { sessions } = useSessionStore.getState();
+      expect(sessions[0].id).toBe("session-1"); // updatedAt: 12:00
+      expect(sessions[1].id).toBe("session-2"); // updatedAt: 11:00
+      expect(sessions[2].id).toBe("session-3"); // updatedAt: 10:00
+    });
+  });
+});
+
+describe("Version Migration (Task 1.6)", () => {
+  let originalLocalStorage: Storage;
+
+  beforeEach(() => {
+    originalLocalStorage = globalThis.localStorage;
+    Object.defineProperty(globalThis, "localStorage", {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
     localStorageMock.clear();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    Object.defineProperty(globalThis, "localStorage", {
+      value: originalLocalStorage,
+      writable: true,
+      configurable: true,
+    });
   });
 
   it("handles migration from version 0 to version 1", async () => {

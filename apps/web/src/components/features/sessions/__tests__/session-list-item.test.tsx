@@ -175,16 +175,11 @@ describe("SessionListItem Component", () => {
       );
     });
 
-    it("is a button element for keyboard accessibility", () => {
+    it("is a focusable div element with tabindex for keyboard accessibility", () => {
       render(<SessionListItem {...defaultProps} />);
       const item = screen.getByRole("option");
-      expect(item.tagName).toBe("BUTTON");
-    });
-
-    it("has type='button' to prevent form submission", () => {
-      render(<SessionListItem {...defaultProps} />);
-      const item = screen.getByRole("option");
-      expect(item).toHaveAttribute("type", "button");
+      expect(item.tagName).toBe("DIV");
+      expect(item).toHaveAttribute("tabindex", "0");
     });
   });
 
@@ -203,6 +198,45 @@ describe("SessionListItem Component", () => {
       const item = screen.getByRole("option");
       expect(item).toHaveStyle({ position: "absolute" });
       expect(item).toHaveStyle({ transform: "translateY(112px)" });
+    });
+  });
+
+  describe("Session Actions (Story 3.3)", () => {
+    it("renders actions menu when action handlers provided", () => {
+      render(
+        <SessionListItem
+          {...defaultProps}
+          onDelete={vi.fn()}
+          onExportJson={vi.fn()}
+          onExportMarkdown={vi.fn()}
+        />
+      );
+
+      expect(
+        screen.getByRole("button", { name: /actions for/i })
+      ).toBeInTheDocument();
+    });
+
+    it("does not render actions menu when no action handlers provided", () => {
+      render(<SessionListItem {...defaultProps} />);
+
+      expect(
+        screen.queryByRole("button", { name: /actions for/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("actions menu has group class parent for hover visibility", () => {
+      render(
+        <SessionListItem
+          {...defaultProps}
+          onDelete={vi.fn()}
+          onExportJson={vi.fn()}
+          onExportMarkdown={vi.fn()}
+        />
+      );
+
+      const item = screen.getByRole("option");
+      expect(item).toHaveClass("group");
     });
   });
 

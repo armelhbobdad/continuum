@@ -113,6 +113,10 @@ export interface SessionState {
   markDirty: () => void;
   /** Clear dirty flag - called after persist (Story 1.7) */
   clearDirty: () => void;
+  /** Delete a session by ID (Story 3.3 Task 2.1) */
+  deleteSession: (sessionId: string) => Session | undefined;
+  /** Restore a previously deleted session for undo (Story 3.3 Task 2.2) */
+  restoreSession: (session: Session) => void;
 }
 
 /**
@@ -270,6 +274,47 @@ export const useSessionStore = create<SessionState>()(
           isDirty: false,
           lastSavedAt: Date.now(),
         }),
+
+      // Story 3.3 Task 2.1: Delete a session by ID
+      deleteSession: (sessionId) => {
+        const state = get();
+        const session = state.sessions.find((s) => s.id === sessionId);
+
+        if (!session) {
+          return undefined;
+        }
+
+        // Task 2.4: Determine next active session if deleting active
+        const sessionIndex = state.sessions.findIndex(
+          (s) => s.id === sessionId
+        );
+        const nextSession =
+          state.sessions[sessionIndex + 1] ?? state.sessions[sessionIndex - 1];
+        const nextActiveId =
+          state.activeSessionId === sessionId
+            ? (nextSession?.id ?? null)
+            : state.activeSessionId;
+
+        // Task 2.3: Remove from sessions array and mark dirty
+        set({
+          sessions: state.sessions.filter((s) => s.id !== sessionId),
+          activeSessionId: nextActiveId,
+          isDirty: true,
+        });
+
+        // Task 2.5: Return deleted session for undo cache
+        return session;
+      },
+
+      // Story 3.3 Task 2.2: Restore a previously deleted session
+      restoreSession: (session) => {
+        set((state) => ({
+          sessions: [session, ...state.sessions].sort(
+            (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+          ),
+          isDirty: true,
+        }));
+      },
     }),
     {
       name: STORAGE_KEY,

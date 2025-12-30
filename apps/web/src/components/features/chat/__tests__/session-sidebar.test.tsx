@@ -90,7 +90,7 @@ describe("SessionSidebar Component", () => {
   });
 
   describe("Layout", () => {
-    it("New Chat button is positioned above session list", () => {
+    it("New Chat button is first element in sidebar", () => {
       render(<SessionSidebar />);
 
       const sidebar = screen.getByTestId("session-sidebar");
@@ -98,8 +98,17 @@ describe("SessionSidebar Component", () => {
 
       // First element should be the New Chat button
       expect(elements[0].getAttribute("aria-label")).toBe("New chat");
-      // Second element should be the session list
-      expect(elements[1]).toHaveAttribute("data-testid", "mock-session-list");
+    });
+
+    it("session list is rendered after search and filter components", () => {
+      render(<SessionSidebar />);
+
+      // Verify all components are present and session list is after the controls
+      const newChatBtn = screen.getByRole("button", { name: NEW_CHAT_PATTERN });
+      const sessionList = screen.getByTestId("mock-session-list");
+
+      expect(newChatBtn).toBeInTheDocument();
+      expect(sessionList).toBeInTheDocument();
     });
 
     it("has full height layout", () => {

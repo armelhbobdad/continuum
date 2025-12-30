@@ -3,11 +3,17 @@
  *
  * Story 3.1: Session History & Navigation
  * Story 3.2: Session Search & Filtering
+ * Story 3.3: Session Deletion & Export
  */
 
+// Story 3.3 exports
+export type { DeleteSessionDialogProps } from "./delete-session-dialog";
+export { DeleteSessionDialog } from "./delete-session-dialog";
 export type { HighlightTextProps } from "./highlight-text";
 // Story 3.2 exports
 export { HighlightText } from "./highlight-text";
+export type { SessionActionsProps } from "./session-actions";
+export { SessionActions } from "./session-actions";
 export type { SessionEmptyStateProps } from "./session-empty-state";
 export { SessionEmptyState } from "./session-empty-state";
 export type { SessionFiltersProps } from "./session-filters";

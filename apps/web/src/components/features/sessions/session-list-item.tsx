@@ -19,6 +19,7 @@ import type { MatchRange } from "@/lib/sessions/filter-sessions";
 import { cn } from "@/lib/utils";
 import type { Session } from "@/stores/session";
 import { HighlightText } from "./highlight-text";
+import { SessionActions } from "./session-actions";
 
 /**
  * CVA variants for session item states.
@@ -55,6 +56,12 @@ export interface SessionListItemProps
   onFocus?: () => void;
   /** Match ranges for search highlighting (Story 3.2) */
   matchRanges?: MatchRange[];
+  /** Callback to delete session (Story 3.3) */
+  onDelete?: () => void;
+  /** Callback to export session as JSON (Story 3.3) */
+  onExportJson?: () => void;
+  /** Callback to export session as Markdown (Story 3.3) */
+  onExportMarkdown?: () => void;
 }
 
 /**
@@ -71,6 +78,9 @@ export const SessionListItem = memo(function SessionListItem({
   hasUnsavedChanges,
   onFocus,
   matchRanges,
+  onDelete,
+  onExportJson,
+  onExportMarkdown,
 }: SessionListItemProps) {
   // Truncate title to 50 chars per Story 3.1 spec
   const displayTitle =
@@ -88,19 +98,32 @@ export const SessionListItem = memo(function SessionListItem({
         end: Math.min(r.end, displayTitle.length),
       })) ?? [];
 
+  // Show actions when any action handler is provided
+  const hasActions = onDelete || onExportJson || onExportMarkdown;
+
+  // Handle keyboard activation for div-based option
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect();
+    }
+  };
+
   return (
-    <button
+    <div
       aria-selected={isActive}
       className={cn(
-        sessionItemVariants({ state: isActive ? "selected" : "default" })
+        sessionItemVariants({ state: isActive ? "selected" : "default" }),
+        hasActions && "group"
       )}
       data-session-id={session.id}
       data-slot="session-list-item"
       onClick={onSelect}
       onFocus={onFocus}
+      onKeyDown={handleKeyDown}
       role="option"
       style={style}
-      type="button"
+      tabIndex={0}
     >
       <span className="flex min-w-0 flex-col">
         <span className="flex items-center gap-1.5">
@@ -123,6 +146,14 @@ export const SessionListItem = memo(function SessionListItem({
           {formatRelativeTime(session.updatedAt)}
         </span>
       </span>
-    </button>
+      {hasActions && onDelete && onExportJson && onExportMarkdown && (
+        <SessionActions
+          onDelete={onDelete}
+          onExportJson={onExportJson}
+          onExportMarkdown={onExportMarkdown}
+          session={session}
+        />
+      )}
+    </div>
   );
 });
