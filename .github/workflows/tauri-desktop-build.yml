@@ -80,7 +80,10 @@ jobs:
 
   build-macos:
     name: Build macOS
-    runs-on: macos-latest
+    # Using macos-13 (Intel x86_64) to avoid ring crate ARM64 Darwin compilation issues
+    # See: https://github.com/briansmith/ring/issues/1442
+    # TODO: Switch back to macos-latest when ring is fixed for ARM64
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
 
