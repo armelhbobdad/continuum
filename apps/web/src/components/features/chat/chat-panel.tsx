@@ -25,6 +25,7 @@ import { useHardwareStore } from "@/stores/hardware";
 import { useModelStore } from "@/stores/models";
 import { useSessionStore } from "@/stores/session";
 import type { StreamingMetadata } from "@/types/inference";
+import { ContextCriticalAlert, ContextHealthIndicator } from "../context";
 import { AbortButton } from "./abort-button";
 import { ChatModelSelector } from "./chat-model-selector";
 import { InferenceErrorDisplay } from "./inference-error";
@@ -433,7 +434,11 @@ export function ChatPanel() {
         data-testid="chat-header"
       >
         <ChatModelSelector disabled={isInputDisabled} />
+        <ContextHealthIndicator />
       </div>
+
+      {/* Context critical alert (Story 3.4 Task 6) */}
+      <ContextCriticalAlert />
 
       {/* Message area with scroll */}
       <div className="flex-1 overflow-hidden" ref={scrollRef}>
