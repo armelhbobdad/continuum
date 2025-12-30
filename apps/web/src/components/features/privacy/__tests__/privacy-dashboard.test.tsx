@@ -18,14 +18,16 @@ const CMD_SHIFT_P_PATTERN = /Cmd\+Shift\+P/;
 const CTRL_SHIFT_P_PATTERN = /Ctrl\+Shift\+P/;
 const CLOSE_DASHBOARD_PATTERN = /close privacy dashboard/i;
 
-// Mock navigator.platform for keyboard shortcut display
+// Mock navigator.userAgent for keyboard shortcut display
 const mockNavigator = {
-  platform: "MacIntel",
+  userAgent:
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
 };
 
 Object.defineProperty(window, "navigator", {
   value: mockNavigator,
   writable: true,
+  configurable: true,
 });
 
 describe("PrivacyDashboard Component", () => {
@@ -142,14 +144,16 @@ describe("PrivacyDashboard Component", () => {
     });
 
     it("shows keyboard shortcut for Mac", () => {
-      mockNavigator.platform = "MacIntel";
+      mockNavigator.userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
       render(<PrivacyDashboard />);
 
       expect(screen.getByText(CMD_SHIFT_P_PATTERN)).toBeInTheDocument();
     });
 
     it("shows keyboard shortcut for Windows/Linux", () => {
-      mockNavigator.platform = "Win32";
+      mockNavigator.userAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
       render(<PrivacyDashboard />);
 
       expect(screen.getByText(CTRL_SHIFT_P_PATTERN)).toBeInTheDocument();
