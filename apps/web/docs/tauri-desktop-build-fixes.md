@@ -105,14 +105,14 @@ if (!isTauri) {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:3001",
     "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "./scripts/build-desktop.sh"
+    "beforeBuildCommand": "node scripts/build-desktop.mjs"
   }
 }
 ```
 
 **Changes**:
 - `frontendDist`: Changed from `../.next` to `../dist` to match the static export output directory
-- `beforeBuildCommand`: Changed from `bun run build` to `./scripts/build-desktop.sh` to use the custom build script
+- `beforeBuildCommand`: Changed from `bun run build` to `node scripts/build-desktop.mjs` to use the custom build script
 
 ---
 
@@ -132,74 +132,55 @@ if (!isTauri) {
 
 ### Fix 4: Desktop Build Script with Route Exclusion
 
-**File**: `apps/web/scripts/build-desktop.sh`
+**File**: `apps/web/scripts/build-desktop.mjs`
 
-```bash
-#!/bin/bash
-# Build script for Tauri desktop - excludes server-only routes incompatible with static export
-# Desktop mode bypasses auth, so auth-related routes are also excluded
+```javascript
+#!/usr/bin/env node
 
-set -e
+/**
+ * Build script for Tauri desktop - excludes server-only routes incompatible with static export
+ * Desktop mode bypasses auth, so auth-related routes are also excluded
+ * Cross-platform: works on Linux, macOS, and Windows
+ */
 
-# Clean stale build artifacts that might reference excluded routes
-rm -rf dist .next
+import { spawn } from "node:child_process";
+import { existsSync, mkdirSync, renameSync, rmdirSync, rmSync } from "node:fs";
+import { basename, join } from "node:path";
 
-BACKUP_DIR=".desktop-build-backup"
-mkdir -p "$BACKUP_DIR"
+const BACKUP_DIR = ".desktop-build-backup";
 
-# Routes to exclude from static export (server-side auth, API routes)
-EXCLUDED_ROUTES=(
-  "src/app/api"
-  "src/app/dashboard"
-  "src/app/login"
-)
+// Routes to exclude from static export (server-side auth, API routes)
+const EXCLUDED_ROUTES = ["src/app/api", "src/app/dashboard", "src/app/login"];
 
-# Auth components only used by excluded routes
-EXCLUDED_COMPONENTS=(
-  "src/components/sign-in-form.tsx"
-  "src/components/sign-up-form.tsx"
-)
+// Auth components only used by excluded routes
+const EXCLUDED_COMPONENTS = [
+  "src/components/sign-in-form.tsx",
+  "src/components/sign-up-form.tsx",
+];
 
-# Move excluded routes out of the way
-for route in "${EXCLUDED_ROUTES[@]}"; do
-  if [ -d "$route" ]; then
-    mv "$route" "$BACKUP_DIR/$(basename $route)"
-    echo "Excluded: $route"
-  fi
-done
+// ... helper functions for backup/restore and build execution
 
-# Move excluded components out of the way
-for component in "${EXCLUDED_COMPONENTS[@]}"; do
-  if [ -f "$component" ]; then
-    mv "$component" "$BACKUP_DIR/$(basename $component)"
-    echo "Excluded: $component"
-  fi
-done
+async function main() {
+  cleanBuildArtifacts();
+  mkdirSync(BACKUP_DIR, { recursive: true });
 
-# Run the Next.js build
-bun run build
-BUILD_EXIT_CODE=$?
+  // Move excluded routes and components to backup
+  for (const route of EXCLUDED_ROUTES) moveToBackup(route, true);
+  for (const component of EXCLUDED_COMPONENTS) moveToBackup(component, false);
 
-# Restore excluded routes
-for route in "${EXCLUDED_ROUTES[@]}"; do
-  backup_name="$BACKUP_DIR/$(basename $route)"
-  if [ -d "$backup_name" ]; then
-    mv "$backup_name" "$route"
-  fi
-done
+  // Run the Next.js build
+  const exitCode = await runBuild();
 
-# Restore excluded components
-for component in "${EXCLUDED_COMPONENTS[@]}"; do
-  backup_name="$BACKUP_DIR/$(basename $component)"
-  if [ -f "$backup_name" ]; then
-    mv "$backup_name" "$component"
-  fi
-done
+  // Restore all files
+  for (const route of EXCLUDED_ROUTES) restoreFromBackup(route);
+  for (const component of EXCLUDED_COMPONENTS) restoreFromBackup(component);
 
-rmdir "$BACKUP_DIR" 2>/dev/null || true
-echo "Routes restored"
+  try { rmdirSync(BACKUP_DIR); } catch { /* ignore */ }
+  console.log("Routes restored");
+  process.exit(exitCode);
+}
 
-exit $BUILD_EXIT_CODE
+main();
 ```
 
 **How it works**:
@@ -448,7 +429,7 @@ export class ErrorBoundary extends Component<Props, State> {
 | `apps/web/next.config.ts` | Conditional static export for Tauri |
 | `apps/web/src-tauri/tauri.conf.json` | Updated frontendDist and beforeBuildCommand |
 | `apps/web/tsconfig.json` | Exclude src-tauri directory |
-| `apps/web/scripts/build-desktop.sh` | New build script with route exclusion |
+| `apps/web/scripts/build-desktop.mjs` | Cross-platform build script with route exclusion |
 | `apps/web/src/lib/auth-client.ts` | Tauri-aware stub auth client |
 | `packages/platform/src/use-is-desktop.ts` | New React hook for safe detection |
 | `packages/platform/src/index.ts` | Export useIsDesktop hook |
