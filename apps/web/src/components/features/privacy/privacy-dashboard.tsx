@@ -35,14 +35,6 @@ export interface PrivacyDashboardProps {
 const VERIFY_DOCS_URL = "https://docs.continuum.ai/verify-privacy";
 
 /**
- * Detect if user is on macOS
- * Uses userAgent string (navigator.platform is deprecated)
- */
-function detectMac(): boolean {
-  return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
-}
-
-/**
  * Hook to detect modifier key (Cmd on Mac, Ctrl elsewhere)
  * Uses useEffect to ensure navigator is only accessed on client
  */
@@ -50,7 +42,10 @@ function useModifierKey(): string {
   const [modifierKey, setModifierKey] = useState("Ctrl");
 
   useEffect(() => {
-    setModifierKey(detectMac() ? "Cmd" : "Ctrl");
+    // Check userAgent inside useEffect to avoid SSR issues
+    // navigator.platform is deprecated, using userAgent instead
+    const isMac = /Mac|iPhone|iPad|iPod/.test(window.navigator.userAgent);
+    setModifierKey(isMac ? "Cmd" : "Ctrl");
   }, []);
 
   return modifierKey;
