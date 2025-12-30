@@ -10,15 +10,43 @@
  * Story 3.1: Session History & Navigation
  * AC #1 (session list display), AC #2 (performance), AC #3 (selection), AC #4 (virtual scrolling)
  *
+ * Story 3.2: Session Search & Filtering
+ * Accepts filtered sessions with match ranges for search highlighting.
+ *
  * NOTE: This component uses manual useMemo/useCallback despite React Compiler being enabled.
  * This is an intentional exception per project-context.md guidance for virtualized lists
  * handling 1000+ items where explicit memoization control is critical for 60fps scrolling.
  */
 
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { FilteredSession } from "@/lib/sessions/filter-sessions";
 import { useSessionStore } from "@/stores/session";
 import { SessionListItem } from "./session-list-item";
+
+/**
+ * Ref interface for SessionList scroll control.
+ * Used by SessionSidebar for scroll position restoration (Story 3.2 AC #5).
+ */
+export interface SessionListRef {
+  /** Get current scroll position */
+  getScrollPosition: () => number;
+  /** Scroll to a specific position */
+  scrollTo: (position: number) => void;
+}
+
+export interface SessionListProps {
+  /** Filtered sessions to display (optional - falls back to store if not provided) */
+  sessions?: FilteredSession[];
+  /** Ref for scroll control (React 19 ref-as-prop pattern) */
+  ref?: React.Ref<SessionListRef>;
+}
 
 /** Estimated height per session item in pixels */
 const ITEM_HEIGHT = 56;
@@ -32,8 +60,11 @@ const OVERSCAN = 5;
  * Per NFR8: Loads 100 sessions within 1 second.
  * Per NFR61: Supports 1000+ sessions with smooth scrolling.
  */
-export function SessionList() {
-  const sessions = useSessionStore((state) => state.sessions);
+export function SessionList({
+  sessions: filteredSessions,
+  ref,
+}: SessionListProps) {
+  const storeSessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
   const setActiveSession = useSessionStore((state) => state.setActiveSession);
   const isDirty = useSessionStore((state) => state.isDirty);
@@ -41,17 +72,29 @@ export function SessionList() {
   const parentRef = useRef<HTMLDivElement>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
-  // Sort sessions by updatedAt descending (most recent first)
-  // Per Story 3.1 AC #1: ordered by last modified
-  const sortedSessions = useMemo(
-    () =>
-      [...sessions].sort((a, b) => {
-        const aTime = a.updatedAt.getTime();
-        const bTime = b.updatedAt.getTime();
-        return bTime - aTime;
-      }),
-    [sessions]
-  );
+  // Expose scroll control methods via ref (Story 3.2 AC #5)
+  useImperativeHandle(ref, () => ({
+    getScrollPosition: () => parentRef.current?.scrollTop ?? 0,
+    scrollTo: (position: number) => {
+      parentRef.current?.scrollTo({ top: position });
+    },
+  }));
+
+  // Use provided sessions or fall back to store sessions
+  // When filtered sessions provided, they're already sorted
+  // Type as FilteredSession[] since matchRanges is optional on that type
+  const sortedSessions = useMemo((): FilteredSession[] => {
+    if (filteredSessions) {
+      return filteredSessions;
+    }
+    // Sort store sessions by updatedAt descending (most recent first)
+    // Per Story 3.1 AC #1: ordered by last modified
+    return [...storeSessions].sort((a, b) => {
+      const aTime = a.updatedAt.getTime();
+      const bTime = b.updatedAt.getTime();
+      return bTime - aTime;
+    });
+  }, [filteredSessions, storeSessions]);
 
   const virtualizer = useVirtualizer({
     count: sortedSessions.length,
@@ -191,6 +234,7 @@ export function SessionList() {
               hasUnsavedChanges={hasUnsavedChanges}
               isActive={isActive}
               key={session.id}
+              matchRanges={session.matchRanges}
               onFocus={() => handleItemFocus(virtualRow.index)}
               onSelect={() => setActiveSession(session.id)}
               session={session}

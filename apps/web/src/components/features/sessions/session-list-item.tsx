@@ -5,16 +5,20 @@
  *
  * Individual session item with CVA variants for virtualized list.
  * Displays session title, relative timestamp, and unsaved indicator.
+ * Supports search result highlighting via matchRanges prop.
  *
  * Story 3.1: Session History & Navigation
+ * Story 3.2: Session Search & Filtering (highlight support)
  * AC #1 (session display), AC #3 (session selection)
  */
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { memo } from "react";
 import { formatRelativeTime } from "@/lib/format-relative-time";
+import type { MatchRange } from "@/lib/sessions/filter-sessions";
 import { cn } from "@/lib/utils";
 import type { Session } from "@/stores/session";
+import { HighlightText } from "./highlight-text";
 
 /**
  * CVA variants for session item states.
@@ -49,6 +53,8 @@ export interface SessionListItemProps
   hasUnsavedChanges?: boolean;
   /** Callback when item receives focus (for keyboard navigation) */
   onFocus?: () => void;
+  /** Match ranges for search highlighting (Story 3.2) */
+  matchRanges?: MatchRange[];
 }
 
 /**
@@ -64,7 +70,24 @@ export const SessionListItem = memo(function SessionListItem({
   style,
   hasUnsavedChanges,
   onFocus,
+  matchRanges,
 }: SessionListItemProps) {
+  // Truncate title to 50 chars per Story 3.1 spec
+  const displayTitle =
+    session.title.length > 50
+      ? `${session.title.slice(0, 50)}...`
+      : session.title;
+
+  // Adjust match ranges for truncated title
+  // Filter ranges that start within visible text and clamp end to displayTitle length
+  const adjustedRanges =
+    matchRanges
+      ?.filter((r) => r.start < displayTitle.length)
+      .map((r) => ({
+        start: r.start,
+        end: Math.min(r.end, displayTitle.length),
+      })) ?? [];
+
   return (
     <button
       aria-selected={isActive}
@@ -82,9 +105,11 @@ export const SessionListItem = memo(function SessionListItem({
       <span className="flex min-w-0 flex-col">
         <span className="flex items-center gap-1.5">
           <span className="truncate" title={session.title}>
-            {session.title.length > 50
-              ? `${session.title.slice(0, 50)}...`
-              : session.title}
+            {adjustedRanges.length > 0 ? (
+              <HighlightText ranges={adjustedRanges} text={displayTitle} />
+            ) : (
+              displayTitle
+            )}
           </span>
           {Boolean(hasUnsavedChanges) && (
             <span
