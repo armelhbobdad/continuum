@@ -41,7 +41,7 @@ export interface NetworkLogEntry {
  */
 const MAX_LOG_ENTRIES = 1000;
 
-type PrivacyState = {
+interface PrivacyState {
   /** Current privacy mode */
   mode: PrivacyMode;
   /** Key for JazzProvider remount on mode change */
@@ -62,7 +62,7 @@ type PrivacyState = {
   openDashboard: () => void;
   /** Close dashboard */
   closeDashboard: () => void;
-};
+}
 
 /**
  * Generate a unique jazzKey for the given mode.

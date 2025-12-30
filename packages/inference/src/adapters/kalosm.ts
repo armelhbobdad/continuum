@@ -24,9 +24,6 @@ interface TokenPayload {
   text: string;
 }
 
-/** Default model to use */
-const DEFAULT_MODEL_NAME = "phi-3";
-
 /** Polling interval for token yield */
 const TOKEN_POLL_INTERVAL_MS = 10;
 
@@ -90,7 +87,7 @@ export class KalosmAdapter implements InferenceAdapter {
           const token = tokens[currentIndex];
           if (token) {
             yield token;
-            currentIndex++;
+            currentIndex += 1;
           }
         } else if (!isComplete) {
           // Wait for more tokens
@@ -130,11 +127,31 @@ export class KalosmAdapter implements InferenceAdapter {
   /**
    * Load model if not already loaded.
    * AC3: Model loads within 10 seconds
+   *
+   * Story 2.4: Updated to accept modelId for loading downloaded models.
+   * Uses FileSource::Local on Rust side to load from app_data_dir/models/{modelId}.gguf
+   * Tokenizer is loaded from app_data_dir/models/{modelId}.tokenizer.json
+   *
+   * @param modelId - The model identifier (e.g., "phi-3-mini")
+   * @throws Error if modelId not provided
    */
-  async loadModel(): Promise<void> {
+  async loadModel(modelId?: string): Promise<void> {
+    if (!modelId) {
+      throw new Error("Model ID required. Use auto-select or specify a model.");
+    }
+
     this.status = "loading";
-    await invoke("load_model", { modelName: DEFAULT_MODEL_NAME });
+    await invoke("load_model", { modelId });
     this.status = "loaded";
+  }
+
+  /**
+   * Unload current model to free GPU/RAM.
+   * ADR-MODEL-002: Always unload before switching models.
+   */
+  async unloadModel(): Promise<void> {
+    await invoke("unload_model");
+    this.status = "unloaded";
   }
 
   /**

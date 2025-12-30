@@ -27,6 +27,7 @@ log = "0.4"
 tauri = { version = "2.9.5", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-mcp-bridge = "0.6"
+tauri-plugin-notification = "2"
 
 # Inference dependencies
 kalosm = { version = "0.4", features = ["language"] }
@@ -34,3 +35,53 @@ tokio = { version = "1", features = ["full", "sync"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 futures-util = "0.3"
+
+# Hardware detection (Story 2.1)
+sysinfo = "0.37.2"
+
+# Download manager (Story 2.3)
+# Using native-tls to avoid ring crate ARM64 Darwin compilation issues
+reqwest = { version = "0.12", default-features = false, features = ["stream", "native-tls"] }
+uuid = { version = "1.11", features = ["v4"] }
+
+# Integrity verification (Story 2.5)
+sha2 = "0.10"
+chrono = "0.4"
+
+[dev-dependencies]
+tempfile = "3"
+
+# Clippy lints configuration
+# https://doc.rust-lang.org/clippy/
+[lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
+
+[lints.clippy]
+# Correctness (errors) - priority -1 to allow individual overrides
+all = { level = "deny", priority = -1 }
+
+# Style & pedantic (warnings upgraded to errors for strict mode)
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Specific lints we want as errors
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+
+# Relaxed pedantic lints (too noisy or stylistic preference)
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+too_many_lines = "allow"
+cognitive_complexity = "allow"
+significant_drop_tightening = "allow"

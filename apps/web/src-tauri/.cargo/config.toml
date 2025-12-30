@@ -1,0 +1,34 @@
+# Cargo configuration for Continuum Tauri backend
+
+[alias]
+# Linting aliases
+lint = "clippy --all-targets --all-features -- -D warnings"
+lint-pedantic = "clippy --all-targets --all-features -- -D warnings -W clippy::pedantic -W clippy::nursery"
+fmt-check = "fmt --all -- --check"
+
+# Combined check (format + lint)
+check-all = ["fmt-check", "lint"]
+
+[build]
+# Incremental compilation for faster dev builds
+incremental = true
+
+# Use lld linker if available (faster linking)
+# Uncomment if lld is installed:
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[target.x86_64-unknown-linux-gnu]
+# Linux-specific settings
+rustflags = ["-C", "target-cpu=native"]
+
+[target.x86_64-apple-darwin]
+# macOS Intel settings
+rustflags = ["-C", "target-cpu=native"]
+
+[target.aarch64-apple-darwin]
+# macOS Apple Silicon settings
+rustflags = ["-C", "target-cpu=native"]
+
+[target.x86_64-pc-windows-msvc]
+# Windows settings
+rustflags = ["-C", "target-cpu=native"]

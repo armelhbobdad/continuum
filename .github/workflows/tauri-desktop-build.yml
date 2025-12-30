@@ -18,7 +18,7 @@ on:
       build_cuda:
         description: "Build with CUDA support (requires self-hosted runner with GPU)"
         required: false
-        default: "false"
+        default: false
         type: boolean
 
 env:
@@ -80,7 +80,14 @@ jobs:
 
   build-macos:
     name: Build macOS
-    runs-on: macos-latest
+    # Using macos-15 with x86_64 arch to avoid ring crate ARM64 Darwin compilation issues
+    # macos-13 is retired, macos-14/15 default to ARM64 which breaks ring 0.17.14
+    # See: https://github.com/briansmith/ring/issues/1442
+    # TODO: Switch to ARM64 when ring is fixed (macos-15-intel available until Aug 2027)
+    runs-on: macos-15
+    env:
+      # Force x86_64 architecture for Intel build
+      CARGO_BUILD_TARGET: x86_64-apple-darwin
     steps:
       - uses: actions/checkout@v4
 
@@ -93,6 +100,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
+          targets: x86_64-apple-darwin
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -107,17 +115,17 @@ jobs:
 
       - name: Build Tauri app
         working-directory: apps/web
-        run: cargo tauri build
+        run: cargo tauri build --target x86_64-apple-darwin
         env:
           TAURI_ENV_PLATFORM: darwin
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: continuum-macos
+          name: continuum-macos-x86_64
           path: |
-            apps/web/src-tauri/target/release/bundle/macos/*.app
-            apps/web/src-tauri/target/release/bundle/dmg/*.dmg
+            apps/web/src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+            apps/web/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
           retention-days: 7
 
   build-windows:

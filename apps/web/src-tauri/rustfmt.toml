@@ -1,0 +1,28 @@
+# Rustfmt configuration for Continuum Tauri backend
+# Uses only stable options (Rust 1.92+)
+# https://rust-lang.github.io/rustfmt/
+
+edition = "2021"
+
+# Line width (match typical editor width)
+max_width = 100
+
+# Use spaces, not tabs
+hard_tabs = false
+tab_spaces = 4
+
+# Import organization (stable options)
+reorder_imports = true
+reorder_modules = true
+
+# Formatting preferences (stable)
+use_small_heuristics = "Default"
+
+# Match arms
+match_block_trailing_comma = true
+
+# Use field init shorthand: `Foo { x }` instead of `Foo { x: x }`
+use_field_init_shorthand = true
+
+# Newlines
+newline_style = "Auto"

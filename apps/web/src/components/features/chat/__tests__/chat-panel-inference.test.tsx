@@ -3,6 +3,7 @@
  *
  * Tests for inference functionality in the chat panel.
  * Story 1.4: AC #2-#6 (streaming, abort, loading, errors)
+ * Story 2.4: Updated to work with model selection integration
  */
 
 import type {
@@ -29,6 +30,41 @@ vi.mock("@/lib/inference/get-adapter", () => ({
   getInferenceAdapterAsync: vi.fn(),
 }));
 
+// Mock the model switch hook to avoid Tauri calls
+vi.mock("@/hooks/use-model-switch", () => ({
+  useModelSwitch: () => ({
+    isSwitching: false,
+    switchingTo: null,
+    switchProgress: null,
+    error: null,
+    switchModel: vi.fn(),
+    clearError: vi.fn(),
+  }),
+}));
+
+// Mock getModelMetadata to return test model info
+vi.mock("@continuum/inference", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@continuum/inference")>();
+  return {
+    ...actual,
+    getModelMetadata: vi.fn().mockReturnValue({
+      id: "test-model",
+      name: "Test Model",
+      version: "1.0",
+      description: "Test",
+      requirements: { ramMb: 4096, gpuVramMb: 0, storageMb: 2000 },
+      capabilities: ["general-chat"],
+      limitations: [],
+      contextLength: 4096,
+      license: { name: "MIT", url: "", commercial: true },
+      vulnerabilities: [],
+      downloadUrl: "",
+      sha256: "",
+      tokenizerUrl: "https://example.com/tokenizer.json",
+    }),
+  };
+});
+
 import { getInferenceAdapterAsync } from "@/lib/inference/get-adapter";
 
 // Helper to create mock adapter
@@ -51,14 +87,29 @@ function createMockAdapter(
   };
 }
 
-// Helper to create async generator from tokens
-async function* tokenGenerator(
-  tokens: string[]
-): AsyncIterable<{ text: string }> {
+// Helper to create generator from tokens
+function* tokenGenerator(tokens: string[]): Generator<{ text: string }> {
   for (const text of tokens) {
     yield { text };
   }
 }
+
+// Helper to create a throwing async iterable for error tests
+function throwingGenerator(error: Error): AsyncIterable<{ text: string }> {
+  return {
+    [Symbol.asyncIterator]() {
+      return {
+        next() {
+          return Promise.reject(error);
+        },
+      };
+    },
+  };
+}
+
+// Import stores to set up model selection (Story 2.4)
+import { useHardwareStore } from "@/stores/hardware";
+import { useModelStore } from "@/stores/models";
 
 describe("ChatPanel Inference Integration", () => {
   let mockAdapter: InferenceAdapter;
@@ -68,6 +119,47 @@ describe("ChatPanel Inference Integration", () => {
     useSessionStore.setState({
       sessions: [],
       activeSessionId: null,
+    });
+
+    // Story 2.4: Set up model store with a selected model for tests
+    useModelStore.setState({
+      availableModels: [
+        {
+          id: "test-model",
+          name: "Test Model",
+          version: "1.0",
+          description: "Test",
+          requirements: { ramMb: 4096, gpuVramMb: 0, storageMb: 2000 },
+          capabilities: ["general-chat"],
+          limitations: [],
+          contextLength: 4096,
+          license: { name: "MIT", url: "", commercial: true },
+          vulnerabilities: [],
+          downloadUrl: "",
+          sha256: "",
+          tokenizerUrl: "https://example.com/tokenizer.json",
+        },
+      ],
+      downloadedModels: ["test-model"],
+      selectedModelId: "test-model",
+      switchingTo: null,
+      switchProgress: null,
+      isLoading: false,
+      error: null,
+    });
+
+    // Set up hardware store with capabilities
+    useHardwareStore.setState({
+      capabilities: {
+        ram: 16_384,
+        cpuCores: 8,
+        storageAvailable: 100_000,
+        gpu: null,
+        detectedBy: "desktop",
+        detectedAt: new Date(),
+      },
+      isLoading: false,
+      error: null,
     });
 
     // Reset mocks
@@ -113,7 +205,7 @@ describe("ChatPanel Inference Integration", () => {
 
     it("shows generating status during streaming", async () => {
       // Create a slower generator to capture the state
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -140,13 +232,13 @@ describe("ChatPanel Inference Integration", () => {
       });
 
       // Resolve and finish
-      resolveGeneration!();
+      resolveGeneration?.();
     });
   });
 
   describe("Cold Model Loading (AC #3)", () => {
     it("shows loading indicator when model not loaded", async () => {
-      let resolveLoad: () => void;
+      let resolveLoad!: () => void;
       const loadPromise = new Promise<void>((resolve) => {
         resolveLoad = resolve;
       });
@@ -171,8 +263,8 @@ describe("ChatPanel Inference Integration", () => {
       });
 
       // Resolve load
-      await act(async () => {
-        resolveLoad!();
+      await act(() => {
+        resolveLoad?.();
       });
 
       // Should no longer show loading
@@ -212,7 +304,7 @@ describe("ChatPanel Inference Integration", () => {
 
   describe("Abort Functionality (AC #4)", () => {
     it("shows abort button during generation", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -236,11 +328,11 @@ describe("ChatPanel Inference Integration", () => {
         expect(screen.getByTestId("abort-button")).toBeInTheDocument();
       });
 
-      resolveGeneration!();
+      resolveGeneration?.();
     });
 
     it("calls adapter abort when button clicked", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -268,11 +360,11 @@ describe("ChatPanel Inference Integration", () => {
       await user.click(screen.getByTestId("abort-button"));
 
       expect(mockAdapter.abort).toHaveBeenCalled();
-      resolveGeneration!();
+      resolveGeneration?.();
     });
 
     it("preserves partial response on abort", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -300,7 +392,7 @@ describe("ChatPanel Inference Integration", () => {
 
       // Click abort
       await user.click(screen.getByTestId("abort-button"));
-      resolveGeneration!();
+      resolveGeneration?.();
 
       // Partial content should be preserved
       await waitFor(() => {
@@ -317,9 +409,11 @@ describe("ChatPanel Inference Integration", () => {
   describe("Error Handling (AC #6)", () => {
     it("shows error message on inference failure", async () => {
       mockAdapter = createMockAdapter({
-        generate: vi.fn().mockImplementation(async function* () {
-          throw new Error("Test inference error");
-        }),
+        generate: vi
+          .fn()
+          .mockReturnValue(
+            throwingGenerator(new Error("Test inference error"))
+          ),
       });
       (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
@@ -337,9 +431,9 @@ describe("ChatPanel Inference Integration", () => {
 
     it("shows retry button for recoverable errors", async () => {
       mockAdapter = createMockAdapter({
-        generate: vi.fn().mockImplementation(async function* () {
-          throw new Error("Recoverable error");
-        }),
+        generate: vi
+          .fn()
+          .mockReturnValue(throwingGenerator(new Error("Recoverable error"))),
       });
       (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
@@ -357,9 +451,9 @@ describe("ChatPanel Inference Integration", () => {
 
     it("allows dismissing error", async () => {
       mockAdapter = createMockAdapter({
-        generate: vi.fn().mockImplementation(async function* () {
-          throw new Error("Error");
-        }),
+        generate: vi
+          .fn()
+          .mockReturnValue(throwingGenerator(new Error("Error"))),
       });
       (getInferenceAdapterAsync as Mock).mockResolvedValue(mockAdapter);
 
@@ -384,7 +478,7 @@ describe("ChatPanel Inference Integration", () => {
 
   describe("Input Disabled State", () => {
     it("disables input while generating", async () => {
-      let resolveGeneration: () => void;
+      let resolveGeneration!: () => void;
       const generationPromise = new Promise<void>((resolve) => {
         resolveGeneration = resolve;
       });
@@ -408,11 +502,11 @@ describe("ChatPanel Inference Integration", () => {
         expect(screen.getByRole("textbox")).toBeDisabled();
       });
 
-      resolveGeneration!();
+      resolveGeneration?.();
     });
 
     it("disables input while loading model", async () => {
-      let resolveLoad: () => void;
+      let resolveLoad!: () => void;
       const loadPromise = new Promise<void>((resolve) => {
         resolveLoad = resolve;
       });
@@ -435,8 +529,8 @@ describe("ChatPanel Inference Integration", () => {
         expect(screen.getByRole("textbox")).toBeDisabled();
       });
 
-      await act(async () => {
-        resolveLoad!();
+      await act(() => {
+        resolveLoad?.();
       });
     });
   });

@@ -2,10 +2,14 @@
 //!
 //! Implements Tauri commands that expose Kalosm inference to the frontend.
 //! Reference: stack-knowledge/kalosm/language-model/docs/completion.md
+//!
+//! Story 2.4: Updated to load models from local downloads directory
+//! using FileSource::Local instead of hardcoded Llama::phi_3().
 
 use super::state::{InferenceState, ModelStatus};
+use crate::downloads::DownloadState;
 use futures_util::StreamExt;
-use kalosm::language::{Llama, TextCompletionModelExt};
+use kalosm::language::{FileSource, Llama, LlamaSource, TextCompletionModelExt};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
@@ -55,6 +59,14 @@ impl InferenceError {
         }
     }
 
+    pub fn model_not_found(model_id: &str) -> Self {
+        Self {
+            code: InferenceErrorCode::ModelNotFound,
+            message: format!("Model '{model_id}' not found. Please download it first."),
+            details: Some(format!("Model file not found for ID: {model_id}")),
+        }
+    }
+
     pub fn oom_error(details: &str) -> Self {
         Self {
             code: InferenceErrorCode::OomError,
@@ -82,36 +94,82 @@ impl InferenceError {
     }
 }
 
-/// Load model - use Llama::new_chat() for chat-optimized model
+/// Load model from local downloads directory
+/// Story 2.4: Updated to load downloaded models using FileSource::Local
 /// AC3: Model loads within 10 seconds
 ///
-/// Reference: stack-knowledge/kalosm/kalosm/docs/language.md
+/// # Arguments
+/// * `model_id` - The model identifier (e.g., "phi-3-mini")
+///
+/// File structure:
+/// ```
+/// models/{model_id}/
+///   model.gguf       <- main model weights
+///   tokenizer.json   <- tokenizer for the model
+/// ```
+/// Both files are downloaded together by the download manager (Story 2.3).
 #[tauri::command]
 pub async fn load_model(
     state: State<'_, Arc<InferenceState>>,
-    _model_name: String,
+    download_state: State<'_, DownloadState>,
+    model_id: String,
 ) -> Result<(), InferenceError> {
-    // Check if already loaded
-    if state.is_loaded().await {
-        return Ok(());
+    // Unload any existing model first (ADR-MODEL-002)
+    {
+        let mut model_guard = state.model.write().await;
+        if model_guard.is_some() {
+            *model_guard = None;
+            log::info!("Unloaded previous model before loading new one");
+        }
     }
 
     state.set_status(ModelStatus::Loading).await;
 
-    // Use Phi-3 for smaller, faster model (~2GB vs ~6GB for Llama 3)
-    // Reference: stack-knowledge/kalosm/kalosm/examples/phi-3.rs
-    match Llama::phi_3().await {
+    // Resolve model directory path
+    let model_dir = download_state.models_dir().join(&model_id);
+
+    // Resolve model file path (Task 1.3)
+    let model_path = model_dir.join("model.gguf");
+
+    // Verify model exists before loading (Task 1.6)
+    if !model_path.exists() {
+        state.set_status(ModelStatus::Error).await;
+        log::error!("Model file not found: {}", model_path.display());
+        return Err(InferenceError::model_not_found(&model_id));
+    }
+
+    // Resolve tokenizer path (downloaded alongside model by Story 2.3)
+    let tokenizer_path = model_dir.join("tokenizer.json");
+
+    // Verify tokenizer exists
+    if !tokenizer_path.exists() {
+        state.set_status(ModelStatus::Error).await;
+        log::error!("Tokenizer file not found: {}", tokenizer_path.display());
+        return Err(InferenceError::model_load_failed(&format!(
+            "Tokenizer not found for {model_id}. Please re-download the model."
+        )));
+    }
+
+    log::info!("Loading model from: {}", model_path.display());
+    log::info!("Loading tokenizer from: {}", tokenizer_path.display());
+
+    // Load model from local path using FileSource::Local
+    // Both model and tokenizer are local files managed by the app
+    let source = LlamaSource::new(FileSource::Local(model_path.clone()))
+        .with_tokenizer(FileSource::Local(tokenizer_path.clone()));
+
+    match Llama::builder().with_source(source).build().await {
         Ok(model) => {
             let mut model_guard = state.model.write().await;
             *model_guard = Some(model);
             state.set_status(ModelStatus::Loaded).await;
-            log::info!("Model loaded successfully");
+            log::info!("Model loaded successfully: {model_id}");
             Ok(())
-        }
+        },
         Err(e) => {
             state.set_status(ModelStatus::Error).await;
             let error_msg = e.to_string();
-            log::error!("Failed to load model: {}", error_msg);
+            log::error!("Failed to load model {model_id}: {error_msg}");
 
             // Check for OOM errors
             if error_msg.contains("memory") || error_msg.contains("OOM") {
@@ -119,7 +177,7 @@ pub async fn load_model(
             } else {
                 Err(InferenceError::model_load_failed(&error_msg))
             }
-        }
+        },
     }
 }
 
@@ -141,12 +199,9 @@ pub async fn generate(
 
     // Get model - need to hold the lock for the entire generation
     let model_guard = state.model.read().await;
-    let model = match model_guard.as_ref() {
-        Some(m) => m,
-        None => {
-            state.set_status(ModelStatus::Unloaded).await;
-            return Err(InferenceError::model_not_loaded());
-        }
+    let Some(model) = model_guard.as_ref() else {
+        state.set_status(ModelStatus::Unloaded).await;
+        return Err(InferenceError::model_not_loaded());
     };
 
     // Use .complete(prompt) which returns a stream
@@ -166,7 +221,7 @@ pub async fn generate(
         // Emit token to frontend via Tauri event
         let payload = TokenPayload { text: token };
         if let Err(e) = app.emit("inference:token", payload) {
-            log::error!("Failed to emit token: {}", e);
+            log::error!("Failed to emit token: {e}");
         }
     }
 
@@ -186,11 +241,23 @@ pub async fn abort_inference(state: State<'_, Arc<InferenceState>>) -> Result<()
 }
 
 /// Check if model is loaded
+/// Uses is_loaded() to verify status accuracy
 #[tauri::command]
 pub async fn get_model_status(
     state: State<'_, Arc<InferenceState>>,
 ) -> Result<ModelStatus, InferenceError> {
-    Ok(state.get_status().await)
+    let status = state.get_status().await;
+
+    // Verify status matches actual model state
+    // Status could get out of sync if model was dropped unexpectedly
+    match (&status, state.is_loaded().await) {
+        (ModelStatus::Loaded | ModelStatus::Generating, false) => {
+            // Status says loaded but model is gone - correct it
+            state.set_status(ModelStatus::Unloaded).await;
+            Ok(ModelStatus::Unloaded)
+        },
+        _ => Ok(status),
+    }
 }
 
 /// Unload model and release resources

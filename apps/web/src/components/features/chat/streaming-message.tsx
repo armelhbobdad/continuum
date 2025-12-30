@@ -74,7 +74,7 @@ export function StreamingMessage({
         data-slot="message-content"
       >
         {content}
-        {isStreaming && (
+        {Boolean(isStreaming) && (
           <span
             aria-hidden="true"
             className="ml-0.5 inline-block h-4 w-2 animate-blink bg-current"

@@ -10,14 +10,24 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { usePrivacyStore } from "@/stores/privacy";
 import { PrivacyDashboard } from "../privacy-dashboard";
 
-// Mock navigator.platform for keyboard shortcut display
+// Top-level regex patterns for performance
+const VERIFY_EXPLANATION_PATTERN =
+  /Don't take our word for it\. Use external tools to verify your privacy\./;
+const VIEW_GUIDE_PATTERN = /View verification guide/i;
+const CMD_SHIFT_P_PATTERN = /Cmd\+Shift\+P/;
+const CTRL_SHIFT_P_PATTERN = /Ctrl\+Shift\+P/;
+const CLOSE_DASHBOARD_PATTERN = /close privacy dashboard/i;
+
+// Mock navigator.userAgent for keyboard shortcut display
 const mockNavigator = {
-  platform: "MacIntel",
+  userAgent:
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
 };
 
 Object.defineProperty(window, "navigator", {
   value: mockNavigator,
   writable: true,
+  configurable: true,
 });
 
 describe("PrivacyDashboard Component", () => {
@@ -101,18 +111,14 @@ describe("PrivacyDashboard Component", () => {
     it("shows explanation text", () => {
       render(<PrivacyDashboard />);
 
-      expect(
-        screen.getByText(
-          /Don't take our word for it\. Use external tools to verify your privacy\./
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText(VERIFY_EXPLANATION_PATTERN)).toBeInTheDocument();
     });
 
     it("shows verification guide link", () => {
       render(<PrivacyDashboard />);
 
       const link = screen.getByRole("link", {
-        name: /View verification guide/i,
+        name: VIEW_GUIDE_PATTERN,
       });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
@@ -125,7 +131,7 @@ describe("PrivacyDashboard Component", () => {
       render(<PrivacyDashboard />);
 
       const link = screen.getByRole("link", {
-        name: /View verification guide/i,
+        name: VIEW_GUIDE_PATTERN,
       });
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
@@ -138,17 +144,19 @@ describe("PrivacyDashboard Component", () => {
     });
 
     it("shows keyboard shortcut for Mac", () => {
-      mockNavigator.platform = "MacIntel";
+      mockNavigator.userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
       render(<PrivacyDashboard />);
 
-      expect(screen.getByText(/Cmd\+Shift\+P/)).toBeInTheDocument();
+      expect(screen.getByText(CMD_SHIFT_P_PATTERN)).toBeInTheDocument();
     });
 
     it("shows keyboard shortcut for Windows/Linux", () => {
-      mockNavigator.platform = "Win32";
+      mockNavigator.userAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
       render(<PrivacyDashboard />);
 
-      expect(screen.getByText(/Ctrl\+Shift\+P/)).toBeInTheDocument();
+      expect(screen.getByText(CTRL_SHIFT_P_PATTERN)).toBeInTheDocument();
     });
   });
 
@@ -161,7 +169,7 @@ describe("PrivacyDashboard Component", () => {
       render(<PrivacyDashboard />);
 
       const closeButton = screen.getByRole("button", {
-        name: /close privacy dashboard/i,
+        name: CLOSE_DASHBOARD_PATTERN,
       });
       expect(closeButton).toBeInTheDocument();
     });
@@ -173,7 +181,7 @@ describe("PrivacyDashboard Component", () => {
       expect(screen.getByText("Privacy Dashboard")).toBeInTheDocument();
 
       const closeButton = screen.getByRole("button", {
-        name: /close privacy dashboard/i,
+        name: CLOSE_DASHBOARD_PATTERN,
       });
       await user.click(closeButton);
 

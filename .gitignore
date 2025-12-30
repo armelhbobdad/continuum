@@ -57,3 +57,6 @@ _bmad-output
 
 # Custom knowledge
 stack-knowledge
+
+# Auto Claude data directory
+.auto-claude/

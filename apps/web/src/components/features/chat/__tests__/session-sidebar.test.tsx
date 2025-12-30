@@ -11,6 +11,17 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { useSessionStore } from "@/stores/session";
 import { SessionSidebar } from "../session-sidebar";
 
+// Top-level regex patterns for performance
+const NEW_CHAT_PATTERN = /new chat/i;
+const NO_CONVERSATIONS_PATTERN = /no conversations/i;
+const ACTIVE_SESSION_PATTERN = /active session/i;
+const FIRST_SESSION_PATTERN = /first session/i;
+const TEST_SESSION_PATTERN = /test session/i;
+const VERY_LONG_TITLE_PATTERN =
+  /This is a very long session title that should be/;
+const JUST_NOW_PATTERN = /just now/i;
+const FIVE_MIN_AGO_PATTERN = /5 min ago/i;
+
 describe("SessionSidebar Component", () => {
   beforeEach(() => {
     // Reset session store with Story 1.7 state
@@ -33,7 +44,7 @@ describe("SessionSidebar Component", () => {
     it("displays 'New Chat' button", () => {
       render(<SessionSidebar />);
       expect(
-        screen.getByRole("button", { name: /new chat/i })
+        screen.getByRole("button", { name: NEW_CHAT_PATTERN })
       ).toBeInTheDocument();
     });
   });
@@ -75,14 +86,12 @@ describe("SessionSidebar Component", () => {
       render(<SessionSidebar />);
 
       // Title is truncated in store to 50 chars + "..."
-      expect(
-        screen.getByText(/This is a very long session title that should be/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(VERY_LONG_TITLE_PATTERN)).toBeInTheDocument();
     });
 
     it("shows empty state when no sessions", () => {
       render(<SessionSidebar />);
-      expect(screen.getByText(/no conversations/i)).toBeInTheDocument();
+      expect(screen.getByText(NO_CONVERSATIONS_PATTERN)).toBeInTheDocument();
     });
   });
 
@@ -94,7 +103,7 @@ describe("SessionSidebar Component", () => {
       render(<SessionSidebar />);
 
       const activeItem = screen.getByRole("option", {
-        name: /active session/i,
+        name: ACTIVE_SESSION_PATTERN,
       });
       expect(activeItem).toHaveAttribute("aria-current", "true");
     });
@@ -110,7 +119,7 @@ describe("SessionSidebar Component", () => {
 
       // Click first session (not active)
       const firstSession = screen.getByRole("option", {
-        name: /first session/i,
+        name: FIRST_SESSION_PATTERN,
       });
       await user.click(firstSession);
 
@@ -127,7 +136,7 @@ describe("SessionSidebar Component", () => {
       const user = userEvent.setup();
       render(<SessionSidebar />);
 
-      const newChatBtn = screen.getByRole("button", { name: /new chat/i });
+      const newChatBtn = screen.getByRole("button", { name: NEW_CHAT_PATTERN });
       await user.click(newChatBtn);
 
       // Should create a session with placeholder title
@@ -166,7 +175,7 @@ describe("SessionSidebar Component", () => {
       render(<SessionSidebar />);
 
       const firstSession = screen.getByRole("option", {
-        name: /first session/i,
+        name: FIRST_SESSION_PATTERN,
       });
       await user.click(firstSession); // Focus via click to avoid act() warning
       await user.keyboard("{Enter}");
@@ -193,7 +202,7 @@ describe("SessionSidebar Component", () => {
       render(<SessionSidebar />);
 
       // Items have role="option" for listbox semantics
-      const option = screen.getByRole("option", { name: /test session/i });
+      const option = screen.getByRole("option", { name: TEST_SESSION_PATTERN });
       expect(option).toBeInTheDocument();
     });
   });
@@ -207,7 +216,7 @@ describe("SessionSidebar Component", () => {
       render(<SessionSidebar />);
 
       // Should show "just now" for recently created session
-      expect(screen.getByText(/just now/i)).toBeInTheDocument();
+      expect(screen.getByText(JUST_NOW_PATTERN)).toBeInTheDocument();
     });
 
     it("displays appropriate time format for older sessions", () => {
@@ -231,7 +240,7 @@ describe("SessionSidebar Component", () => {
       render(<SessionSidebar />);
 
       // Should show "5 min ago"
-      expect(screen.getByText(/5 min ago/i)).toBeInTheDocument();
+      expect(screen.getByText(FIVE_MIN_AGO_PATTERN)).toBeInTheDocument();
     });
   });
 
@@ -343,7 +352,7 @@ describe("SessionSidebar Component", () => {
 
       render(<SessionSidebar />);
 
-      const item = screen.getByRole("option", { name: /test session/i });
+      const item = screen.getByRole("option", { name: TEST_SESSION_PATTERN });
       expect(item).toHaveAttribute("data-slot", "session-sidebar-item");
     });
   });

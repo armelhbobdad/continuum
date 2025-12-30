@@ -48,6 +48,7 @@ export function MessageList({ messages, streamingMetadata }: MessageListProps) {
       data-testid="message-list"
       role="log"
     >
+      {/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex message rendering logic */}
       {messages.map((message) => {
         // For user messages, render regular Message
         if (message.role === "user") {

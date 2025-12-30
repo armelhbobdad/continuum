@@ -1,0 +1,40 @@
+pre-commit:
+  parallel: true
+  jobs:
+    # TypeScript/JavaScript formatting and linting
+    - name: ultracite
+      run: bun x ultracite fix
+      glob:
+        - "*.js"
+        - "*.jsx"
+        - "*.ts"
+        - "*.tsx"
+        - "*.json"
+        - "*.jsonc"
+        - "*.css"
+      stage_fixed: true
+
+    # Rust formatting
+    - name: rustfmt
+      root: apps/web/src-tauri
+      glob: "*.rs"
+      run: cargo fmt --all -- --check
+
+    # Rust linting (clippy)
+    - name: clippy
+      root: apps/web/src-tauri
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+pre-push:
+  parallel: true
+  jobs:
+    # Security audit on push (slower, run less frequently)
+    - name: cargo-audit
+      root: apps/web/src-tauri
+      run: cargo audit || echo "cargo-audit not installed, skipping"
+
+    # Dependency license check
+    - name: cargo-deny
+      root: apps/web/src-tauri
+      run: cargo deny check || echo "cargo-deny not installed, skipping"

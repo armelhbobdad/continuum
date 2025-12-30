@@ -98,8 +98,13 @@ export interface InferenceAdapter {
   /**
    * Load model if not already loaded.
    * AC3: Model loads within 10 seconds
+   *
+   * Story 2.4: Accepts optional modelId for loading specific models.
+   * Desktop uses modelId to load from app_data_dir/models/{modelId}.gguf
+   *
+   * @param modelId - Optional model identifier to load
    */
-  loadModel(): Promise<void>;
+  loadModel(modelId?: string): Promise<void>;
 
   /**
    * Get adapter capabilities for UI adaptation.
@@ -125,7 +130,7 @@ export const INFERENCE_ERROR_MESSAGES: Record<
 > = {
   MODEL_NOT_FOUND: {
     userMessage: "Model not available. Try downloading it first.",
-    recoveryHint: "Go to Settings > Models to download a model.",
+    recoveryHint: "Go to Models > Models to download a model.",
   },
   OOM_ERROR: {
     userMessage: "Not enough memory for this model. Try a smaller model.",
@@ -163,4 +168,41 @@ export function createInferenceError(
     userMessage,
     technicalDetails,
   };
+}
+
+// ============================================================================
+// Story 2.5: Model Integrity Verification Types
+// ============================================================================
+
+/** Result from Rust verification command */
+export interface VerificationResult {
+  verified: boolean;
+  computedHash: string;
+  expectedHash: string;
+  fileSize: number;
+}
+
+/** Verification status stored in model store */
+export interface VerificationInfo {
+  verified: boolean;
+  timestamp: number; // Unix timestamp for JSON serialization
+  hash: string;
+}
+
+/** Verification status for UI display */
+export type VerificationStatus =
+  | "verified"
+  | "unverified"
+  | "failed"
+  | "verifying";
+
+/** Quarantined file information from Rust backend */
+export interface QuarantinedFile {
+  id: string;
+  modelId: string;
+  timestamp: string;
+  expectedHash: string;
+  actualHash: string;
+  filePath: string;
+  fileSizeMb: number;
 }

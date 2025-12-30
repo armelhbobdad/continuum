@@ -63,10 +63,10 @@ const optionDotVariants = cva("size-2 shrink-0 rounded-full", {
   },
 });
 
-type PrivacyModeSelectorProps = {
+interface PrivacyModeSelectorProps {
   /** Additional CSS classes */
   className?: string;
-};
+}
 
 /**
  * Privacy Mode Selector Component

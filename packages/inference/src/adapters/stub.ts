@@ -22,12 +22,13 @@ import {
  * Used when neither Kalosm (desktop) nor WebLLM (web) is available.
  */
 export class StubAdapter implements InferenceAdapter {
-  private status: InferenceStatus = "unloaded";
+  private readonly status: InferenceStatus = "unloaded";
 
   /**
    * Generate throws error - local inference not available
    */
-  // eslint-disable-next-line require-yield
+  // biome-ignore lint/correctness/useYield: Stub throws before yielding
+  // biome-ignore lint/suspicious/useAwait: Stub throws immediately
   async *generate(_request: InferenceRequest): AsyncIterable<InferenceToken> {
     throw createInferenceError("MODEL_NOT_FOUND", {
       reason: "Local inference not available on this platform",
@@ -44,6 +45,7 @@ export class StubAdapter implements InferenceAdapter {
   /**
    * Model is never loaded on stub
    */
+  // biome-ignore lint/suspicious/useAwait: Stub returns immediately
   async isModelLoaded(): Promise<boolean> {
     return false;
   }
@@ -51,6 +53,7 @@ export class StubAdapter implements InferenceAdapter {
   /**
    * Load throws error - no model available
    */
+  // biome-ignore lint/suspicious/useAwait: Stub throws immediately
   async loadModel(): Promise<void> {
     throw createInferenceError("MODEL_NOT_FOUND", {
       reason: "Local inference not available on this platform",

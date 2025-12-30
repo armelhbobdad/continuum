@@ -27,13 +27,15 @@ import {
 // Re-export types for consumers that import from session store
 export type { InferenceMetadata, InferenceSource } from "@/types/inference";
 
-/** Metadata for finalized messages (Story 1.4 Task 8.3, extended in 1.5) */
+/** Metadata for finalized messages (Story 1.4 Task 8.3, extended in 1.5, 2.4) */
 export interface MessageMetadata {
   tokensGenerated?: number;
   finishReason?: "completed" | "aborted" | "error";
   durationMs?: number;
   /** Inference metadata (Story 1.5) */
   inference?: InferenceMetadata;
+  /** Model ID that generated this message (Story 2.4 Task 8.1) */
+  modelId?: string;
 }
 
 /**

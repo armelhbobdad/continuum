@@ -17,6 +17,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Cancel01Icon, LinkSquare02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePrivacyStore } from "@/stores/privacy";
 import { NetworkLog } from "./network-log";
@@ -34,13 +35,20 @@ export interface PrivacyDashboardProps {
 const VERIFY_DOCS_URL = "https://docs.continuum.ai/verify-privacy";
 
 /**
- * Detect if user is on macOS for keyboard shortcut display
+ * Hook to detect modifier key (Cmd on Mac, Ctrl elsewhere)
+ * Uses useEffect to ensure navigator is only accessed on client
  */
-function getModifierKey(): string {
-  if (typeof navigator === "undefined") {
-    return "Ctrl";
-  }
-  return navigator.platform.includes("Mac") ? "Cmd" : "Ctrl";
+function useModifierKey(): string {
+  const [modifierKey, setModifierKey] = useState("Ctrl");
+
+  useEffect(() => {
+    // Check userAgent inside useEffect to avoid SSR issues
+    // navigator.platform is deprecated, using userAgent instead
+    const isMac = /Mac|iPhone|iPad|iPod/.test(window.navigator.userAgent);
+    setModifierKey(isMac ? "Cmd" : "Ctrl");
+  }, []);
+
+  return modifierKey;
 }
 
 /**
@@ -51,8 +59,7 @@ function getModifierKey(): string {
  */
 export function PrivacyDashboard({ className }: PrivacyDashboardProps) {
   const { isDashboardOpen, closeDashboard } = usePrivacyStore();
-
-  const modifierKey = getModifierKey();
+  const modifierKey = useModifierKey();
 
   return (
     <Dialog.Root

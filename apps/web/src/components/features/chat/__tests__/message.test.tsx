@@ -8,6 +8,9 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Message, messageVariants } from "../message";
 
+// Top-level regex patterns for performance
+const LINE_1_PATTERN = /Line 1/;
+
 describe("Message Component", () => {
   describe("Rendering", () => {
     it("renders with data-slot attribute", () => {
@@ -41,7 +44,7 @@ describe("Message Component", () => {
       render(
         <Message content="Line 1\nLine 2" role="user" timestamp={new Date()} />
       );
-      const content = screen.getByText(/Line 1/);
+      const content = screen.getByText(LINE_1_PATTERN);
       expect(content.className).toContain("whitespace-pre-wrap");
     });
   });
@@ -119,9 +122,15 @@ describe("Message Component", () => {
       expect(screen.getByText("2h ago")).toBeInTheDocument();
     });
 
-    it("shows date for older messages", () => {
+    it("shows days ago for messages within the week", () => {
       const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
       render(<Message content="Test" role="user" timestamp={twoDaysAgo} />);
+      expect(screen.getByText("2 days ago")).toBeInTheDocument();
+    });
+
+    it("shows date for older messages (beyond a week)", () => {
+      const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+      render(<Message content="Test" role="user" timestamp={tenDaysAgo} />);
       // Should show locale date string
       const timeElement = screen.getByRole("time");
       expect(timeElement.textContent).not.toContain("ago");
@@ -137,7 +146,8 @@ describe("Message Component", () => {
     it("timestamp has reduced opacity styling", () => {
       render(<Message content="Test" role="user" timestamp={new Date()} />);
       const timeElement = screen.getByRole("time");
-      expect(timeElement.className).toContain("opacity-60");
+      // Opacity is on the parent container, not the time element itself
+      expect(timeElement.parentElement?.className).toContain("opacity-60");
     });
   });
 
@@ -157,6 +167,86 @@ describe("Message Component", () => {
       const classes = messageVariants({ role: "assistant" });
       expect(classes).toContain("bg-muted");
       expect(classes).toContain("mr-auto");
+    });
+  });
+
+  describe("Model Attribution (Story 2.4 Task 8.3)", () => {
+    it("displays model name for assistant messages", () => {
+      render(
+        <Message
+          content="AI response"
+          modelName="Phi-3 Mini"
+          role="assistant"
+          timestamp={new Date()}
+        />
+      );
+
+      expect(screen.getByTestId("model-attribution")).toHaveTextContent(
+        "Phi-3 Mini"
+      );
+    });
+
+    it("does not display model attribution for user messages", () => {
+      render(
+        <Message
+          content="User msg"
+          modelName="Phi-3 Mini"
+          role="user"
+          timestamp={new Date()}
+        />
+      );
+
+      expect(screen.queryByTestId("model-attribution")).not.toBeInTheDocument();
+    });
+
+    it("does not display model attribution when modelName not provided", () => {
+      render(
+        <Message
+          content="AI response"
+          role="assistant"
+          timestamp={new Date()}
+        />
+      );
+
+      expect(screen.queryByTestId("model-attribution")).not.toBeInTheDocument();
+    });
+
+    it("adds data-model attribute when model name provided", () => {
+      render(
+        <Message
+          content="AI response"
+          modelName="Mistral-7B"
+          role="assistant"
+          timestamp={new Date()}
+        />
+      );
+
+      const message = screen.getByText("AI response").closest("[data-slot]");
+      expect(message).toHaveAttribute("data-model", "Mistral-7B");
+    });
+
+    it("preserves model attribution when content updates", () => {
+      const { rerender } = render(
+        <Message
+          content="Initial response"
+          modelName="Phi-3 Mini"
+          role="assistant"
+          timestamp={new Date()}
+        />
+      );
+
+      rerender(
+        <Message
+          content="Updated response"
+          modelName="Phi-3 Mini"
+          role="assistant"
+          timestamp={new Date()}
+        />
+      );
+
+      expect(screen.getByTestId("model-attribution")).toHaveTextContent(
+        "Phi-3 Mini"
+      );
     });
   });
 });

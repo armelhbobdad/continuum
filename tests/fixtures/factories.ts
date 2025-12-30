@@ -63,24 +63,24 @@ export function createMany<T>(
 }
 
 // Type definitions for factory outputs
-export type User = {
+export interface User {
   id: string;
   email: string;
   name: string;
   createdAt: Date;
-};
+}
 
-export type Session = {
+export interface Session {
   id: string;
   title: string;
   createdAt: Date;
   updatedAt: Date;
   privacyMode: "local-only" | "trusted-network" | "cloud-enhanced";
-};
+}
 
-export type Message = {
+export interface Message {
   id: string;
   content: string;
   role: "user" | "assistant";
   createdAt: Date;
-};
+}

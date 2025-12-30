@@ -10,7 +10,7 @@ import { usePrivacyStore } from "../../apps/web/src/stores/privacy";
 
 // Mock React hooks for Node environment
 vi.mock("react", () => ({
-  useEffect: (fn: () => void | (() => void)) => {
+  useEffect: (fn: () => undefined | (() => void)) => {
     const cleanup = fn();
     return cleanup;
   },

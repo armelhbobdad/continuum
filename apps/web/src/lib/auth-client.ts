@@ -2,7 +2,9 @@ import { createAuthClient } from "better-auth/react";
 
 // Check if running in Tauri (works even before __TAURI__ is injected)
 function isTauriEnvironment(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") {
+    return false;
+  }
   // Check URL protocol - Tauri uses tauri:// or https://tauri.localhost
   const protocol = window.location.protocol;
   return (
@@ -19,7 +21,9 @@ const stubAuthClient = {
   signUp: {
     email: async () => ({ error: new Error("Auth disabled in desktop mode") }),
   },
-  signOut: async () => {},
+  signOut: async () => {
+    // No-op for stub auth client in desktop mode
+  },
 };
 
 // Create auth client - only used in web mode (not desktop)

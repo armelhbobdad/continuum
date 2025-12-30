@@ -5,11 +5,12 @@ import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
 
 export default function Header() {
-  const links = [
+  const links: Array<{ to: string; label: string }> = [
     { to: "/", label: "Home" },
     { to: "/chat", label: "Chat" },
+    { to: "/models", label: "Models" },
     { to: "/dashboard", label: "Dashboard" },
-  ] as const;
+  ];
 
   return (
     <div>
@@ -18,7 +19,7 @@ export default function Header() {
           <PrivacyModeSelector />
           <nav className="flex gap-4 text-lg">
             {links.map(({ to, label }) => (
-              <Link href={to} key={to}>
+              <Link href={to as "/"} key={to}>
                 {label}
               </Link>
             ))}

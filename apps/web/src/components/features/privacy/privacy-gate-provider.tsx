@@ -19,17 +19,17 @@ import { usePrivacyStore } from "@/stores/privacy";
 /**
  * Render props type for PrivacyGateProvider children
  */
-type PrivacyGateRenderProps = {
+interface PrivacyGateRenderProps {
   /** Current privacy mode */
   mode: PrivacyMode;
   /** Key for JazzProvider remount */
   jazzKey: string;
-};
+}
 
-type PrivacyGateProviderProps = {
+interface PrivacyGateProviderProps {
   /** Render prop function receiving privacy state */
   children: (props: PrivacyGateRenderProps) => ReactNode;
-};
+}
 
 /**
  * Maps privacy mode to Jazz sync configuration.
@@ -152,7 +152,6 @@ export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
       window.XMLHttpRequest = class BlockedXHR extends OriginalXHR {
         private _blockedUrl: string | null = null;
 
-        // biome-ignore lint/nursery/useMaxParams: XMLHttpRequest.open() is a Web API with fixed signature
         open(
           method: string,
           url: string | URL,

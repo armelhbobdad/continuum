@@ -7,9 +7,13 @@
  *
  * Story 1.3: Basic Chat UI Shell
  * AC #4 (message display layout)
+ *
+ * Story 2.4: Model Selection & Switching
+ * Task 8.3: Display model attribution in message UI
  */
 
 import { cva, type VariantProps } from "class-variance-authority";
+import { formatRelativeTime } from "@/lib/format-relative-time";
 import { cn } from "@/lib/utils";
 
 /**
@@ -34,24 +38,10 @@ interface MessageProps extends VariantProps<typeof messageVariants> {
   content: string;
   /** Message timestamp */
   timestamp: Date;
+  /** Model name that generated this message (assistant only, Story 2.4) */
+  modelName?: string;
   /** Additional CSS classes */
   className?: string;
-}
-
-/**
- * Format timestamp to relative time (e.g., "2 min ago")
- */
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSeconds = Math.floor(diffMs / 1000);
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  const diffHours = Math.floor(diffMinutes / 60);
-
-  if (diffSeconds < 60) return "just now";
-  if (diffMinutes < 60) return `${diffMinutes} min ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return date.toLocaleDateString();
 }
 
 /**
@@ -59,22 +49,33 @@ function formatRelativeTime(date: Date): string {
  *
  * Renders a single chat message with role-based styling.
  */
-export function Message({ role, content, timestamp, className }: MessageProps) {
+export function Message({
+  role,
+  content,
+  timestamp,
+  modelName,
+  className,
+}: MessageProps) {
   const formattedTime = formatRelativeTime(timestamp);
 
   return (
     <div
       className={cn(messageVariants({ role }), className)}
+      data-model={modelName}
       data-role={role}
       data-slot="message"
     >
       <p className="whitespace-pre-wrap">{content}</p>
-      <time
-        className="mt-1 block text-xs opacity-60"
-        dateTime={timestamp.toISOString()}
-      >
-        {formattedTime}
-      </time>
+      <div className="mt-1 flex items-center gap-2 text-xs opacity-60">
+        <time dateTime={timestamp.toISOString()}>{formattedTime}</time>
+        {/* Model attribution for assistant messages (Story 2.4 Task 8.3) */}
+        {role === "assistant" && modelName && (
+          <>
+            <span aria-hidden="true">•</span>
+            <span data-testid="model-attribution">{modelName}</span>
+          </>
+        )}
+      </div>
     </div>
   );
 }

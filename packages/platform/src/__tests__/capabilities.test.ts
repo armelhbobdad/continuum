@@ -22,20 +22,18 @@ const mockTauri = (enabled: boolean) => {
     globalThis.__TAURI_INTERNALS__ = {};
   } else {
     // @ts-expect-error - mocking Tauri detection
-    delete globalThis.__TAURI__;
+    globalThis.__TAURI__ = undefined;
     // @ts-expect-error - mocking Tauri internals
-    delete globalThis.__TAURI_INTERNALS__;
+    globalThis.__TAURI_INTERNALS__ = undefined;
   }
 };
 
 // Mock navigator.gpu for WebGPU detection
 const mockWebGPU = (enabled: boolean) => {
   if (enabled) {
-    // @ts-expect-error - mocking WebGPU
-    globalThis.navigator = { gpu: {} };
+    globalThis.navigator = { gpu: {} } as unknown as Navigator;
   } else {
-    // @ts-expect-error - mocking navigator without WebGPU
-    globalThis.navigator = {};
+    globalThis.navigator = {} as unknown as Navigator;
   }
 };
 
@@ -58,7 +56,7 @@ describe("capabilities", () => {
       globalThis.__TAURI__ = originalTauri;
     } else {
       // @ts-expect-error - cleaning up
-      delete globalThis.__TAURI__;
+      globalThis.__TAURI__ = undefined;
     }
 
     if (originalTauriInternals !== undefined) {
@@ -66,11 +64,10 @@ describe("capabilities", () => {
       globalThis.__TAURI_INTERNALS__ = originalTauriInternals;
     } else {
       // @ts-expect-error - cleaning up
-      delete globalThis.__TAURI_INTERNALS__;
+      globalThis.__TAURI_INTERNALS__ = undefined;
     }
 
     if (originalNavigator !== undefined) {
-      // @ts-expect-error - restoring navigator
       globalThis.navigator = originalNavigator;
     }
   });

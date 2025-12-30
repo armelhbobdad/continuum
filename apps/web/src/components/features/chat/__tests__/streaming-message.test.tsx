@@ -10,6 +10,12 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { StreamingMessage } from "../streaming-message";
 
+// Top-level regex patterns for performance
+const HELLO_WORLD_PATTERN = /Hello world/;
+const GENERATING_LOCALLY_VIA_PHI3_PATTERN = /generating locally via phi-3/i;
+const GENERATED_LOCALLY_VIA_PHI3_PATTERN = /generated locally via phi-3/i;
+const TOKENS_150_PATTERN = /150 tokens/;
+
 describe("StreamingMessage", () => {
   describe("Token rendering (AC2)", () => {
     it("renders content as it streams", () => {
@@ -24,7 +30,7 @@ describe("StreamingMessage", () => {
         />
       );
 
-      expect(screen.getByText(/Hello world/)).toBeInTheDocument();
+      expect(screen.getByText(HELLO_WORLD_PATTERN)).toBeInTheDocument();
     });
 
     it("shows cursor indicator during generation", () => {
@@ -74,7 +80,7 @@ describe("StreamingMessage", () => {
       );
 
       const badge = screen.getByRole("status");
-      expect(badge).toHaveTextContent(/generating locally via phi-3/i);
+      expect(badge).toHaveTextContent(GENERATING_LOCALLY_VIA_PHI3_PATTERN);
     });
 
     it("shows InferenceBadge with complete state when done", () => {
@@ -90,7 +96,7 @@ describe("StreamingMessage", () => {
       );
 
       const badge = screen.getByRole("status");
-      expect(badge).toHaveTextContent(/generated locally via phi-3/i);
+      expect(badge).toHaveTextContent(GENERATED_LOCALLY_VIA_PHI3_PATTERN);
     });
 
     it("passes tokenCount to badge when complete", () => {
@@ -106,7 +112,7 @@ describe("StreamingMessage", () => {
       );
 
       const badge = screen.getByRole("status");
-      expect(badge).toHaveTextContent(/150 tokens/);
+      expect(badge).toHaveTextContent(TOKENS_150_PATTERN);
     });
   });
 

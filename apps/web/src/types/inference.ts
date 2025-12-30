@@ -11,7 +11,11 @@
 export type InferenceSource = "local" | "stub" | `cloud:${string}`;
 
 /** Badge display state */
-export type InferenceBadgeState = "generating" | "complete" | "error";
+export type InferenceBadgeState =
+  | "generating"
+  | "complete"
+  | "error"
+  | "switching";
 
 /**
  * Inference metadata tracked per message (Story 1.5 Task 5.2)

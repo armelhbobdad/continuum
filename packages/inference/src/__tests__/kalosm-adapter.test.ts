@@ -39,17 +39,24 @@ describe("KalosmAdapter", () => {
   });
 
   describe("loadModel", () => {
-    it("should invoke load_model Tauri command", async () => {
+    it("should invoke load_model Tauri command with model ID", async () => {
       mockInvoke.mockResolvedValueOnce(undefined);
 
       const { KalosmAdapter } = await import("../adapters/kalosm");
       const adapter = new KalosmAdapter();
 
-      await adapter.loadModel();
+      await adapter.loadModel("phi-3-mini");
 
       expect(mockInvoke).toHaveBeenCalledWith("load_model", {
-        modelName: expect.any(String),
+        modelId: "phi-3-mini",
       });
+    });
+
+    it("should throw when model ID is not provided", async () => {
+      const { KalosmAdapter } = await import("../adapters/kalosm");
+      const adapter = new KalosmAdapter();
+
+      await expect(adapter.loadModel()).rejects.toThrow("Model ID required");
     });
 
     it("should throw on load failure", async () => {
@@ -58,7 +65,22 @@ describe("KalosmAdapter", () => {
       const { KalosmAdapter } = await import("../adapters/kalosm");
       const adapter = new KalosmAdapter();
 
-      await expect(adapter.loadModel()).rejects.toThrow("Load failed");
+      await expect(adapter.loadModel("phi-3-mini")).rejects.toThrow(
+        "Load failed"
+      );
+    });
+  });
+
+  describe("unloadModel", () => {
+    it("should invoke unload_model Tauri command", async () => {
+      mockInvoke.mockResolvedValueOnce(undefined);
+
+      const { KalosmAdapter } = await import("../adapters/kalosm");
+      const adapter = new KalosmAdapter();
+
+      await adapter.unloadModel();
+
+      expect(mockInvoke).toHaveBeenCalledWith("unload_model");
     });
   });
 
