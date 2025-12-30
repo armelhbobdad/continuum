@@ -375,10 +375,15 @@ export function subscribeToNetworkStatus(
 
 /**
  * Check current network status.
+ * Returns true during SSR (optimistic assumption).
  *
  * @returns boolean - True if online
  */
 export function isOnline(): boolean {
+  // SSR guard - assume online during server-side rendering
+  if (typeof navigator === "undefined") {
+    return true;
+  }
   return navigator.onLine;
 }
 
@@ -388,11 +393,21 @@ export function isOnline(): boolean {
 
 /**
  * Check web storage space using navigator.storage.estimate().
- * Fallback for web platform.
+ * Fallback for web platform. Returns sufficient space during SSR.
  */
 async function checkWebStorageSpace(
   requiredMb: number
 ): Promise<StorageCheckResult> {
+  // SSR guard - assume sufficient space during server-side rendering
+  if (typeof navigator === "undefined") {
+    return {
+      hasSpace: true,
+      availableMb: 10_240, // 10GB default
+      requiredMb,
+      shortfallMb: 0,
+    };
+  }
+
   try {
     const estimate = await navigator.storage.estimate();
     const availableMb = Math.floor(

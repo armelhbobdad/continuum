@@ -129,11 +129,25 @@ async function getDesktopCapabilities(): Promise<HardwareCapabilities> {
 /**
  * Get web hardware capabilities via navigator APIs.
  * Uses conservative defaults when APIs unavailable (ADR-HARDWARE-004).
+ * Returns conservative defaults during SSR (navigator unavailable).
  */
 async function getWebCapabilities(): Promise<HardwareCapabilities> {
   // Conservative defaults per ADR-HARDWARE-004
   let ram = 4096; // 4GB default
   let storageAvailable = 10_240; // 10GB default
+  const cpuCores = 4; // Default CPU cores
+
+  // SSR guard - return defaults if navigator is unavailable
+  if (typeof navigator === "undefined") {
+    return {
+      ram,
+      cpuCores,
+      storageAvailable,
+      gpu: null,
+      detectedBy: "web" as const,
+      detectedAt: new Date(),
+    };
+  }
 
   // Try navigator.deviceMemory (Chrome only, returns GB)
   if ("deviceMemory" in navigator) {
@@ -158,7 +172,7 @@ async function getWebCapabilities(): Promise<HardwareCapabilities> {
 
   return {
     ram,
-    cpuCores: navigator.hardwareConcurrency ?? 4,
+    cpuCores: navigator.hardwareConcurrency ?? cpuCores,
     storageAvailable,
     gpu: null, // No reliable GPU detection in web
     detectedBy: "web" as const,
