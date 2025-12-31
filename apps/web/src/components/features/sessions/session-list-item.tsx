@@ -111,49 +111,52 @@ export const SessionListItem = memo(function SessionListItem({
 
   return (
     <div
-      aria-selected={isActive}
-      className={cn(
-        sessionItemVariants({ state: isActive ? "selected" : "default" }),
-        hasActions && "group"
-      )}
       data-session-id={session.id}
       data-slot="session-list-item"
-      onClick={onSelect}
-      onFocus={onFocus}
-      onKeyDown={handleKeyDown}
-      role="option"
       style={style}
-      tabIndex={0}
     >
-      <span className="flex min-w-0 flex-col">
-        <span className="flex items-center gap-1.5">
-          <span className="truncate" title={session.title}>
-            {adjustedRanges.length > 0 ? (
-              <HighlightText ranges={adjustedRanges} text={displayTitle} />
-            ) : (
-              displayTitle
+      <div
+        aria-selected={isActive}
+        className={cn(
+          sessionItemVariants({ state: isActive ? "selected" : "default" }),
+          hasActions && "group"
+        )}
+        onClick={onSelect}
+        onFocus={onFocus}
+        onKeyDown={handleKeyDown}
+        role="option"
+        tabIndex={0}
+      >
+        <span className="flex min-w-0 flex-col">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate" title={session.title}>
+              {adjustedRanges.length > 0 ? (
+                <HighlightText ranges={adjustedRanges} text={displayTitle} />
+              ) : (
+                displayTitle
+              )}
+            </span>
+            {Boolean(hasUnsavedChanges) && (
+              <span
+                aria-label="Unsaved changes"
+                className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                role="img"
+              />
             )}
           </span>
-          {Boolean(hasUnsavedChanges) && (
-            <span
-              aria-label="Unsaved changes"
-              className="h-1.5 w-1.5 rounded-full bg-amber-500"
-              role="img"
-            />
-          )}
+          <span className="text-muted-foreground text-xs">
+            {formatRelativeTime(session.updatedAt)}
+          </span>
         </span>
-        <span className="text-muted-foreground text-xs">
-          {formatRelativeTime(session.updatedAt)}
-        </span>
-      </span>
-      {hasActions && onDelete && onExportJson && onExportMarkdown && (
-        <SessionActions
-          onDelete={onDelete}
-          onExportJson={onExportJson}
-          onExportMarkdown={onExportMarkdown}
-          session={session}
-        />
-      )}
+        {hasActions && onDelete && onExportJson && onExportMarkdown && (
+          <SessionActions
+            onDelete={onDelete}
+            onExportJson={onExportJson}
+            onExportMarkdown={onExportMarkdown}
+            session={session}
+          />
+        )}
+      </div>
     </div>
   );
 });

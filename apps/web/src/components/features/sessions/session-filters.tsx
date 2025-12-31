@@ -14,6 +14,13 @@ import { PreferenceHorizontalIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useState } from "react";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   countActiveFilters,
   type SessionFilterOptions,
 } from "@/lib/sessions/filter-sessions";
@@ -74,20 +81,20 @@ export function SessionFilters({
 }: SessionFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   // Track selected date range preset for controlled select value
-  const [dateRangePreset, setDateRangePreset] = useState("");
+  const [dateRangePreset, setDateRangePreset] = useState("any");
   const activeCount = countActiveFilters(filters);
 
   // Sync date range preset when filters are cleared externally
-  if (!filters.dateRange && dateRangePreset !== "") {
-    setDateRangePreset("");
+  if (!filters.dateRange && dateRangePreset !== "any") {
+    setDateRangePreset("any");
   }
 
   // Task 2.3: Date range filter handler
   const handleDateRangeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const preset = e.target.value;
-      setDateRangePreset(preset);
-      const dateRange = getDateRangeFromPreset(preset);
+    (preset: string | null) => {
+      const value = preset ?? "any";
+      setDateRangePreset(value);
+      const dateRange = getDateRangeFromPreset(value);
       onFiltersChange({ ...filters, dateRange });
     },
     [filters, onFiltersChange]
@@ -95,16 +102,19 @@ export function SessionFilters({
 
   // Task 2.5: Message type filter handler
   const handleMessageTypeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const messageType = e.target.value as SessionFilterOptions["messageType"];
-      onFiltersChange({ ...filters, messageType });
+    (messageType: string | null) => {
+      const value = messageType ?? "all";
+      onFiltersChange({
+        ...filters,
+        messageType: value as SessionFilterOptions["messageType"],
+      });
     },
     [filters, onFiltersChange]
   );
 
   // Task 2.6: Clear all filters
   const handleClearFilters = useCallback(() => {
-    setDateRangePreset("");
+    setDateRangePreset("any");
     onFiltersChange({});
   }, [onFiltersChange]);
 
@@ -142,49 +152,43 @@ export function SessionFilters({
       {isExpanded && (
         <fieldset
           aria-label="Filter options"
-          className="mt-2 space-y-3 rounded-lg border border-border bg-background p-3"
+          className="mt-2 mb-2 space-y-3 rounded-lg border border-border bg-background p-3"
         >
           {/* Task 2.3: Date range filter */}
           <div className="space-y-1">
-            <label
-              className="text-muted-foreground text-xs"
-              htmlFor="date-range-filter"
-            >
-              Date range
-            </label>
-            <select
-              aria-label="Date range"
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-              id="date-range-filter"
-              onChange={handleDateRangeChange}
+            <span className="text-muted-foreground text-xs">Date range</span>
+            <Select
+              onValueChange={handleDateRangeChange}
               value={dateRangePreset}
             >
-              <option value="">Any time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </select>
+              <SelectTrigger aria-label="Date range" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Task 2.5: Message type filter */}
           <div className="space-y-1">
-            <label
-              className="text-muted-foreground text-xs"
-              htmlFor="message-type-filter"
-            >
-              Message type
-            </label>
-            <select
-              aria-label="Message type"
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-              id="message-type-filter"
-              onChange={handleMessageTypeChange}
+            <span className="text-muted-foreground text-xs">Message type</span>
+            <Select
+              onValueChange={handleMessageTypeChange}
               value={filters.messageType || "all"}
             >
-              <option value="all">All</option>
-              <option value="with-ai">With AI responses</option>
-              <option value="user-only">User messages only</option>
-            </select>
+              <SelectTrigger aria-label="Message type" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="with-ai">With AI responses</SelectItem>
+                <SelectItem value="user-only">User messages only</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Task 2.6: Clear filters button */}
