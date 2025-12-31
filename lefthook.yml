@@ -3,6 +3,8 @@ pre-commit:
   jobs:
     # TypeScript/JavaScript formatting and linting
     - name: ultracite
+      env:
+        PATH: "{root}/node_modules/.bin:$HOME/.bun/bin:$PATH"
       run: bun x ultracite fix
       glob:
         - "*.js"

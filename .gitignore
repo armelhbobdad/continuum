@@ -60,3 +60,6 @@ stack-knowledge
 
 # Auto Claude data directory
 .auto-claude/
+
+# Lefthook git hooks (auto-generated)
+.husky/
