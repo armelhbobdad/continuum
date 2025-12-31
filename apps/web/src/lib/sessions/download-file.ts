@@ -81,10 +81,6 @@ function getFileFilter(
   return [{ name: "All Files", extensions: ["*"] }];
 }
 
-// Tauri plugin module paths - stored in variables to bypass Vite static analysis
-const TAURI_DIALOG_PLUGIN = "@tauri-apps/plugin-dialog";
-const TAURI_FS_PLUGIN = "@tauri-apps/plugin-fs";
-
 /**
  * Download content using Tauri native save dialog.
  *
@@ -97,10 +93,14 @@ async function downloadFileTauri(
   mimeType: string
 ): Promise<void> {
   try {
-    // Dynamic import using variables to bypass Vite static analysis
+    // Dynamic import with webpackIgnore to prevent bundling in web builds
     // These plugins only exist in the Tauri desktop build
-    const { save } = await import(TAURI_DIALOG_PLUGIN);
-    const { writeTextFile } = await import(TAURI_FS_PLUGIN);
+    const { save } = await import(
+      /* webpackIgnore: true */ "@tauri-apps/plugin-dialog"
+    );
+    const { writeTextFile } = await import(
+      /* webpackIgnore: true */ "@tauri-apps/plugin-fs"
+    );
 
     const extension = filename.split(".").pop() ?? "";
     const filters = getFileFilter(extension);

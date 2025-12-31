@@ -54,8 +54,8 @@ export interface SessionListProps {
   onExportMarkdown?: (sessionId: string) => void;
 }
 
-/** Estimated height per session item in pixels */
-const ITEM_HEIGHT = 56;
+/** Estimated height per session item in pixels (includes 8px gap) */
+const ITEM_HEIGHT = 64;
 /** Number of items to render above/below viewport for smooth scrolling */
 const OVERSCAN = 5;
 
@@ -203,7 +203,7 @@ export function SessionList({
     return (
       <div
         aria-label="Chat sessions"
-        className="flex-1 overflow-y-auto"
+        className="my-2 flex-1 overflow-y-auto"
         data-slot="session-list"
         ref={parentRef}
         role="listbox"
@@ -218,7 +218,7 @@ export function SessionList({
   return (
     <div
       aria-label="Chat sessions"
-      className="flex-1 overflow-y-auto"
+      className="my-2 flex-1 overflow-y-auto"
       data-slot="session-list"
       onKeyDown={handleKeyDown}
       ref={parentRef}
