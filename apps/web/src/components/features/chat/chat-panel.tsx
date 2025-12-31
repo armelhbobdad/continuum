@@ -16,6 +16,7 @@ import type { InferenceAdapter, InferenceError } from "@continuum/inference";
 import { getModelMetadata } from "@continuum/inference";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useModelSwitch } from "@/hooks/use-model-switch";
+import { useSummarization } from "@/hooks/use-summarization";
 import {
   autoSelectModel,
   getAutoSelectFailureMessage,
@@ -25,7 +26,12 @@ import { useHardwareStore } from "@/stores/hardware";
 import { useModelStore } from "@/stores/models";
 import { useSessionStore } from "@/stores/session";
 import type { StreamingMetadata } from "@/types/inference";
-import { ContextCriticalAlert, ContextHealthIndicator } from "../context";
+import {
+  ContextCriticalAlert,
+  ContextHealthIndicator,
+  SummarizationProgress,
+  SummarizationPrompt,
+} from "../context";
 import { AbortButton } from "./abort-button";
 import { ChatModelSelector } from "./chat-model-selector";
 import { InferenceErrorDisplay } from "./inference-error";
@@ -83,6 +89,18 @@ export function ChatPanel() {
 
   // Model switch hook (Story 2.4)
   const { isSwitching, switchingTo } = useModelSwitch();
+
+  // Summarization hook (Story 3.5)
+  const {
+    isSummarizing,
+    isDismissed,
+    startSummarization,
+    dismissPrompt,
+    cancelSummarization,
+    streamingText,
+    messageCount: summarizingMessageCount,
+    progress: summarizationProgress,
+  } = useSummarization();
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -439,6 +457,24 @@ export function ChatPanel() {
 
       {/* Context critical alert (Story 3.4 Task 6) */}
       <ContextCriticalAlert />
+
+      {/* Summarization prompt (Story 3.5 Task 6) */}
+      {!(isDismissed || isSummarizing) && (
+        <SummarizationPrompt
+          messagesCount={messages.length}
+          onDismiss={dismissPrompt}
+          onSummarize={startSummarization}
+        />
+      )}
+
+      {/* Summarization progress (Story 3.5 Task 7) */}
+      <SummarizationProgress
+        isSummarizing={isSummarizing}
+        messageCount={summarizingMessageCount}
+        onCancel={cancelSummarization}
+        progress={summarizationProgress}
+        streamingText={streamingText}
+      />
 
       {/* Message area with scroll */}
       <div className="flex-1 overflow-hidden" ref={scrollRef}>

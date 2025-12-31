@@ -36,7 +36,7 @@ describe("ContextCriticalAlert", () => {
     mockUseSessionStore.mockImplementation((selector) =>
       selector({
         createSession: mockCreateSession,
-      } as ReturnType<typeof useSessionStore.getState>)
+      } as unknown as ReturnType<typeof useSessionStore.getState>)
     );
   });
 

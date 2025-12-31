@@ -41,7 +41,7 @@ describe("useContextHealth", () => {
       selector({
         activeSessionId: null,
         sessions: [],
-      } as ReturnType<typeof useSessionStore.getState>)
+      } as unknown as ReturnType<typeof useSessionStore.getState>)
     );
     mockUseModelStore.mockImplementation((selector) =>
       selector({
@@ -86,7 +86,7 @@ describe("useContextHealth", () => {
       selector({
         activeSessionId: "session-1",
         sessions: [mockSession],
-      } as ReturnType<typeof useSessionStore.getState>)
+      } as unknown as ReturnType<typeof useSessionStore.getState>)
     );
     mockUseModelStore.mockImplementation((selector) =>
       selector({
@@ -128,7 +128,7 @@ describe("useContextHealth", () => {
       selector({
         activeSessionId: "session-1",
         sessions: [mockSession],
-      } as ReturnType<typeof useSessionStore.getState>)
+      } as unknown as ReturnType<typeof useSessionStore.getState>)
     );
     mockUseModelStore.mockImplementation((selector) =>
       selector({
@@ -163,7 +163,7 @@ describe("useContextHealth", () => {
       selector({
         activeSessionId: "session-1",
         sessions: [mockSession],
-      } as ReturnType<typeof useSessionStore.getState>)
+      } as unknown as ReturnType<typeof useSessionStore.getState>)
     );
     mockUseModelStore.mockImplementation((selector) =>
       selector({
@@ -190,7 +190,7 @@ describe("useContextHealth", () => {
       selector({
         activeSessionId: "session-1",
         sessions: [mockSession],
-      } as ReturnType<typeof useSessionStore.getState>)
+      } as unknown as ReturnType<typeof useSessionStore.getState>)
     );
     mockUseModelStore.mockImplementation((selector) =>
       selector({
@@ -229,7 +229,7 @@ describe("useContextHealth", () => {
       selector({
         activeSessionId: "session-1",
         sessions: [mockSession()],
-      } as ReturnType<typeof useSessionStore.getState>)
+      } as unknown as ReturnType<typeof useSessionStore.getState>)
     );
     mockUseModelStore.mockImplementation((selector) =>
       selector({

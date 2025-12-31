@@ -13,6 +13,9 @@
  * Task 4.2: Replace message rendering with StreamingMessage for AI responses
  * Task 4.4: Ensure badge persists on message after completion
  *
+ * Story 3.5: Auto-Summarization & Context Management
+ * Task 6.3: Render SummarizedMessage for messages with summarization metadata
+ *
  * TODO: Implement virtual scrolling for performance with large message lists.
  * Consider using @tanstack/react-virtual or similar library when message
  * counts exceed ~100 messages. Current implementation uses native scrolling
@@ -21,7 +24,9 @@
  */
 
 import type { Message as MessageType } from "@/stores/session";
+import { useSessionStore } from "@/stores/session";
 import type { StreamingMetadata } from "@/types/inference";
+import { SummarizedMessage } from "../context";
 import { Message } from "./message";
 import { StreamingMessage } from "./streaming-message";
 
@@ -37,8 +42,17 @@ interface MessageListProps {
  * Displays list of messages with user/assistant positioning.
  * Uses role="log" for accessibility.
  * Renders StreamingMessage for AI responses with inference badge (Story 1.5).
+ * Renders SummarizedMessage for condensed message groups (Story 3.5).
  */
 export function MessageList({ messages, streamingMetadata }: MessageListProps) {
+  // Story 3.5: Get expansion state and toggle function from session store
+  const expandedSummaries = useSessionStore((s) => s.expandedSummaries);
+  const toggleSummaryExpansion = useSessionStore(
+    (s) => s.toggleSummaryExpansion
+  );
+  const getOriginalMessages = useSessionStore((s) => s.getOriginalMessages);
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+
   // TODO: Consider virtual scrolling when messages.length > 100
   return (
     <div
@@ -50,6 +64,33 @@ export function MessageList({ messages, streamingMetadata }: MessageListProps) {
     >
       {/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex message rendering logic */}
       {messages.map((message) => {
+        // Story 3.5: Check for summarization metadata first
+        const summarizationData = message.metadata?.summarization;
+        if (summarizationData?.isSummary && activeSessionId) {
+          const isExpanded = expandedSummaries.has(message.id);
+          const originalMessages = getOriginalMessages(
+            activeSessionId,
+            message.id
+          );
+
+          return (
+            <div className="flex justify-start" key={message.id}>
+              <div className="max-w-[80%]">
+                <SummarizedMessage
+                  isExpanded={isExpanded}
+                  messageCount={summarizationData.messageCount}
+                  onToggle={() => toggleSummaryExpansion(message.id)}
+                  originalMessages={originalMessages}
+                  originalTokenCount={summarizationData.originalTokenCount}
+                  summarizedAt={summarizationData.summarizedAt}
+                  summarizedTokenCount={summarizationData.summarizedTokenCount}
+                  summaryContent={message.content}
+                />
+              </div>
+            </div>
+          );
+        }
+
         // For user messages, render regular Message
         if (message.role === "user") {
           return (
