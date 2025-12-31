@@ -10,6 +10,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { Session } from "@/stores/session";
 import { SessionActions } from "../session-actions";
 
+// Top-level regex patterns for performance
+const ACTIONS_FOR_PATTERN = /actions for/i;
+const ACTIONS_FOR_TEST_SESSION_PATTERN = /actions for test session/i;
+const DELETE_EXACT_PATTERN = /^delete$/i;
+const CANCEL_PATTERN = /cancel/i;
+
 const mockSession: Session = {
   id: "test-session-1",
   title: "Test Session",
@@ -30,7 +36,7 @@ describe("SessionActions", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: /actions for/i })
+      screen.getByRole("button", { name: ACTIONS_FOR_PATTERN })
     ).toBeInTheDocument();
   });
 
@@ -46,7 +52,7 @@ describe("SessionActions", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    await user.click(screen.getByRole("button", { name: ACTIONS_FOR_PATTERN }));
 
     await waitFor(() => {
       expect(screen.getByText("Export as JSON")).toBeInTheDocument();
@@ -68,7 +74,7 @@ describe("SessionActions", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    await user.click(screen.getByRole("button", { name: ACTIONS_FOR_PATTERN }));
 
     await waitFor(() => {
       expect(screen.getByText("Export as JSON")).toBeInTheDocument();
@@ -92,7 +98,7 @@ describe("SessionActions", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    await user.click(screen.getByRole("button", { name: ACTIONS_FOR_PATTERN }));
 
     await waitFor(() => {
       expect(screen.getByText("Export as Markdown")).toBeInTheDocument();
@@ -115,7 +121,7 @@ describe("SessionActions", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    await user.click(screen.getByRole("button", { name: ACTIONS_FOR_PATTERN }));
 
     await waitFor(() => {
       expect(screen.getByText("Delete")).toBeInTheDocument();
@@ -142,7 +148,7 @@ describe("SessionActions", () => {
     );
 
     // Open menu and click delete
-    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    await user.click(screen.getByRole("button", { name: ACTIONS_FOR_PATTERN }));
     await waitFor(() => {
       expect(screen.getByText("Delete")).toBeInTheDocument();
     });
@@ -154,7 +160,9 @@ describe("SessionActions", () => {
     });
 
     // Confirm delete
-    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+    await user.click(
+      screen.getByRole("button", { name: DELETE_EXACT_PATTERN })
+    );
 
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
@@ -172,7 +180,7 @@ describe("SessionActions", () => {
     );
 
     // Open menu and click delete
-    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    await user.click(screen.getByRole("button", { name: ACTIONS_FOR_PATTERN }));
     await waitFor(() => {
       expect(screen.getByText("Delete")).toBeInTheDocument();
     });
@@ -184,7 +192,7 @@ describe("SessionActions", () => {
     });
 
     // Click cancel
-    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    await user.click(screen.getByRole("button", { name: CANCEL_PATTERN }));
 
     await waitFor(() => {
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
@@ -202,7 +210,7 @@ describe("SessionActions", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: /actions for test session/i })
+      screen.getByRole("button", { name: ACTIONS_FOR_TEST_SESSION_PATTERN })
     ).toBeInTheDocument();
   });
 });

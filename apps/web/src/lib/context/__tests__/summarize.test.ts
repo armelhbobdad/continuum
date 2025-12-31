@@ -162,14 +162,13 @@ describe("summarizeMessages", () => {
     const adapter = createMockAdapter(mockTokens);
 
     const generator = summarizeMessages(messages, adapter);
-    let result: unknown;
     let iterResult = await generator.next();
 
     // Consume all tokens and capture final result
     while (!iterResult.done) {
       iterResult = await generator.next();
     }
-    result = iterResult.value;
+    const result = iterResult.value;
 
     expect(result).toBeDefined();
     expect(result).toHaveProperty("summary", "A friendly greeting.");

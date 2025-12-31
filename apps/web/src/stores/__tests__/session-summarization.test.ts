@@ -99,11 +99,11 @@ describe("Session Store Summarization", () => {
         role: "assistant" as const,
         content: "I am doing well, thank you!",
       });
-      const msg3Id = store.addMessage(sessionId, {
+      store.addMessage(sessionId, {
         role: "user" as const,
         content: "What is the weather like?",
       });
-      const msg4Id = store.addMessage(sessionId, {
+      store.addMessage(sessionId, {
         role: "assistant" as const,
         content: "I cannot check the weather, but I hope it is nice!",
       });
@@ -112,7 +112,7 @@ describe("Session Store Summarization", () => {
       const sessionBefore = useSessionStore
         .getState()
         .sessions.find((s) => s.id === sessionId);
-      const messagesToSummarize = sessionBefore!.messages.slice(0, 2);
+      const messagesToSummarize = sessionBefore?.messages.slice(0, 2) ?? [];
 
       // Store summarized messages
       const summaryId = useSessionStore
@@ -137,7 +137,7 @@ describe("Session Store Summarization", () => {
       const sessionAfter = useSessionStore
         .getState()
         .sessions.find((s) => s.id === sessionId);
-      expect(sessionAfter!.messages).toHaveLength(3); // 1 summary + 2 remaining
+      expect(sessionAfter?.messages).toHaveLength(3); // 1 summary + 2 remaining
     });
 
     it("should mark dirty after storing summarized messages", () => {
@@ -158,7 +158,7 @@ describe("Session Store Summarization", () => {
       const session = useSessionStore
         .getState()
         .sessions.find((s) => s.id === sessionId);
-      const messagesToSummarize = session!.messages;
+      const messagesToSummarize = session?.messages ?? [];
 
       useSessionStore
         .getState()
@@ -189,7 +189,7 @@ describe("Session Store Summarization", () => {
       const session = useSessionStore
         .getState()
         .sessions.find((s) => s.id === sessionId);
-      const messagesToSummarize = session!.messages;
+      const messagesToSummarize = session?.messages ?? [];
 
       const summaryId = useSessionStore
         .getState()
@@ -261,13 +261,18 @@ describe("Session Store Summarization", () => {
 
       const summaryId = useSessionStore
         .getState()
-        .storeSummarizedMessages(sessionId, "Summary", session!.messages, {
-          originalMessageIds: [msg1Id, msg2Id],
-          summarizedAt: new Date(),
-          messageCount: 2,
-          originalTokenCount: 30,
-          summarizedTokenCount: 5,
-        });
+        .storeSummarizedMessages(
+          sessionId,
+          "Summary",
+          session?.messages ?? [],
+          {
+            originalMessageIds: [msg1Id, msg2Id],
+            summarizedAt: new Date(),
+            messageCount: 2,
+            originalTokenCount: 30,
+            summarizedTokenCount: 5,
+          }
+        );
 
       const originals = useSessionStore
         .getState()
@@ -334,15 +339,16 @@ describe("Session Store Summarization", () => {
       const session = useSessionStore
         .getState()
         .sessions.find((s) => s.id === sessionId);
+      const sessionMessages = session?.messages ?? [];
 
       const summaryId = useSessionStore
         .getState()
         .storeSummarizedMessages(
           sessionId,
           "Summary of greeting",
-          session!.messages,
+          sessionMessages,
           {
-            originalMessageIds: session!.messages.map((m) => m.id),
+            originalMessageIds: sessionMessages.map((m) => m.id),
             summarizedAt: new Date(),
             messageCount: 2,
             originalTokenCount: 10,
@@ -353,13 +359,13 @@ describe("Session Store Summarization", () => {
       const updatedSession = useSessionStore
         .getState()
         .sessions.find((s) => s.id === sessionId);
-      const summaryMessage = updatedSession!.messages.find(
+      const summaryMessage = updatedSession?.messages.find(
         (m) => m.id === summaryId
       );
 
       expect(summaryMessage).toBeDefined();
-      expect(summaryMessage!.metadata?.summarization?.isSummary).toBe(true);
-      expect(summaryMessage!.metadata?.summarization?.messageCount).toBe(2);
+      expect(summaryMessage?.metadata?.summarization?.isSummary).toBe(true);
+      expect(summaryMessage?.metadata?.summarization?.messageCount).toBe(2);
     });
   });
 });

@@ -11,6 +11,9 @@ import {
   exportSessionToMarkdown,
 } from "../export-session";
 
+// Top-level regex patterns for performance
+const TIME_PATTERN = /\*\d{1,2}:\d{2}/;
+
 const mockSession: Session = {
   id: "test-session-1",
   title: "Test Conversation",
@@ -128,7 +131,7 @@ describe("exportSessionToMarkdown", () => {
   it("includes timestamps for each message", () => {
     const result = exportSessionToMarkdown(mockSession);
     // Should include time pattern (locale-dependent format)
-    expect(result).toMatch(/\*\d{1,2}:\d{2}/);
+    expect(result).toMatch(TIME_PATTERN);
   });
 
   it("preserves message order", () => {

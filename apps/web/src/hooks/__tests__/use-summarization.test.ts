@@ -141,8 +141,8 @@ describe("useSummarization", () => {
     // Mock the async generator to never complete immediately
     const neverEndingGenerator = (async function* () {
       yield "token";
-      // Never completes
-      await new Promise(() => {});
+      // Never completes - intentionally pending promise
+      await new Promise(() => undefined);
     })();
 
     mockGetAdapter.mockResolvedValue({
@@ -273,6 +273,7 @@ describe("useSummarization", () => {
 
   it("sets error when summarization fails", async () => {
     async function* mockGenerator(): AsyncGenerator<string, never, undefined> {
+      yield ""; // Yield empty string before throwing
       throw new Error("Summarization failed");
     }
 
@@ -398,6 +399,7 @@ describe("useSummarization", () => {
 
   it("transitions to error state on failure", async () => {
     async function* mockGenerator(): AsyncGenerator<string, never, undefined> {
+      yield ""; // Yield empty string before throwing
       throw new Error("Summarization failed");
     }
 
@@ -434,8 +436,8 @@ describe("useSummarization", () => {
     // Create a generator that never completes
     const neverEndingGenerator = (async function* () {
       yield "token";
-      // Never completes - wait forever
-      await new Promise(() => {});
+      // Never completes - intentionally pending promise
+      await new Promise(() => undefined);
     })();
 
     mockGetAdapter.mockResolvedValue({

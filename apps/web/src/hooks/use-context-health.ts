@@ -61,7 +61,9 @@ export function useContextHealth(): UseContextHealthResult {
   // Get selected model context length
   const selectedModelId = useModelStore((s) => s.selectedModelId);
   const modelContextLength = useMemo(() => {
-    if (!selectedModelId) return DEFAULT_CONTEXT_LENGTH;
+    if (!selectedModelId) {
+      return DEFAULT_CONTEXT_LENGTH;
+    }
     const model = getModelMetadata(selectedModelId);
     return model?.contextLength ?? DEFAULT_CONTEXT_LENGTH;
   }, [selectedModelId]);

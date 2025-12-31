@@ -96,11 +96,7 @@ describe("Summarization Integration", () => {
     it("keeps original messages separate from summary selection", () => {
       const messages = createMockMessages(8);
 
-      const { toSummarize, toKeep } = selectMessagesForSummarization(
-        messages,
-        0.5,
-        3
-      );
+      const { toSummarize } = selectMessagesForSummarization(messages, 0.5, 3);
 
       // Original messages are the ones in toSummarize
       // These should be stored for later expansion
@@ -123,6 +119,7 @@ describe("Summarization Integration", () => {
       // Adapter that throws an error
       const failingAdapter: InferenceAdapter = {
         generate: vi.fn().mockImplementation(async function* () {
+          yield ""; // Yield before throwing
           throw new Error("Model inference failed");
         }),
         abort: vi.fn().mockResolvedValue(undefined),

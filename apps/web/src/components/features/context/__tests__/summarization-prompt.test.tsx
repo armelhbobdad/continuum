@@ -10,6 +10,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SummarizationPrompt } from "../summarization-prompt";
 
+// Top-level regex patterns for performance
+const FREE_UP_SPACE_PATTERN = /older messages to free up space/i;
+const SUMMARIZE_PATTERN = /summarize/i;
+const DISMISS_PATTERN = /dismiss/i;
+
 // Mock the hook
 vi.mock("@/hooks/use-context-health", () => ({
   useContextHealth: vi.fn(),
@@ -101,9 +106,7 @@ describe("SummarizationPrompt", () => {
     );
 
     // The description shows "Summarize N older messages..."
-    expect(
-      screen.getByText(/older messages to free up space/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(FREE_UP_SPACE_PATTERN)).toBeInTheDocument();
   });
 
   it("calls onSummarize when Summarize button clicked", async () => {
@@ -123,7 +126,9 @@ describe("SummarizationPrompt", () => {
       />
     );
 
-    const summarizeButton = screen.getByRole("button", { name: /summarize/i });
+    const summarizeButton = screen.getByRole("button", {
+      name: SUMMARIZE_PATTERN,
+    });
     await user.click(summarizeButton);
 
     expect(mockOnSummarize).toHaveBeenCalledTimes(1);
@@ -146,7 +151,7 @@ describe("SummarizationPrompt", () => {
       />
     );
 
-    const dismissButton = screen.getByRole("button", { name: /dismiss/i });
+    const dismissButton = screen.getByRole("button", { name: DISMISS_PATTERN });
     await user.click(dismissButton);
 
     expect(mockOnDismiss).toHaveBeenCalledTimes(1);

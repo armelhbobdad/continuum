@@ -15,6 +15,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message } from "@/stores/session";
 import { SummarizedMessage } from "../summarized-message";
 
+// Top-level regex patterns for performance
+const SUMMARIZED_MESSAGES_PATTERN = /summarized 5 messages/i;
+const SHOW_ORIGINAL_PATTERN = /show original/i;
+const SAVED_PATTERN = /saved/i;
+
 // Mock session store for expansion state
 vi.mock("@/stores/session", () => ({
   useSessionStore: vi.fn(),
@@ -61,7 +66,7 @@ describe("SummarizedMessage", () => {
   it("displays message count label", () => {
     render(<SummarizedMessage {...defaultProps} />);
 
-    expect(screen.getByText(/summarized 5 messages/i)).toBeInTheDocument();
+    expect(screen.getByText(SUMMARIZED_MESSAGES_PATTERN)).toBeInTheDocument();
   });
 
   it("has visual distinction with different background", () => {
@@ -85,7 +90,7 @@ describe("SummarizedMessage", () => {
     render(<SummarizedMessage {...defaultProps} />);
 
     const expandButton = screen.getByRole("button", {
-      name: /show original/i,
+      name: SHOW_ORIGINAL_PATTERN,
     });
     await user.click(expandButton);
 
@@ -145,14 +150,14 @@ describe("SummarizedMessage", () => {
     render(<SummarizedMessage {...defaultProps} />);
 
     // Shows reduction: 500 -> 100 tokens = 80% saved
-    expect(screen.getByText(/saved/i)).toBeInTheDocument();
+    expect(screen.getByText(SAVED_PATTERN)).toBeInTheDocument();
   });
 
   it("has accessible expand button", () => {
     render(<SummarizedMessage {...defaultProps} />);
 
     const expandButton = screen.getByRole("button", {
-      name: /show original/i,
+      name: SHOW_ORIGINAL_PATTERN,
     });
     expect(expandButton).toBeInTheDocument();
   });

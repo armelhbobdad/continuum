@@ -100,10 +100,14 @@ export function SessionSidebar() {
   const handleDeleteSession = useCallback(
     (sessionId: string) => {
       const session = sessions.find((s) => s.id === sessionId);
-      if (!session) return;
+      if (!session) {
+        return;
+      }
 
       const deleted = deleteSession(sessionId);
-      if (!deleted) return;
+      if (!deleted) {
+        return;
+      }
 
       // Cache for undo
       deletedSessionRef.current = deleted;
@@ -141,7 +145,9 @@ export function SessionSidebar() {
   const handleExportJson = useCallback(
     (sessionId: string) => {
       const session = sessions.find((s) => s.id === sessionId);
-      if (!session) return;
+      if (!session) {
+        return;
+      }
 
       import("@/lib/sessions/export-session").then(
         ({ exportSessionToJson }) => {
@@ -164,7 +170,9 @@ export function SessionSidebar() {
   const handleExportMarkdown = useCallback(
     (sessionId: string) => {
       const session = sessions.find((s) => s.id === sessionId);
-      if (!session) return;
+      if (!session) {
+        return;
+      }
 
       import("@/lib/sessions/export-session").then(
         ({ exportSessionToMarkdown }) => {

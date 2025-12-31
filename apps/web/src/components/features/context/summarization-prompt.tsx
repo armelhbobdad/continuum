@@ -49,12 +49,11 @@ export function SummarizationPrompt({
   const toSummarize = Math.floor(messagesCount / 2);
 
   return (
-    <div
+    <section
       aria-label="Summarization prompt"
       className="flex items-center justify-between gap-4 border-t bg-amber-50 px-4 py-3 dark:bg-amber-950/20"
       data-slot="summarization-prompt"
       data-testid="summarization-prompt"
-      role="region"
     >
       <div className="flex items-center gap-3">
         <HugeiconsIcon
@@ -89,6 +88,6 @@ export function SummarizationPrompt({
           <HugeiconsIcon className="h-4 w-4" icon={Cancel01Icon} />
         </button>
       </div>
-    </div>
+    </section>
   );
 }

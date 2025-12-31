@@ -15,6 +15,7 @@ import { SessionListItem } from "../session-list-item";
 const JUST_NOW_PATTERN = /just now/i;
 const FIVE_MIN_AGO_PATTERN = /5 min ago/i;
 const YESTERDAY_PATTERN = /yesterday/i;
+const ACTIONS_FOR_PATTERN = /actions for/i;
 
 // Mock session for testing
 function createMockSession(overrides: Partial<Session> = {}): Session {
@@ -213,7 +214,7 @@ describe("SessionListItem Component", () => {
       );
 
       expect(
-        screen.getByRole("button", { name: /actions for/i })
+        screen.getByRole("button", { name: ACTIONS_FOR_PATTERN })
       ).toBeInTheDocument();
     });
 
@@ -221,7 +222,7 @@ describe("SessionListItem Component", () => {
       render(<SessionListItem {...defaultProps} />);
 
       expect(
-        screen.queryByRole("button", { name: /actions for/i })
+        screen.queryByRole("button", { name: ACTIONS_FOR_PATTERN })
       ).not.toBeInTheDocument();
     });
 

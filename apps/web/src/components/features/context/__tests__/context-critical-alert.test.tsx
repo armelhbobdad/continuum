@@ -10,6 +10,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ContextCriticalAlert } from "../context-critical-alert";
 
+// Top-level regex patterns for performance
+const CONTEXT_NEARLY_FULL_PATTERN = /Context is nearly full/i;
+const NEW_SESSION_PATTERN = /New Session/i;
+const DISMISS_ALERT_PATTERN = /Dismiss alert/i;
+
 // Mock the hook
 vi.mock("@/hooks/use-context-health", () => ({
   useContextHealth: vi.fn(),
@@ -109,9 +114,9 @@ describe("ContextCriticalAlert", () => {
 
     expect(screen.getByTestId("context-critical-alert")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText(/Context is nearly full/i)).toBeInTheDocument();
+    expect(screen.getByText(CONTEXT_NEARLY_FULL_PATTERN)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /New Session/i })
+      screen.getByRole("button", { name: NEW_SESSION_PATTERN })
     ).toBeInTheDocument();
   });
 
@@ -134,7 +139,7 @@ describe("ContextCriticalAlert", () => {
 
     render(<ContextCriticalAlert />);
 
-    await user.click(screen.getByRole("button", { name: /New Session/i }));
+    await user.click(screen.getByRole("button", { name: NEW_SESSION_PATTERN }));
 
     expect(mockCreateSession).toHaveBeenCalledWith("New conversation");
   });
@@ -160,7 +165,9 @@ describe("ContextCriticalAlert", () => {
 
     expect(screen.getByTestId("context-critical-alert")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Dismiss alert/i }));
+    await user.click(
+      screen.getByRole("button", { name: DISMISS_ALERT_PATTERN })
+    );
 
     expect(
       screen.queryByTestId("context-critical-alert")

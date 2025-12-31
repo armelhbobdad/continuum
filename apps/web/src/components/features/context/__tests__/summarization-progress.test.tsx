@@ -10,6 +10,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SummarizationProgress } from "../summarization-progress";
 
+// Top-level regex patterns for performance
+const SUMMARIZING_MESSAGES_PATTERN = /summarizing 5 messages/i;
+const CANCEL_PATTERN = /cancel/i;
+
 describe("SummarizationProgress", () => {
   const mockOnCancel = vi.fn();
 
@@ -54,7 +58,7 @@ describe("SummarizationProgress", () => {
       />
     );
 
-    expect(screen.getByText(/summarizing 5 messages/i)).toBeInTheDocument();
+    expect(screen.getByText(SUMMARIZING_MESSAGES_PATTERN)).toBeInTheDocument();
   });
 
   it("shows streaming text as it generates", () => {
@@ -83,7 +87,7 @@ describe("SummarizationProgress", () => {
       />
     );
 
-    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    const cancelButton = screen.getByRole("button", { name: CANCEL_PATTERN });
     await user.click(cancelButton);
 
     expect(mockOnCancel).toHaveBeenCalledTimes(1);

@@ -41,7 +41,9 @@ export interface ContextMetrics {
  * @returns Estimated token count (always >= 0)
  */
 export function estimateTokens(text: string): number {
-  if (!text) return 0;
+  if (!text) {
+    return 0;
+  }
   return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 

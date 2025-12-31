@@ -72,17 +72,16 @@ export function ContextHealthIndicator({
 
   return (
     <ContextHealthTooltip health={health}>
-      <div
+      <output
         aria-label={`Context health: ${health.status}, ${Math.round(health.percentage)}% used`}
         aria-live="polite"
         className={cn(indicatorVariants({ status: health.status }), className)}
         data-slot="context-health-indicator"
         data-testid="context-health-indicator"
-        role="status"
       >
         <HugeiconsIcon className="h-3.5 w-3.5" icon={Activity01Icon} />
         <span>{Math.round(health.percentage)}%</span>
-      </div>
+      </output>
     </ContextHealthTooltip>
   );
 }

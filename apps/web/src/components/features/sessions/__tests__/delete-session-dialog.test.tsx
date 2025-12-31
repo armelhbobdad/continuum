@@ -9,6 +9,12 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DeleteSessionDialog } from "../delete-session-dialog";
 
+// Top-level regex patterns for performance
+const IMPORTANT_SESSION_PATTERN = /my important session/i;
+const CANNOT_BE_UNDONE_PATTERN = /cannot be undone/i;
+const DELETE_PATTERN = /delete/i;
+const CANCEL_PATTERN = /cancel/i;
+
 describe("DeleteSessionDialog", () => {
   it("renders nothing when not open", () => {
     render(
@@ -49,7 +55,7 @@ describe("DeleteSessionDialog", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/my important session/i)).toBeInTheDocument();
+      expect(screen.getByText(IMPORTANT_SESSION_PATTERN)).toBeInTheDocument();
     });
   });
 
@@ -64,7 +70,7 @@ describe("DeleteSessionDialog", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
+      expect(screen.getByText(CANNOT_BE_UNDONE_PATTERN)).toBeInTheDocument();
     });
   });
 
@@ -85,7 +91,7 @@ describe("DeleteSessionDialog", () => {
       expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: /delete/i }));
+    await user.click(screen.getByRole("button", { name: DELETE_PATTERN }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
@@ -107,7 +113,7 @@ describe("DeleteSessionDialog", () => {
       expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    await user.click(screen.getByRole("button", { name: CANCEL_PATTERN }));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
