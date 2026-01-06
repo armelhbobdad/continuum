@@ -14,6 +14,7 @@
  */
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { ConnectivityProvider } from "@/components/features/connectivity/connectivity-provider";
 import { CorruptionDialogProvider } from "@/components/features/models/corruption-dialog-provider";
 import { PrivacyDashboard } from "@/components/features/privacy/privacy-dashboard";
 import { PrivacyGateProvider } from "@/components/features/privacy/privacy-gate-provider";
@@ -71,20 +72,22 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
       >
         <QueryClientProvider client={queryClient}>
-          <PrivacyGateProvider>
-            {({ mode: _mode, jazzKey: _jazzKey }) => (
-              <>
-                {/* Enable keyboard shortcuts for privacy mode switching and dashboard toggle */}
-                <PrivacyKeyboardShortcuts />
-                {/* Enable session auto-save and recovery (Story 1.7) */}
-                <SessionPersistence />
-                {/* Enable download completion handling and network recovery (Story 2.3) */}
-                <DownloadMonitoring />
-                {/* Corruption dialog for failed verification (Story 2.5) */}
-                <CorruptionDialogProvider />
-                {/* Privacy Dashboard overlay (Story 1.6) */}
-                <PrivacyDashboard />
-                {/*
+          {/* Connectivity monitoring - Story 4.1: AC1, AC3, AC4 */}
+          <ConnectivityProvider>
+            <PrivacyGateProvider>
+              {({ mode: _mode, jazzKey: _jazzKey }) => (
+                <>
+                  {/* Enable keyboard shortcuts for privacy mode switching and dashboard toggle */}
+                  <PrivacyKeyboardShortcuts />
+                  {/* Enable session auto-save and recovery (Story 1.7) */}
+                  <SessionPersistence />
+                  {/* Enable download completion handling and network recovery (Story 2.3) */}
+                  <DownloadMonitoring />
+                  {/* Corruption dialog for failed verification (Story 2.5) */}
+                  <CorruptionDialogProvider />
+                  {/* Privacy Dashboard overlay (Story 1.6) */}
+                  <PrivacyDashboard />
+                  {/*
                 JazzProvider will be added here in Story 6.x:
                 <JazzProvider key={_jazzKey} syncWhen={modeToSyncWhen(_mode)}>
                   {children}
@@ -92,10 +95,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
                 For now, _mode and _jazzKey are available but not used until Jazz integration.
               */}
-                {children}
-              </>
-            )}
-          </PrivacyGateProvider>
+                  {children}
+                </>
+              )}
+            </PrivacyGateProvider>
+          </ConnectivityProvider>
           <ReactQueryDevtools />
         </QueryClientProvider>
         <Toaster richColors />

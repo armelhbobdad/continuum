@@ -13,6 +13,7 @@
 // Application startup legitimately uses expect() for fatal initialization errors
 #![allow(clippy::expect_used)]
 
+mod connectivity;
 mod downloads;
 mod hardware;
 mod inference;
@@ -55,6 +56,8 @@ pub fn run() {
             verification::commands::compute_model_checksum,
             verification::commands::list_quarantined_files,
             verification::commands::delete_quarantined_file,
+            // Connectivity commands (Story 4.1)
+            connectivity::check_connectivity,
         ])
         .setup(|app| {
             // Initialize download state with app data directory
