@@ -110,17 +110,15 @@ export const SessionListItem = memo(function SessionListItem({
   };
 
   return (
-    <div
-      data-session-id={session.id}
-      data-slot="session-list-item"
-      style={style}
-    >
+    <div style={style}>
       <div
         aria-selected={isActive}
         className={cn(
           sessionItemVariants({ state: isActive ? "selected" : "default" }),
           hasActions && "group"
         )}
+        data-session-id={session.id}
+        data-slot="session-list-item"
         onClick={onSelect}
         onFocus={onFocus}
         onKeyDown={handleKeyDown}

@@ -196,9 +196,11 @@ describe("SessionListItem Component", () => {
       };
       render(<SessionListItem {...defaultProps} style={style} />);
 
+      // Style is applied to the outer wrapper div (parent of role="option")
       const item = screen.getByRole("option");
-      expect(item).toHaveStyle({ position: "absolute" });
-      expect(item).toHaveStyle({ transform: "translateY(112px)" });
+      const wrapper = item.parentElement;
+      expect(wrapper).toHaveStyle({ position: "absolute" });
+      expect(wrapper).toHaveStyle({ transform: "translateY(112px)" });
     });
   });
 

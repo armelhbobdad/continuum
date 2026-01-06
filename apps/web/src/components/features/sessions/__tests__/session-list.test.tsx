@@ -200,8 +200,9 @@ describe("SessionList Component", () => {
       render(<SessionList />);
 
       const items = screen.getAllByRole("option");
-      // Check first item has positioning styles
-      expect(items[0]).toHaveStyle({ position: "absolute" });
+      // Style is applied to wrapper div (parent of role="option")
+      const wrapper = items[0].parentElement;
+      expect(wrapper).toHaveStyle({ position: "absolute" });
     });
 
     it("maintains stable keys for virtual items", () => {
