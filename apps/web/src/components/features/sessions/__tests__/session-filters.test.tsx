@@ -80,10 +80,13 @@ describe("SessionFilters", () => {
     );
 
     await user.click(screen.getByRole("button", { name: FILTERS_PATTERN }));
+    // Click the trigger to open the dropdown
     const dateSelect = screen.getByRole("combobox", {
       name: DATE_RANGE_PATTERN,
     });
-    await user.selectOptions(dateSelect, "today");
+    await user.click(dateSelect);
+    // Click the option in the dropdown
+    await user.click(screen.getByRole("option", { name: "Today" }));
 
     expect(onFiltersChange).toHaveBeenCalled();
   });
@@ -112,10 +115,13 @@ describe("SessionFilters", () => {
     );
 
     await user.click(screen.getByRole("button", { name: FILTERS_PATTERN }));
+    // Click the trigger to open the dropdown
     const messageTypeSelect = screen.getByRole("combobox", {
       name: MESSAGE_TYPE_PATTERN,
     });
-    await user.selectOptions(messageTypeSelect, "with-ai");
+    await user.click(messageTypeSelect);
+    // Click the option in the dropdown
+    await user.click(screen.getByRole("option", { name: "With AI responses" }));
 
     expect(onFiltersChange).toHaveBeenCalledWith(
       expect.objectContaining({ messageType: "with-ai" })
