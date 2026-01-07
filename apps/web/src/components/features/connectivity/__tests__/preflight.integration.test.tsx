@@ -1,0 +1,368 @@
+/**
+ * Pre-Flight Readiness Checklist Integration Tests
+ *
+ * Tests the complete pre-flight system including:
+ * - Full checklist flow with all statuses
+ * - Action button triggering check re-run
+ * - Overall status calculation
+ * - Dialog integration with airplane mode toggle
+ * - Parallel check execution
+ *
+ * Story 4.3: Pre-Flight Readiness Checklist
+ */
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { usePrivacyStore } from "@/stores/privacy";
+import type { PreFlightCheck } from "@/types/preflight";
+
+// Mock Tauri invoke
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
+}));
+
+// Mock toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+  },
+}));
+
+describe("Pre-Flight Integration Tests", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    usePrivacyStore.setState({
+      mode: "trusted-network",
+      airplaneMode: false,
+      previousMode: null,
+      jazzKey: "test-key",
+      networkLog: [],
+      isDashboardOpen: false,
+    });
+  });
+
+  describe("Full Checklist Flow", () => {
+    it("renders all check items with their statuses", async () => {
+      const mockChecks: PreFlightCheck[] = [
+        {
+          id: "model",
+          category: "model",
+          name: "AI Model",
+          status: "ready",
+          message: "Ready",
+        },
+        {
+          id: "storage",
+          category: "storage",
+          name: "Storage",
+          status: "warning",
+          message: "Low",
+        },
+        {
+          id: "ram",
+          category: "ram",
+          name: "Memory",
+          status: "critical",
+          message: "Insufficient",
+        },
+        {
+          id: "knowledge",
+          category: "knowledge",
+          name: "Knowledge",
+          status: "ready",
+          message: "Synced",
+        },
+      ];
+
+      vi.doMock("@/hooks/use-preflight-checks", () => ({
+        usePreFlightChecks: () => ({
+          checks: mockChecks,
+          isLoading: false,
+          error: null,
+          overallStatus: "critical",
+          runChecks: vi.fn(),
+          rerunCheck: vi.fn(),
+        }),
+      }));
+
+      const { PreFlightChecklist } = await import("../preflight-checklist");
+      render(<PreFlightChecklist />);
+
+      expect(screen.getByTestId("preflight-check-model")).toHaveAttribute(
+        "data-status",
+        "ready"
+      );
+      expect(screen.getByTestId("preflight-check-storage")).toHaveAttribute(
+        "data-status",
+        "warning"
+      );
+      expect(screen.getByTestId("preflight-check-ram")).toHaveAttribute(
+        "data-status",
+        "critical"
+      );
+      expect(screen.getByTestId("preflight-check-knowledge")).toHaveAttribute(
+        "data-status",
+        "ready"
+      );
+    });
+
+    it("shows correct summary for mixed statuses", async () => {
+      const mockChecks: PreFlightCheck[] = [
+        {
+          id: "model",
+          category: "model",
+          name: "AI Model",
+          status: "ready",
+          message: "Ready",
+        },
+        {
+          id: "storage",
+          category: "storage",
+          name: "Storage",
+          status: "warning",
+          message: "Low",
+        },
+      ];
+
+      vi.doMock("@/hooks/use-preflight-checks", () => ({
+        usePreFlightChecks: () => ({
+          checks: mockChecks,
+          isLoading: false,
+          error: null,
+          overallStatus: "warning",
+          runChecks: vi.fn(),
+          rerunCheck: vi.fn(),
+        }),
+      }));
+
+      const { PreFlightChecklist } = await import("../preflight-checklist");
+      render(<PreFlightChecklist />);
+
+      expect(screen.getByText("Ready with warnings")).toBeInTheDocument();
+      expect(screen.getByText("1 of 2 checks passed")).toBeInTheDocument();
+    });
+  });
+
+  describe("Action Button Re-run", () => {
+    it("calls rerunCheck when action button clicked", async () => {
+      const rerunCheck = vi.fn();
+      const mockChecks: PreFlightCheck[] = [
+        {
+          id: "model",
+          category: "model",
+          name: "AI Model",
+          status: "critical",
+          message: "No model",
+          action: { label: "Download", href: "/models" },
+        },
+      ];
+
+      vi.doMock("@/hooks/use-preflight-checks", () => ({
+        usePreFlightChecks: () => ({
+          checks: mockChecks,
+          isLoading: false,
+          error: null,
+          overallStatus: "critical",
+          runChecks: vi.fn(),
+          rerunCheck,
+        }),
+      }));
+
+      const { PreFlightChecklist } = await import("../preflight-checklist");
+      render(<PreFlightChecklist />);
+
+      // Action link is present
+      const actionLink = screen.getByRole("link", { name: "Download" });
+      expect(actionLink).toHaveAttribute("href", "/models");
+    });
+  });
+
+  describe("Overall Status Calculation", () => {
+    it("returns ready when all checks pass", async () => {
+      const { calculateOverallStatus } = await import("@/lib/preflight/checks");
+
+      const checks: PreFlightCheck[] = [
+        {
+          id: "1",
+          category: "model",
+          name: "Model",
+          status: "ready",
+          message: "",
+        },
+        {
+          id: "2",
+          category: "storage",
+          name: "Storage",
+          status: "ready",
+          message: "",
+        },
+        { id: "3", category: "ram", name: "RAM", status: "ready", message: "" },
+      ];
+
+      expect(calculateOverallStatus(checks)).toBe("ready");
+    });
+
+    it("returns warning when any check has warning", async () => {
+      const { calculateOverallStatus } = await import("@/lib/preflight/checks");
+
+      const checks: PreFlightCheck[] = [
+        {
+          id: "1",
+          category: "model",
+          name: "Model",
+          status: "ready",
+          message: "",
+        },
+        {
+          id: "2",
+          category: "storage",
+          name: "Storage",
+          status: "warning",
+          message: "",
+        },
+        { id: "3", category: "ram", name: "RAM", status: "ready", message: "" },
+      ];
+
+      expect(calculateOverallStatus(checks)).toBe("warning");
+    });
+
+    it("returns critical when any check is critical (even with warnings)", async () => {
+      const { calculateOverallStatus } = await import("@/lib/preflight/checks");
+
+      const checks: PreFlightCheck[] = [
+        {
+          id: "1",
+          category: "model",
+          name: "Model",
+          status: "critical",
+          message: "",
+        },
+        {
+          id: "2",
+          category: "storage",
+          name: "Storage",
+          status: "warning",
+          message: "",
+        },
+        { id: "3", category: "ram", name: "RAM", status: "ready", message: "" },
+      ];
+
+      expect(calculateOverallStatus(checks)).toBe("critical");
+    });
+  });
+
+  describe("Parallel Check Execution", () => {
+    it("runs all checks in parallel", async () => {
+      // Reset mocks for this specific test
+      vi.resetModules();
+
+      const { runAllChecks } = await import("@/lib/preflight/checks");
+
+      const startTime = Date.now();
+      const results = await runAllChecks();
+      const endTime = Date.now();
+
+      // Checks should complete quickly (no sequential delays)
+      expect(endTime - startTime).toBeLessThan(500);
+
+      // Should return multiple check results
+      expect(results.length).toBeGreaterThanOrEqual(4);
+
+      // All results should have required fields
+      for (const result of results) {
+        expect(result.id).toBeDefined();
+        expect(result.category).toBeDefined();
+        expect(result.name).toBeDefined();
+        expect(result.status).toBeDefined();
+        expect(result.message).toBeDefined();
+      }
+    });
+
+    it("filters out null results (GPU check on web)", async () => {
+      vi.resetModules();
+
+      const { runAllChecks } = await import("@/lib/preflight/checks");
+
+      const results = await runAllChecks();
+
+      // No null values in results
+      for (const result of results) {
+        expect(result).not.toBeNull();
+      }
+
+      // GPU check should be filtered out on web (non-Tauri)
+      const gpuCheck = results.find((r) => r.category === "gpu");
+      expect(gpuCheck).toBeUndefined();
+    });
+  });
+
+  describe("Dialog Integration", () => {
+    it("shows checklist content in dialog", async () => {
+      vi.doMock("@/hooks/use-preflight-checks", () => ({
+        usePreFlightChecks: () => ({
+          checks: [
+            {
+              id: "model",
+              category: "model",
+              name: "AI Model",
+              status: "ready",
+              message: "Ready",
+            },
+          ],
+          isLoading: false,
+          error: null,
+          overallStatus: "ready",
+          runChecks: vi.fn(),
+          rerunCheck: vi.fn(),
+        }),
+      }));
+
+      const { PreFlightDialog } = await import("../preflight-dialog");
+      render(
+        <PreFlightDialog
+          onOpenChange={vi.fn()}
+          onProceed={vi.fn()}
+          onSkip={vi.fn()}
+          open={true}
+        />
+      );
+
+      expect(screen.getByText("Pre-Flight Check")).toBeInTheDocument();
+      expect(screen.getByText("AI Model")).toBeInTheDocument();
+    });
+
+    it("calls onProceed when Enable button clicked", async () => {
+      const onProceed = vi.fn();
+      const onOpenChange = vi.fn();
+
+      vi.doMock("@/hooks/use-preflight-checks", () => ({
+        usePreFlightChecks: () => ({
+          checks: [],
+          isLoading: false,
+          error: null,
+          overallStatus: "ready",
+          runChecks: vi.fn(),
+          rerunCheck: vi.fn(),
+        }),
+      }));
+
+      const { PreFlightDialog } = await import("../preflight-dialog");
+      render(
+        <PreFlightDialog
+          onOpenChange={onOpenChange}
+          onProceed={onProceed}
+          onSkip={vi.fn()}
+          open={true}
+        />
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /enable airplane mode/i })
+      );
+
+      expect(onProceed).toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+});

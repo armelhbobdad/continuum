@@ -1,15 +1,50 @@
 "use client";
+
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import {
   AirplaneModeIndicator,
   AirplaneModeToggle,
   OfflineIndicator,
+  PreFlightDialog,
 } from "./features/connectivity";
 import { PrivacyModeSelector } from "./features/privacy/privacy-mode-selector";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
 
 export default function Header() {
+  const [preflightOpen, setPreflightOpen] = useState(false);
+  const [preflightResolver, setPreflightResolver] = useState<
+    ((proceed: boolean) => void) | null
+  >(null);
+
+  const handleBeforeEnable = useCallback(() => {
+    return new Promise<boolean>((resolve) => {
+      setPreflightResolver(() => resolve);
+      setPreflightOpen(true);
+    });
+  }, []);
+
+  const handlePreflightProceed = useCallback(() => {
+    preflightResolver?.(true);
+    setPreflightResolver(null);
+  }, [preflightResolver]);
+
+  const handlePreflightSkip = useCallback(() => {
+    preflightResolver?.(true); // Skip still enables airplane mode
+    setPreflightResolver(null);
+  }, [preflightResolver]);
+
+  const handlePreflightOpenChange = useCallback(
+    (open: boolean) => {
+      setPreflightOpen(open);
+      if (!open && preflightResolver) {
+        preflightResolver(false); // User closed dialog = cancel
+        setPreflightResolver(null);
+      }
+    },
+    [preflightResolver]
+  );
   const links: Array<{ to: string; label: string }> = [
     { to: "/", label: "Home" },
     { to: "/chat", label: "Chat" },
@@ -35,11 +70,19 @@ export default function Header() {
           <OfflineIndicator />
           {/* Story 4.2: AC1 - Airplane Mode Indicator & Toggle */}
           <AirplaneModeIndicator />
-          <AirplaneModeToggle />
+          {/* Story 4.3: AC5 - Pre-Flight Dialog before Airplane Mode */}
+          <AirplaneModeToggle onBeforeEnable={handleBeforeEnable} />
           <ModeToggle />
           <UserMenu />
         </div>
       </div>
+      {/* Story 4.3: Pre-Flight Readiness Checklist Dialog */}
+      <PreFlightDialog
+        onOpenChange={handlePreflightOpenChange}
+        onProceed={handlePreflightProceed}
+        onSkip={handlePreflightSkip}
+        open={preflightOpen}
+      />
       <hr />
     </div>
   );
