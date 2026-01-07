@@ -5,6 +5,7 @@ import { useConnectivityStore } from "../connectivity";
  * Connectivity Store Tests
  *
  * Story 4.1: AC1, AC4
+ * Story 4.4: Transition state and partial response management
  * Memory-only store for tracking online/offline status with debounce support.
  */
 describe("useConnectivityStore", () => {
@@ -14,6 +15,8 @@ describe("useConnectivityStore", () => {
       isOnline: true,
       isStable: true,
       lastChecked: null,
+      transitionState: "stable",
+      partialResponse: null,
     });
   });
 
@@ -78,5 +81,68 @@ describe("useConnectivityStore", () => {
     // Check that the store doesn't have persist API
     // Persist stores have: persist.getOptions(), persist.clearStorage(), etc.
     expect((store as unknown as { persist?: unknown }).persist).toBeUndefined();
+  });
+
+  /**
+   * Story 4.4: Transition state management
+   */
+  describe("transitionState (Story 4.4)", () => {
+    it("defaults to stable", () => {
+      const state = useConnectivityStore.getState();
+      expect(state.transitionState).toBe("stable");
+    });
+
+    it("updates transition state via setTransitionState", () => {
+      const { setTransitionState } = useConnectivityStore.getState();
+      setTransitionState("transitioning");
+      expect(useConnectivityStore.getState().transitionState).toBe(
+        "transitioning"
+      );
+    });
+
+    it("supports recovering state", () => {
+      const { setTransitionState } = useConnectivityStore.getState();
+      setTransitionState("recovering");
+      expect(useConnectivityStore.getState().transitionState).toBe(
+        "recovering"
+      );
+    });
+  });
+
+  /**
+   * Story 4.4: Partial response management
+   */
+  describe("partialResponse (Story 4.4)", () => {
+    const mockPartialResponse = {
+      messageId: "msg-123",
+      sessionId: "session-456",
+      content: "Partial content",
+      timestamp: Date.now(),
+      retryable: true,
+    };
+
+    it("defaults to null", () => {
+      const state = useConnectivityStore.getState();
+      expect(state.partialResponse).toBeNull();
+    });
+
+    it("preserves partial response via preservePartialResponse", () => {
+      const { preservePartialResponse } = useConnectivityStore.getState();
+      preservePartialResponse(mockPartialResponse);
+      expect(useConnectivityStore.getState().partialResponse).toEqual(
+        mockPartialResponse
+      );
+    });
+
+    it("clears partial response via clearPartialResponse", () => {
+      const { preservePartialResponse, clearPartialResponse } =
+        useConnectivityStore.getState();
+
+      preservePartialResponse(mockPartialResponse);
+      expect(useConnectivityStore.getState().partialResponse).not.toBeNull();
+
+      clearPartialResponse();
+      expect(useConnectivityStore.getState().partialResponse).toBeNull();
+    });
   });
 });
