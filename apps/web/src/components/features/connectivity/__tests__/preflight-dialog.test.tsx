@@ -7,26 +7,36 @@
  * Story 4.3: Pre-Flight Readiness Checklist (AC5 - Integration)
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock the hook
-const mockRunChecks = vi.fn();
-const mockRerunCheck = vi.fn();
+import { PreFlightDialog } from "../preflight-dialog";
 
+// Mock the hook at module level
 vi.mock("@/hooks/use-preflight-checks", () => ({
-  usePreFlightChecks: vi.fn(),
+  usePreFlightChecks: vi.fn(() => ({
+    checks: [],
+    isLoading: false,
+    error: null,
+    overallStatus: "ready",
+    runChecks: vi.fn(),
+    rerunCheck: vi.fn(),
+  })),
 }));
+
+// Import the mocked hook
+import { usePreFlightChecks } from "@/hooks/use-preflight-checks";
 
 describe("PreFlightDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRunChecks.mockResolvedValue(undefined);
-    mockRerunCheck.mockResolvedValue(undefined);
   });
 
-  it("renders dialog with checklist when open", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders dialog with checklist when open", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [
         {
@@ -40,11 +50,10 @@ describe("PreFlightDialog", () => {
       isLoading: false,
       error: null,
       overallStatus: "ready",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={vi.fn()}
@@ -57,18 +66,16 @@ describe("PreFlightDialog", () => {
     expect(screen.getByText("Pre-Flight Check")).toBeInTheDocument();
   });
 
-  it("does not render dialog content when closed", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("does not render dialog content when closed", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
       error: null,
       overallStatus: "ready",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={vi.fn()}
@@ -78,23 +85,23 @@ describe("PreFlightDialog", () => {
       />
     );
 
-    expect(screen.queryByText("Pre-Flight Check")).not.toBeInTheDocument();
+    // Dialog content should not be rendered when open=false
+    expect(screen.queryByTestId("preflight-dialog")).not.toBeInTheDocument();
   });
 
-  it("calls onSkip and closes dialog when Skip button clicked", async () => {
+  it("calls onSkip and closes dialog when Skip button clicked", () => {
     const onSkip = vi.fn();
     const onOpenChange = vi.fn();
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
       error: null,
       overallStatus: "ready",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={onOpenChange}
@@ -110,20 +117,19 @@ describe("PreFlightDialog", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("calls onProceed and closes dialog when Proceed button clicked", async () => {
+  it("calls onProceed and closes dialog when Proceed button clicked", () => {
     const onProceed = vi.fn();
     const onOpenChange = vi.fn();
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
       error: null,
       overallStatus: "ready",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={onOpenChange}
@@ -141,18 +147,16 @@ describe("PreFlightDialog", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("shows 'Enable Airplane Mode' button for ready status", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("shows 'Enable Airplane Mode' button for ready status", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
       error: null,
       overallStatus: "ready",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={vi.fn()}
@@ -167,8 +171,7 @@ describe("PreFlightDialog", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows 'Proceed Anyway' button for critical status", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("shows 'Proceed Anyway' button for critical status", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [
         {
@@ -182,11 +185,10 @@ describe("PreFlightDialog", () => {
       isLoading: false,
       error: null,
       overallStatus: "critical",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={vi.fn()}
@@ -201,18 +203,16 @@ describe("PreFlightDialog", () => {
     ).toBeInTheDocument();
   });
 
-  it("has correct data-slot attribute", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("has correct data-slot attribute", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
       error: null,
       overallStatus: "ready",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={vi.fn()}
@@ -228,18 +228,16 @@ describe("PreFlightDialog", () => {
     );
   });
 
-  it("renders Skip and primary action buttons", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("renders Skip and primary action buttons", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
       error: null,
       overallStatus: "ready",
-      runChecks: mockRunChecks,
-      rerunCheck: mockRerunCheck,
+      runChecks: vi.fn(),
+      rerunCheck: vi.fn(),
     });
 
-    const { PreFlightDialog } = await import("../preflight-dialog");
     render(
       <PreFlightDialog
         onOpenChange={vi.fn()}

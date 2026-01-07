@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import type {
   PartialResponseState,
   TransitionEvent,
@@ -15,12 +16,37 @@ vi.mock("@/stores/privacy", () => ({
 }));
 
 vi.mock("@/hooks/use-notification-preference", () => ({
-  useNotificationPreference: vi.fn(),
+  useNotificationPreference: vi.fn(() => ({
+    isSuppressed: () => false,
+    setSuppressed: vi.fn(),
+    preferences: {
+      "mode-change-toast": false,
+      "offline-indicator": false,
+      "recovery-toast": false,
+    },
+    resetPreferences: vi.fn(),
+  })),
 }));
 
 vi.mock("@/hooks/use-connectivity-transition", () => ({
-  useConnectivityTransition: vi.fn(),
+  useConnectivityTransition: vi.fn(() => ({
+    transitionState: "stable",
+    partialResponse: null,
+    isTransitioning: false,
+    preservePartialResponse: vi.fn(),
+    retryPartialResponse: vi.fn(),
+    clearPartialResponse: vi.fn(),
+    onTransitionEvent: vi.fn(() => vi.fn()),
+  })),
 }));
+
+// Static imports after mocks
+import { useConnectivityTransition } from "@/hooks/use-connectivity-transition";
+import { useNotificationPreference } from "@/hooks/use-notification-preference";
+import { ConnectivityErrorBoundary } from "../connectivity-error-boundary";
+import { ConnectivityTransition } from "../connectivity-transition";
+import { ModeChangeToast } from "../mode-change-toast";
+import { PartialResponseRecovery } from "../partial-response-recovery";
 
 /**
  * Connectivity Transition Integration Tests
@@ -29,17 +55,16 @@ vi.mock("@/hooks/use-connectivity-transition", () => ({
  * Tests for complete connectivity transition workflows.
  */
 describe("Connectivity Transition Integration", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   describe("Full transition flow: online → offline → online", () => {
-    it("transitions gracefully when going offline", async () => {
-      const { useConnectivityTransition } = await import(
-        "@/hooks/use-connectivity-transition"
-      );
-
+    it("transitions gracefully when going offline", () => {
       let transitionState = "stable";
       vi.mocked(useConnectivityTransition).mockImplementation(() => ({
         transitionState: transitionState as
@@ -54,9 +79,6 @@ describe("Connectivity Transition Integration", () => {
         onTransitionEvent: vi.fn(() => vi.fn()),
       }));
 
-      const { ConnectivityTransition } = await import(
-        "../connectivity-transition"
-      );
       const { rerender } = render(
         <ConnectivityTransition>
           <div>Content</div>
@@ -93,11 +115,7 @@ describe("Connectivity Transition Integration", () => {
       );
     });
 
-    it("shows recovery state when coming back online", async () => {
-      const { useConnectivityTransition } = await import(
-        "@/hooks/use-connectivity-transition"
-      );
-
+    it("shows recovery state when coming back online", () => {
       vi.mocked(useConnectivityTransition).mockReturnValue({
         transitionState: "recovering",
         partialResponse: null,
@@ -108,9 +126,6 @@ describe("Connectivity Transition Integration", () => {
         onTransitionEvent: vi.fn(() => vi.fn()),
       });
 
-      const { ConnectivityTransition } = await import(
-        "../connectivity-transition"
-      );
       render(
         <ConnectivityTransition>
           <div>Content</div>
@@ -125,7 +140,7 @@ describe("Connectivity Transition Integration", () => {
   });
 
   describe("Mid-stream interruption and recovery", () => {
-    it("displays partial response recovery UI when interrupted", async () => {
+    it("displays partial response recovery UI when interrupted", () => {
       const mockPartialResponse: PartialResponseState = {
         messageId: "msg-123",
         sessionId: "session-456",
@@ -137,9 +152,6 @@ describe("Connectivity Transition Integration", () => {
       const onRetry = vi.fn();
       const onKeepPartial = vi.fn();
 
-      const { PartialResponseRecovery } = await import(
-        "../partial-response-recovery"
-      );
       render(
         <PartialResponseRecovery
           isOnline={true}
@@ -153,7 +165,7 @@ describe("Connectivity Transition Integration", () => {
       expect(screen.getByText("Response interrupted")).toBeInTheDocument();
     });
 
-    it("enables retry when back online", async () => {
+    it("enables retry when back online", () => {
       const mockPartialResponse: PartialResponseState = {
         messageId: "msg-123",
         sessionId: "session-456",
@@ -164,9 +176,6 @@ describe("Connectivity Transition Integration", () => {
 
       const onRetry = vi.fn();
 
-      const { PartialResponseRecovery } = await import(
-        "../partial-response-recovery"
-      );
       render(
         <PartialResponseRecovery
           isOnline={true}
@@ -185,10 +194,7 @@ describe("Connectivity Transition Integration", () => {
   });
 
   describe("Notification preference persistence", () => {
-    it("respects suppressed notification preferences", async () => {
-      const { useNotificationPreference } = await import(
-        "@/hooks/use-notification-preference"
-      );
+    it("respects suppressed notification preferences", () => {
       vi.mocked(useNotificationPreference).mockReturnValue({
         isSuppressed: () => true,
         setSuppressed: vi.fn(),
@@ -207,18 +213,14 @@ describe("Connectivity Transition Integration", () => {
         newState: { isOnline: false, mode: "local-only" },
       };
 
-      const { ModeChangeToast } = await import("../mode-change-toast");
       const { container } = render(<ModeChangeToast event={mockEvent} />);
 
       // Should not render when suppressed
       expect(container.firstChild).toBeNull();
     });
 
-    it("persists preference when don't show again is checked", async () => {
+    it("persists preference when don't show again is checked", () => {
       const setSuppressed = vi.fn();
-      const { useNotificationPreference } = await import(
-        "@/hooks/use-notification-preference"
-      );
       vi.mocked(useNotificationPreference).mockReturnValue({
         isSuppressed: () => false,
         setSuppressed,
@@ -237,7 +239,6 @@ describe("Connectivity Transition Integration", () => {
         newState: { isOnline: false, mode: "local-only" },
       };
 
-      const { ModeChangeToast } = await import("../mode-change-toast");
       render(<ModeChangeToast event={mockEvent} />);
 
       // Check the don't show again checkbox
@@ -258,14 +259,11 @@ describe("Connectivity Transition Integration", () => {
       return <div>Content recovered</div>;
     }
 
-    it("catches errors and shows recovery UI", async () => {
+    it("catches errors and shows recovery UI", () => {
       const consoleSpy = vi
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      const { ConnectivityErrorBoundary } = await import(
-        "../connectivity-error-boundary"
-      );
       render(
         <ConnectivityErrorBoundary>
           <ErrorThrower shouldThrow={true} />
@@ -283,7 +281,7 @@ describe("Connectivity Transition Integration", () => {
       consoleSpy.mockRestore();
     });
 
-    it("recovers when retry is clicked and error is resolved", async () => {
+    it("recovers when retry is clicked and error is resolved", () => {
       const consoleSpy = vi
         .spyOn(console, "error")
         .mockImplementation(() => {});
@@ -296,9 +294,6 @@ describe("Connectivity Transition Integration", () => {
         return <div>Content recovered</div>;
       }
 
-      const { ConnectivityErrorBoundary } = await import(
-        "../connectivity-error-boundary"
-      );
       const { rerender } = render(
         <ConnectivityErrorBoundary>
           <ConditionalError />
@@ -324,10 +319,7 @@ describe("Connectivity Transition Integration", () => {
   });
 
   describe("Mode change toast variants", () => {
-    it("shows offline message for forced offline transition", async () => {
-      const { useNotificationPreference } = await import(
-        "@/hooks/use-notification-preference"
-      );
+    it("shows offline message for forced offline transition", () => {
       vi.mocked(useNotificationPreference).mockReturnValue({
         isSuppressed: () => false,
         setSuppressed: vi.fn(),
@@ -346,17 +338,13 @@ describe("Connectivity Transition Integration", () => {
         newState: { isOnline: false, mode: "local-only" },
       };
 
-      const { ModeChangeToast } = await import("../mode-change-toast");
       render(<ModeChangeToast event={mockEvent} />);
 
       expect(screen.getByText("Connectivity changed")).toBeInTheDocument();
       expect(screen.getByText(/Operating in offline mode/)).toBeInTheDocument();
     });
 
-    it("shows recovery message when coming back online", async () => {
-      const { useNotificationPreference } = await import(
-        "@/hooks/use-notification-preference"
-      );
+    it("shows recovery message when coming back online", () => {
       vi.mocked(useNotificationPreference).mockReturnValue({
         isSuppressed: () => false,
         setSuppressed: vi.fn(),
@@ -375,7 +363,6 @@ describe("Connectivity Transition Integration", () => {
         newState: { isOnline: true, mode: "local-only" },
       };
 
-      const { ModeChangeToast } = await import("../mode-change-toast");
       render(<ModeChangeToast event={mockEvent} />);
 
       expect(screen.getByText("Back online")).toBeInTheDocument();

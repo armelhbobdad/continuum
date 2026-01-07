@@ -11,8 +11,8 @@
  * Story 4.3: Pre-Flight Readiness Checklist
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePrivacyStore } from "@/stores/privacy";
 import type { PreFlightCheck } from "@/types/preflight";
 
@@ -28,10 +28,26 @@ vi.mock("sonner", () => ({
   },
 }));
 
+// Mock the hook at module level with default implementation
+vi.mock("@/hooks/use-preflight-checks", () => ({
+  usePreFlightChecks: vi.fn(() => ({
+    checks: [],
+    isLoading: false,
+    error: null,
+    overallStatus: "ready",
+    runChecks: vi.fn(),
+    rerunCheck: vi.fn(),
+  })),
+}));
+
+// Static imports after mocks
+import { usePreFlightChecks } from "@/hooks/use-preflight-checks";
+import { PreFlightChecklist } from "../preflight-checklist";
+import { PreFlightDialog } from "../preflight-dialog";
+
 describe("Pre-Flight Integration Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
     usePrivacyStore.setState({
       mode: "trusted-network",
       airplaneMode: false,
@@ -42,8 +58,12 @@ describe("Pre-Flight Integration Tests", () => {
     });
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   describe("Full Checklist Flow", () => {
-    it("renders all check items with their statuses", async () => {
+    it("renders all check items with their statuses", () => {
       const mockChecks: PreFlightCheck[] = [
         {
           id: "model",
@@ -75,18 +95,15 @@ describe("Pre-Flight Integration Tests", () => {
         },
       ];
 
-      vi.doMock("@/hooks/use-preflight-checks", () => ({
-        usePreFlightChecks: () => ({
-          checks: mockChecks,
-          isLoading: false,
-          error: null,
-          overallStatus: "critical",
-          runChecks: vi.fn(),
-          rerunCheck: vi.fn(),
-        }),
-      }));
+      vi.mocked(usePreFlightChecks).mockReturnValue({
+        checks: mockChecks,
+        isLoading: false,
+        error: null,
+        overallStatus: "critical",
+        runChecks: vi.fn(),
+        rerunCheck: vi.fn(),
+      });
 
-      const { PreFlightChecklist } = await import("../preflight-checklist");
       render(<PreFlightChecklist />);
 
       expect(screen.getByTestId("preflight-check-model")).toHaveAttribute(
@@ -107,7 +124,7 @@ describe("Pre-Flight Integration Tests", () => {
       );
     });
 
-    it("shows correct summary for mixed statuses", async () => {
+    it("shows correct summary for mixed statuses", () => {
       const mockChecks: PreFlightCheck[] = [
         {
           id: "model",
@@ -125,18 +142,15 @@ describe("Pre-Flight Integration Tests", () => {
         },
       ];
 
-      vi.doMock("@/hooks/use-preflight-checks", () => ({
-        usePreFlightChecks: () => ({
-          checks: mockChecks,
-          isLoading: false,
-          error: null,
-          overallStatus: "warning",
-          runChecks: vi.fn(),
-          rerunCheck: vi.fn(),
-        }),
-      }));
+      vi.mocked(usePreFlightChecks).mockReturnValue({
+        checks: mockChecks,
+        isLoading: false,
+        error: null,
+        overallStatus: "warning",
+        runChecks: vi.fn(),
+        rerunCheck: vi.fn(),
+      });
 
-      const { PreFlightChecklist } = await import("../preflight-checklist");
       render(<PreFlightChecklist />);
 
       expect(screen.getByText("Ready with warnings")).toBeInTheDocument();
@@ -145,7 +159,7 @@ describe("Pre-Flight Integration Tests", () => {
   });
 
   describe("Action Button Re-run", () => {
-    it("calls rerunCheck when action button clicked", async () => {
+    it("calls rerunCheck when action button clicked", () => {
       const rerunCheck = vi.fn();
       const mockChecks: PreFlightCheck[] = [
         {
@@ -158,18 +172,15 @@ describe("Pre-Flight Integration Tests", () => {
         },
       ];
 
-      vi.doMock("@/hooks/use-preflight-checks", () => ({
-        usePreFlightChecks: () => ({
-          checks: mockChecks,
-          isLoading: false,
-          error: null,
-          overallStatus: "critical",
-          runChecks: vi.fn(),
-          rerunCheck,
-        }),
-      }));
+      vi.mocked(usePreFlightChecks).mockReturnValue({
+        checks: mockChecks,
+        isLoading: false,
+        error: null,
+        overallStatus: "critical",
+        runChecks: vi.fn(),
+        rerunCheck,
+      });
 
-      const { PreFlightChecklist } = await import("../preflight-checklist");
       render(<PreFlightChecklist />);
 
       // Action link is present
@@ -254,9 +265,6 @@ describe("Pre-Flight Integration Tests", () => {
 
   describe("Parallel Check Execution", () => {
     it("runs all checks in parallel", async () => {
-      // Reset mocks for this specific test
-      vi.resetModules();
-
       const { runAllChecks } = await import("@/lib/preflight/checks");
 
       const startTime = Date.now();
@@ -280,8 +288,6 @@ describe("Pre-Flight Integration Tests", () => {
     });
 
     it("filters out null results (GPU check on web)", async () => {
-      vi.resetModules();
-
       const { runAllChecks } = await import("@/lib/preflight/checks");
 
       const results = await runAllChecks();
@@ -298,27 +304,24 @@ describe("Pre-Flight Integration Tests", () => {
   });
 
   describe("Dialog Integration", () => {
-    it("shows checklist content in dialog", async () => {
-      vi.doMock("@/hooks/use-preflight-checks", () => ({
-        usePreFlightChecks: () => ({
-          checks: [
-            {
-              id: "model",
-              category: "model",
-              name: "AI Model",
-              status: "ready",
-              message: "Ready",
-            },
-          ],
-          isLoading: false,
-          error: null,
-          overallStatus: "ready",
-          runChecks: vi.fn(),
-          rerunCheck: vi.fn(),
-        }),
-      }));
+    it("shows checklist content in dialog", () => {
+      vi.mocked(usePreFlightChecks).mockReturnValue({
+        checks: [
+          {
+            id: "model",
+            category: "model",
+            name: "AI Model",
+            status: "ready",
+            message: "Ready",
+          },
+        ],
+        isLoading: false,
+        error: null,
+        overallStatus: "ready",
+        runChecks: vi.fn(),
+        rerunCheck: vi.fn(),
+      });
 
-      const { PreFlightDialog } = await import("../preflight-dialog");
       render(
         <PreFlightDialog
           onOpenChange={vi.fn()}
@@ -332,22 +335,19 @@ describe("Pre-Flight Integration Tests", () => {
       expect(screen.getByText("AI Model")).toBeInTheDocument();
     });
 
-    it("calls onProceed when Enable button clicked", async () => {
+    it("calls onProceed when Enable button clicked", () => {
       const onProceed = vi.fn();
       const onOpenChange = vi.fn();
 
-      vi.doMock("@/hooks/use-preflight-checks", () => ({
-        usePreFlightChecks: () => ({
-          checks: [],
-          isLoading: false,
-          error: null,
-          overallStatus: "ready",
-          runChecks: vi.fn(),
-          rerunCheck: vi.fn(),
-        }),
-      }));
+      vi.mocked(usePreFlightChecks).mockReturnValue({
+        checks: [],
+        isLoading: false,
+        error: null,
+        overallStatus: "ready",
+        runChecks: vi.fn(),
+        rerunCheck: vi.fn(),
+      });
 
-      const { PreFlightDialog } = await import("../preflight-dialog");
       render(
         <PreFlightDialog
           onOpenChange={onOpenChange}

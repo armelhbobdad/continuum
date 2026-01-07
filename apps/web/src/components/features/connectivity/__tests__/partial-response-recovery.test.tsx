@@ -1,6 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import type { PartialResponseState } from "@/types/connectivity-transition";
+import { PartialResponseRecovery } from "../partial-response-recovery";
 
 /**
  * PartialResponseRecovery Component Tests
@@ -17,10 +19,15 @@ describe("PartialResponseRecovery", () => {
     retryable: true,
   };
 
-  it("renders partial content", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders partial content", () => {
     render(
       <PartialResponseRecovery
         isOnline={true}
@@ -35,10 +42,7 @@ describe("PartialResponseRecovery", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows interrupted status message", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  it("shows interrupted status message", () => {
     render(
       <PartialResponseRecovery
         isOnline={true}
@@ -51,10 +55,7 @@ describe("PartialResponseRecovery", () => {
     expect(screen.getByText("Response interrupted")).toBeInTheDocument();
   });
 
-  it("shows waiting for connection message when offline", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  it("shows waiting for connection message when offline", () => {
     render(
       <PartialResponseRecovery
         isOnline={false}
@@ -67,11 +68,8 @@ describe("PartialResponseRecovery", () => {
     expect(screen.getByText(/Waiting for connection/)).toBeInTheDocument();
   });
 
-  it("enables retry button when online and retryable", async () => {
+  it("enables retry button when online and retryable", () => {
     const onRetry = vi.fn();
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
     render(
       <PartialResponseRecovery
         isOnline={true}
@@ -88,10 +86,7 @@ describe("PartialResponseRecovery", () => {
     expect(onRetry).toHaveBeenCalled();
   });
 
-  it("disables retry button when offline", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  it("disables retry button when offline", () => {
     render(
       <PartialResponseRecovery
         isOnline={false}
@@ -105,10 +100,7 @@ describe("PartialResponseRecovery", () => {
     expect(retryButton).toBeDisabled();
   });
 
-  it("disables retry button when not retryable", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  it("disables retry button when not retryable", () => {
     render(
       <PartialResponseRecovery
         isOnline={true}
@@ -122,11 +114,8 @@ describe("PartialResponseRecovery", () => {
     expect(retryButton).toBeDisabled();
   });
 
-  it("calls onKeepPartial when keep partial button clicked", async () => {
+  it("calls onKeepPartial when keep partial button clicked", () => {
     const onKeepPartial = vi.fn();
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
     render(
       <PartialResponseRecovery
         isOnline={true}
@@ -142,10 +131,7 @@ describe("PartialResponseRecovery", () => {
     expect(onKeepPartial).toHaveBeenCalled();
   });
 
-  it("shows error message when error exists", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  it("shows error message when error exists", () => {
     render(
       <PartialResponseRecovery
         isOnline={true}
@@ -161,10 +147,7 @@ describe("PartialResponseRecovery", () => {
     expect(screen.getByText("Failed to reconnect")).toBeInTheDocument();
   });
 
-  it("has correct data-slot attribute", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  it("has correct data-slot attribute", () => {
     render(
       <PartialResponseRecovery
         isOnline={true}
@@ -180,10 +163,7 @@ describe("PartialResponseRecovery", () => {
     );
   });
 
-  it("has correct accessibility attributes", async () => {
-    const { PartialResponseRecovery } = await import(
-      "../partial-response-recovery"
-    );
+  it("has correct accessibility attributes", () => {
     render(
       <PartialResponseRecovery
         isOnline={true}

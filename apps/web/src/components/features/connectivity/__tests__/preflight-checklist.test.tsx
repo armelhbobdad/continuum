@@ -6,18 +6,29 @@
  * Story 4.3: Pre-Flight Readiness Checklist
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PreFlightCheck } from "@/types/preflight";
+import { PreFlightChecklist } from "../preflight-checklist";
 
-// Mock the hook
+// Mock the hook at module level
 const mockRunChecks = vi.fn();
 const mockRerunCheck = vi.fn();
 
 vi.mock("@/hooks/use-preflight-checks", () => ({
-  usePreFlightChecks: vi.fn(),
+  usePreFlightChecks: vi.fn(() => ({
+    checks: [],
+    isLoading: false,
+    error: null,
+    overallStatus: "ready",
+    runChecks: mockRunChecks,
+    rerunCheck: mockRerunCheck,
+  })),
 }));
+
+// Import the mocked hook
+import { usePreFlightChecks } from "@/hooks/use-preflight-checks";
 
 const createMockChecks = (
   overrides: Partial<PreFlightCheck>[] = []
@@ -52,8 +63,11 @@ describe("PreFlightChecklist", () => {
     mockRerunCheck.mockResolvedValue(undefined);
   });
 
-  it("renders checklist header", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders checklist header", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
@@ -63,14 +77,12 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByText("Pre-Flight Check")).toBeInTheDocument();
   });
 
-  it("shows loading state while checking", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("shows loading state while checking", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [
         {
@@ -88,7 +100,6 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByTestId("preflight-check-model")).toHaveAttribute(
@@ -97,8 +108,7 @@ describe("PreFlightChecklist", () => {
     );
   });
 
-  it("shows ready summary when all checks pass", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("shows ready summary when all checks pass", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks(),
       isLoading: false,
@@ -108,15 +118,13 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByText("Ready for offline!")).toBeInTheDocument();
     expect(screen.getByText("2 of 2 checks passed")).toBeInTheDocument();
   });
 
-  it("shows warning summary when checks have warnings", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("shows warning summary when checks have warnings", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks([{}, { status: "warning" }]),
       isLoading: false,
@@ -126,14 +134,12 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByText("Ready with warnings")).toBeInTheDocument();
   });
 
-  it("shows critical summary when checks fail", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("shows critical summary when checks fail", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [
         {
@@ -151,14 +157,12 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByText("Some items need attention")).toBeInTheDocument();
   });
 
-  it("calls runChecks on refresh button click", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("calls runChecks on refresh button click", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks(),
       isLoading: false,
@@ -168,7 +172,6 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     fireEvent.click(screen.getByRole("button", { name: /refresh/i }));
@@ -176,8 +179,7 @@ describe("PreFlightChecklist", () => {
     expect(mockRunChecks).toHaveBeenCalled();
   });
 
-  it("disables refresh button while loading", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("disables refresh button while loading", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks(),
       isLoading: true,
@@ -187,15 +189,13 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     const refreshButton = screen.getByRole("button", { name: /refresh/i });
     expect(refreshButton).toBeDisabled();
   });
 
-  it("has correct data-slot attribute", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("has correct data-slot attribute", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: [],
       isLoading: false,
@@ -205,7 +205,6 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByTestId("preflight-checklist")).toHaveAttribute(
@@ -214,8 +213,7 @@ describe("PreFlightChecklist", () => {
     );
   });
 
-  it("renders all check items", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("renders all check items", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks(),
       isLoading: false,
@@ -225,15 +223,13 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByTestId("preflight-check-model")).toBeInTheDocument();
     expect(screen.getByTestId("preflight-check-storage")).toBeInTheDocument();
   });
 
-  it("shows encouraging message when all checks pass", async () => {
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
+  it("shows encouraging message when all checks pass", () => {
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks(),
       isLoading: false,
@@ -243,7 +239,6 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist />);
 
     expect(screen.getByText(/all set for offline work/i)).toBeInTheDocument();
@@ -251,7 +246,6 @@ describe("PreFlightChecklist", () => {
 
   it("calls onComplete callback with status after checks", async () => {
     const onComplete = vi.fn();
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks(),
       isLoading: false,
@@ -261,7 +255,6 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist onComplete={onComplete} />);
 
     // Click refresh to trigger onComplete
@@ -275,7 +268,6 @@ describe("PreFlightChecklist", () => {
 
   it("calls onStatusChange callback when status changes", async () => {
     const onStatusChange = vi.fn();
-    const { usePreFlightChecks } = await import("@/hooks/use-preflight-checks");
     vi.mocked(usePreFlightChecks).mockReturnValue({
       checks: createMockChecks(),
       isLoading: false,
@@ -285,7 +277,6 @@ describe("PreFlightChecklist", () => {
       rerunCheck: mockRerunCheck,
     });
 
-    const { PreFlightChecklist } = await import("../preflight-checklist");
     render(<PreFlightChecklist onStatusChange={onStatusChange} />);
 
     // onStatusChange should be called with status after initial load
