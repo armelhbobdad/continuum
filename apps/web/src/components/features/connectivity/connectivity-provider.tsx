@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useConnectivity } from "@/hooks/use-connectivity";
+import { useSyncOnReconnect } from "@/hooks/use-sync-on-reconnect";
 
 export interface ConnectivityProviderProps {
   children: ReactNode;
@@ -22,6 +23,10 @@ export function ConnectivityProvider({ children }: ConnectivityProviderProps) {
   // Initialize connectivity monitoring
   // Hook handles SSR safety internally (no-op during SSR)
   useConnectivity();
+
+  // Story 4.5: AC5 - Initialize sync-on-reconnect functionality
+  // Hook subscribes to connectivity transitions and auto-syncs when coming online
+  useSyncOnReconnect();
 
   // Return children directly without wrapper element
   // This ensures minimal DOM impact and proper React tree structure

@@ -5,6 +5,7 @@
  * Story 4.2: Airplane Mode Toggle
  * Story 4.3: Pre-Flight Readiness Checklist
  * Story 4.4: Graceful Connectivity Transitions
+ * Story 4.5: Complete Offline Operation
  */
 
 export type { AirplaneModeIndicatorProps } from "./airplane-mode-indicator";
@@ -23,6 +24,9 @@ export type { ConnectivityTransitionProps } from "./connectivity-transition";
 export { ConnectivityTransition } from "./connectivity-transition";
 export type { ModeChangeToastProps } from "./mode-change-toast";
 export { ModeChangeToast, showModeChangeToast } from "./mode-change-toast";
+// Story 4.5
+export type { OfflineFeatureGateProps } from "./offline-feature-gate";
+export { OfflineFeatureGate } from "./offline-feature-gate";
 export type { OfflineIndicatorProps } from "./offline-indicator";
 export { OfflineIndicator } from "./offline-indicator";
 export type { PartialResponseRecoveryProps } from "./partial-response-recovery";
@@ -34,3 +38,5 @@ export type { PreFlightChecklistProps } from "./preflight-checklist";
 export { PreFlightChecklist } from "./preflight-checklist";
 export type { PreFlightDialogProps } from "./preflight-dialog";
 export { PreFlightDialog } from "./preflight-dialog";
+export type { SyncStatusIndicatorProps } from "./sync-status-indicator";
+export { SyncStatusIndicator } from "./sync-status-indicator";

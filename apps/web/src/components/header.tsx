@@ -7,6 +7,7 @@ import {
   AirplaneModeToggle,
   OfflineIndicator,
   PreFlightDialog,
+  SyncStatusIndicator,
 } from "./features/connectivity";
 import { PrivacyModeSelector } from "./features/privacy/privacy-mode-selector";
 import { ModeToggle } from "./mode-toggle";
@@ -68,6 +69,8 @@ export default function Header() {
         <div className="flex items-center gap-2">
           {/* Story 4.1: AC2 - Offline Badge Display */}
           <OfflineIndicator />
+          {/* Story 4.5: AC5 - Sync Status Indicator */}
+          <SyncStatusIndicator />
           {/* Story 4.2: AC1 - Airplane Mode Indicator & Toggle */}
           <AirplaneModeIndicator />
           {/* Story 4.3: AC5 - Pre-Flight Dialog before Airplane Mode */}

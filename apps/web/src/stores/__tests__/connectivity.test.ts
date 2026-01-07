@@ -145,4 +145,57 @@ describe("useConnectivityStore", () => {
       expect(useConnectivityStore.getState().partialResponse).toBeNull();
     });
   });
+
+  /**
+   * Story 4.5: Sync status management
+   */
+  describe("sync status (Story 4.5)", () => {
+    beforeEach(() => {
+      // Reset sync fields
+      useConnectivityStore.setState({
+        isSyncing: false,
+        lastSyncedAt: null,
+        pendingSyncCount: 0,
+      });
+    });
+
+    it("defaults isSyncing to false", () => {
+      expect(useConnectivityStore.getState().isSyncing).toBe(false);
+    });
+
+    it("defaults lastSyncedAt to null", () => {
+      expect(useConnectivityStore.getState().lastSyncedAt).toBeNull();
+    });
+
+    it("defaults pendingSyncCount to 0", () => {
+      expect(useConnectivityStore.getState().pendingSyncCount).toBe(0);
+    });
+
+    it("sets syncing state via setSyncing", () => {
+      useConnectivityStore.getState().setSyncing(true);
+      expect(useConnectivityStore.getState().isSyncing).toBe(true);
+
+      useConnectivityStore.getState().setSyncing(false);
+      expect(useConnectivityStore.getState().isSyncing).toBe(false);
+    });
+
+    it("updates lastSyncedAt via updateLastSynced", () => {
+      const before = new Date();
+      useConnectivityStore.getState().updateLastSynced();
+      const after = new Date();
+
+      const { lastSyncedAt } = useConnectivityStore.getState();
+      expect(lastSyncedAt).not.toBeNull();
+      expect(lastSyncedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(lastSyncedAt?.getTime()).toBeLessThanOrEqual(after.getTime());
+    });
+
+    it("sets pending sync count via setPendingSyncCount", () => {
+      useConnectivityStore.getState().setPendingSyncCount(5);
+      expect(useConnectivityStore.getState().pendingSyncCount).toBe(5);
+
+      useConnectivityStore.getState().setPendingSyncCount(0);
+      expect(useConnectivityStore.getState().pendingSyncCount).toBe(0);
+    });
+  });
 });

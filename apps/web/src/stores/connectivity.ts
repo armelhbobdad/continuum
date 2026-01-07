@@ -9,6 +9,7 @@ import type {
  *
  * Tracks online/offline status with stability indicator for debouncing.
  * Story 4.4: Added transition state and partial response management.
+ * Story 4.5: Added sync status fields.
  */
 export interface ConnectivityState {
   /** Current online/offline status */
@@ -21,6 +22,15 @@ export interface ConnectivityState {
   transitionState: TransitionState;
   /** Partial response preserved during interruption (Story 4.4) */
   partialResponse: PartialResponseState | null;
+
+  // Story 4.5: Sync status fields
+  /** Whether sync is in progress */
+  isSyncing: boolean;
+  /** Last successful sync timestamp */
+  lastSyncedAt: Date | null;
+  /** Number of pending sync operations */
+  pendingSyncCount: number;
+
   /** Set online/offline status and update lastChecked */
   setOnline: (online: boolean) => void;
   /** Mark connectivity as stable (debounce complete) */
@@ -33,6 +43,14 @@ export interface ConnectivityState {
   preservePartialResponse: (response: PartialResponseState) => void;
   /** Clear partial response after recovery (Story 4.4) */
   clearPartialResponse: () => void;
+
+  // Story 4.5: Sync actions
+  /** Set whether sync is in progress */
+  setSyncing: (syncing: boolean) => void;
+  /** Update last synced timestamp to now */
+  updateLastSynced: () => void;
+  /** Set pending sync count */
+  setPendingSyncCount: (count: number) => void;
 }
 
 /**
@@ -50,6 +68,10 @@ export const useConnectivityStore = create<ConnectivityState>((set) => ({
   lastChecked: null,
   transitionState: "stable",
   partialResponse: null,
+  // Story 4.5: Sync status
+  isSyncing: false,
+  lastSyncedAt: null,
+  pendingSyncCount: 0,
 
   setOnline: (online) =>
     set({
@@ -66,4 +88,11 @@ export const useConnectivityStore = create<ConnectivityState>((set) => ({
   preservePartialResponse: (response) => set({ partialResponse: response }),
 
   clearPartialResponse: () => set({ partialResponse: null }),
+
+  // Story 4.5: Sync actions
+  setSyncing: (syncing) => set({ isSyncing: syncing }),
+
+  updateLastSynced: () => set({ lastSyncedAt: new Date() }),
+
+  setPendingSyncCount: (count) => set({ pendingSyncCount: count }),
 }));
