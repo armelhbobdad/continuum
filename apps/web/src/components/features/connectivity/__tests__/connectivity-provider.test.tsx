@@ -91,7 +91,7 @@ describe("ConnectivityProvider", () => {
   });
 
   it("does not create duplicate fragments (single child wrapper)", async () => {
-    let container: HTMLElement;
+    let container!: HTMLElement;
     await act(async () => {
       const result = render(
         <ConnectivityProvider>

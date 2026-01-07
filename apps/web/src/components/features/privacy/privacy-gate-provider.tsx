@@ -86,11 +86,15 @@ const isSameOrigin = (url: string): boolean => {
 };
 
 /**
- * Create a blocking error for network requests in local-only mode
+ * Create a blocking error for network requests in local-only or airplane mode
  */
-const createBlockingError = (type: string, url: string): Error =>
+const createBlockingError = (
+  type: string,
+  url: string,
+  reason: string
+): Error =>
   new Error(
-    `${type} blocked: Privacy mode is set to "local-only". ` +
+    `${type} blocked: ${reason}. ` +
       `External requests to "${url}" are not allowed. ` +
       `Switch to "trusted-network" or "cloud-enhanced" mode to enable network access.`
   );
@@ -117,9 +121,15 @@ const logAttempt = (
  * Uses render props pattern to provide mode and jazzKey to children.
  */
 export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
-  const { mode, jazzKey, logNetworkAttempt } = usePrivacyStore();
+  const { mode, jazzKey, airplaneMode, logNetworkAttempt } = usePrivacyStore();
 
-  // Network blocking effect for local-only mode
+  // Determine if network should be blocked (airplane mode OR local-only mode)
+  const shouldBlock = airplaneMode || mode === "local-only";
+  const blockingReason = airplaneMode
+    ? "Airplane Mode active"
+    : 'Privacy mode is set to "local-only"';
+
+  // Network blocking effect for local-only mode or airplane mode
   useEffect(() => {
     // Only run in browser environment
     if (typeof window === "undefined") {
@@ -132,7 +142,7 @@ export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
     const OriginalWebSocket = window.WebSocket;
     const OriginalEventSource = window.EventSource;
 
-    if (mode === "local-only") {
+    if (shouldBlock) {
       // Override fetch to block external requests
       window.fetch = (input, init): Promise<Response> => {
         const url = getUrlString(input);
@@ -142,10 +152,11 @@ export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
           return originalFetch(input, init);
         }
 
-        // Log and block external requests in local-only mode
-        const reason = 'Privacy mode is set to "local-only"';
-        logAttempt(logNetworkAttempt, "fetch", url, true, reason);
-        return Promise.reject(createBlockingError("Network request", url));
+        // Log and block external requests
+        logAttempt(logNetworkAttempt, "fetch", url, true, blockingReason);
+        return Promise.reject(
+          createBlockingError("Network request", url, blockingReason)
+        );
       };
 
       // Override XMLHttpRequest to block external requests
@@ -174,19 +185,22 @@ export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
         send(body?: Document | XMLHttpRequestBodyInit | null): void {
           if (this._blockedUrl) {
             // Log and block
-            const reason = 'Privacy mode is set to "local-only"';
             logAttempt(
               logNetworkAttempt,
               "xhr",
               this._blockedUrl,
               true,
-              reason
+              blockingReason
             );
             // Simulate network error
             setTimeout(() => {
               this.dispatchEvent(new Event("error"));
             }, 0);
-            throw createBlockingError("XMLHttpRequest", this._blockedUrl);
+            throw createBlockingError(
+              "XMLHttpRequest",
+              this._blockedUrl,
+              blockingReason
+            );
           }
           super.send(body);
         }
@@ -196,9 +210,14 @@ export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
       window.WebSocket = class BlockedWebSocket {
         constructor(url: string | URL) {
           const urlString = url.toString();
-          const reason = 'Privacy mode is set to "local-only"';
-          logAttempt(logNetworkAttempt, "websocket", urlString, true, reason);
-          throw createBlockingError("WebSocket", urlString);
+          logAttempt(
+            logNetworkAttempt,
+            "websocket",
+            urlString,
+            true,
+            blockingReason
+          );
+          throw createBlockingError("WebSocket", urlString, blockingReason);
         }
       } as typeof WebSocket;
 
@@ -206,14 +225,19 @@ export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
       window.EventSource = class BlockedEventSource {
         constructor(url: string | URL) {
           const urlString = url.toString();
-          const reason = 'Privacy mode is set to "local-only"';
-          logAttempt(logNetworkAttempt, "eventsource", urlString, true, reason);
+          logAttempt(
+            logNetworkAttempt,
+            "eventsource",
+            urlString,
+            true,
+            blockingReason
+          );
           if (!isSameOrigin(urlString)) {
-            throw createBlockingError("EventSource", urlString);
+            throw createBlockingError("EventSource", urlString, blockingReason);
           }
           // For same-origin, we'd need to return the original - but EventSource
           // is typically used for external streaming, so block all for safety
-          throw createBlockingError("EventSource", urlString);
+          throw createBlockingError("EventSource", urlString, blockingReason);
         }
       } as typeof EventSource;
 
@@ -238,7 +262,7 @@ export function PrivacyGateProvider({ children }: PrivacyGateProviderProps) {
       window.WebSocket = OriginalWebSocket;
       window.EventSource = OriginalEventSource;
     };
-  }, [mode, logNetworkAttempt]);
+  }, [shouldBlock, blockingReason, logNetworkAttempt]);
 
   return <>{children({ mode, jazzKey })}</>;
 }

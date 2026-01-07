@@ -1,6 +1,10 @@
 "use client";
 import Link from "next/link";
-import { OfflineIndicator } from "./features/connectivity/offline-indicator";
+import {
+  AirplaneModeIndicator,
+  AirplaneModeToggle,
+  OfflineIndicator,
+} from "./features/connectivity";
 import { PrivacyModeSelector } from "./features/privacy/privacy-mode-selector";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
@@ -29,6 +33,9 @@ export default function Header() {
         <div className="flex items-center gap-2">
           {/* Story 4.1: AC2 - Offline Badge Display */}
           <OfflineIndicator />
+          {/* Story 4.2: AC1 - Airplane Mode Indicator & Toggle */}
+          <AirplaneModeIndicator />
+          <AirplaneModeToggle />
           <ModeToggle />
           <UserMenu />
         </div>
