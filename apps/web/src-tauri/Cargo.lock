@@ -658,6 +658,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
+name = "byteorder-lite"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
+
+[[package]]
 name = "bytes"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1683,7 +1689,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f21be13b97bd2924f30323d674f5a8db382964972825abd93f30d08f21dad98"
 dependencies = [
  "base64 0.22.1",
- "image",
+ "image 0.24.9",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -3178,7 +3184,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc50b891e4acf8fe0e71ef88ec43ad82ee07b3810ad09de10f1d01f072ed4b98"
 dependencies = [
  "byteorder",
- "png",
+ "png 0.17.16",
 ]
 
 [[package]]
@@ -3302,9 +3308,24 @@ dependencies = [
  "gif",
  "jpeg-decoder",
  "num-traits",
- "png",
+ "png 0.17.16",
  "qoi",
  "tiff",
+]
+
+[[package]]
+name = "image"
+version = "0.25.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6506c6c10786659413faa717ceebcb8f70731c0a60cbae39795fdf114519c1a"
+dependencies = [
+ "bytemuck",
+ "byteorder-lite",
+ "moxcms",
+ "num-traits",
+ "png 0.18.0",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]
@@ -3643,7 +3664,7 @@ dependencies = [
  "candle-nn",
  "candle-transformers",
  "hf-hub",
- "image",
+ "image 0.24.9",
  "kalosm-common",
  "kalosm-model-types",
  "serde",
@@ -3719,7 +3740,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e48a0f1624ad1242333f80f331dcb697cf744173729e95f5234ca33ceb3ddc2c"
 dependencies = [
- "image",
+ "image 0.24.9",
  "kalosm-ocr",
  "rwuerstchen",
  "segment-anything-rs",
@@ -4174,6 +4195,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "moxcms"
+version = "0.7.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac9557c559cd6fc9867e122e20d2cbefc9ca29d80d027a8e39310920ed2f0a97"
+dependencies = [
+ "num-traits",
+ "pxfm",
+]
+
+[[package]]
 name = "muda"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4188,7 +4219,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-foundation 0.3.2",
  "once_cell",
- "png",
+ "png 0.17.16",
  "serde",
  "thiserror 2.0.17",
  "windows-sys 0.60.2",
@@ -5404,6 +5435,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "png"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97baced388464909d42d89643fe4361939af9b7ce7a31ee32a168f832a70f2a0"
+dependencies = [
+ "bitflags 2.10.0",
+ "crc32fast",
+ "fdeflate",
+ "flate2",
+ "miniz_oxide",
+]
+
+[[package]]
 name = "polling"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5586,6 +5630,15 @@ dependencies = [
  "num-complex",
  "reborrow",
  "version_check",
+]
+
+[[package]]
+name = "pxfm"
+version = "0.1.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7186d3822593aa4393561d186d1393b3923e9d6163d3fbfd6e825e3e6cf3e6a8"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -6277,7 +6330,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "hf-hub",
- "image",
+ "image 0.24.9",
  "kalosm-common",
  "kalosm-language-model",
  "kalosm-model-types",
@@ -6431,7 +6484,7 @@ dependencies = [
  "candle-nn",
  "candle-transformers",
  "hf-hub",
- "image",
+ "image 0.24.9",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -7298,7 +7351,7 @@ dependencies = [
  "ico",
  "json-patch",
  "plist",
- "png",
+ "png 0.17.16",
  "proc-macro2",
  "quote",
  "semver",
@@ -7369,13 +7422,14 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-mcp-bridge"
-version = "0.6.2"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27205f0812916286ae237267dd9fafee87b77b239e1f63360eb71f1256253bdf"
+checksum = "20c50b546563a9fdb66dfe93a78a4b10234fe9995ea6822a2f77ed098a222c74"
 dependencies = [
  "base64 0.22.1",
  "block2 0.5.1",
  "futures-util",
+ "image 0.25.9",
  "jni",
  "objc2 0.5.2",
  "objc2-app-kit 0.2.2",
@@ -7982,7 +8036,7 @@ dependencies = [
  "objc2-core-graphics",
  "objc2-foundation 0.3.2",
  "once_cell",
- "png",
+ "png 0.17.16",
  "serde",
  "thiserror 2.0.17",
  "windows-sys 0.60.2",
@@ -9455,12 +9509,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "zune-core"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "111f7d9820f05fd715df3144e254d6fc02ee4088b0644c0ffd0efc9e6d9d2773"
+
+[[package]]
 name = "zune-inflate"
 version = "0.2.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73ab332fe2f6680068f3582b16a24f90ad7096d5d39b974d1c0aff0125116f02"
 dependencies = [
  "simd-adler32",
+]
+
+[[package]]
+name = "zune-jpeg"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e35aee689668bf9bd6f6f3a6c60bb29ba1244b3b43adfd50edd554a371da37d5"
+dependencies = [
+ "zune-core",
 ]
 
 [[package]]
