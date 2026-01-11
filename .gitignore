@@ -61,5 +61,8 @@ stack-knowledge
 # Auto Claude data directory
 .auto-claude/
 
+# Claude-mem auto-generated context
+**/CLAUDE.md
+
 # Lefthook git hooks (auto-generated)
 .husky/

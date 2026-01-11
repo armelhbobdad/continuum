@@ -176,4 +176,78 @@ describe("PrivacyModeSelector Component", () => {
       expect(localOption).toHaveAttribute("data-checked");
     });
   });
+
+  describe("Airplane Mode Behavior", () => {
+    beforeEach(() => {
+      // Enable airplane mode
+      usePrivacyStore.setState({
+        mode: "local-only",
+        airplaneMode: true,
+        jazzKey: `jazz-local-only-${Date.now()}`,
+      });
+    });
+
+    it("disables cloud-enhanced option when airplane mode is enabled", async () => {
+      const user = userEvent.setup();
+      render(<PrivacyModeSelector />);
+
+      await user.click(screen.getByRole("button"));
+
+      const cloudOption = await screen.findByRole("menuitemradio", {
+        name: /cloud/i,
+      });
+      expect(cloudOption).toHaveAttribute("data-disabled");
+    });
+
+    it("disables trusted-network (Hybrid) option when airplane mode is enabled", async () => {
+      const user = userEvent.setup();
+      render(<PrivacyModeSelector />);
+
+      await user.click(screen.getByRole("button"));
+
+      const hybridOption = await screen.findByRole("menuitemradio", {
+        name: /hybrid/i,
+      });
+      expect(hybridOption).toHaveAttribute("data-disabled");
+    });
+
+    it("keeps local-only option enabled when airplane mode is enabled", async () => {
+      const user = userEvent.setup();
+      render(<PrivacyModeSelector />);
+
+      await user.click(screen.getByRole("button"));
+
+      const localOption = await screen.findByRole("menuitemradio", {
+        name: /local-only/i,
+      });
+      expect(localOption).not.toHaveAttribute("data-disabled");
+    });
+
+    it("shows 'Unavailable in Airplane Mode' for disabled options", async () => {
+      const user = userEvent.setup();
+      render(<PrivacyModeSelector />);
+
+      await user.click(screen.getByRole("button"));
+
+      // Should show airplane mode message instead of normal description
+      const unavailableMessages = await screen.findAllByText(
+        "Unavailable in Airplane Mode"
+      );
+      expect(unavailableMessages).toHaveLength(2); // Cloud and Hybrid
+    });
+
+    it("prevents switching to cloud mode when airplane mode is enabled", async () => {
+      const user = userEvent.setup();
+      render(<PrivacyModeSelector />);
+
+      await user.click(screen.getByRole("button"));
+
+      // Try to click cloud option (it's disabled but let's verify store doesn't change)
+      const cloudOption = await screen.findByText("Cloud");
+      await user.click(cloudOption);
+
+      // Store should still be local-only
+      expect(usePrivacyStore.getState().mode).toBe("local-only");
+    });
+  });
 });

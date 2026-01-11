@@ -9,15 +9,20 @@
 //! - **Hardware Detection**: RAM, CPU, GPU, and storage detection (Story 2.1)
 //! - **Model Downloads**: Resumable downloads with pause/cancel (Story 2.3)
 //! - **Integrity Verification**: SHA-256 verification with quarantine (Story 2.5)
+//! - **Credential Bridge**: Secure credential storage in Rust (Story 5.1)
 
 // Application startup legitimately uses expect() for fatal initialization errors
 #![allow(clippy::expect_used)]
 
+mod connectivity;
+mod credentials;
 mod downloads;
 mod hardware;
 mod inference;
+mod preflight;
 mod verification;
 
+use credentials::CredentialState;
 use downloads::DownloadState;
 use hardware::HardwareState;
 use inference::InferenceState;
@@ -30,6 +35,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(InferenceState::new())
         .manage(HardwareState::new())
+        .manage(CredentialState::new())
         .invoke_handler(tauri::generate_handler![
             // Inference commands (Story 1.4)
             inference::load_model,
@@ -55,6 +61,19 @@ pub fn run() {
             verification::commands::compute_model_checksum,
             verification::commands::list_quarantined_files,
             verification::commands::delete_quarantined_file,
+            // Connectivity commands (Story 4.1)
+            connectivity::check_connectivity,
+            // Preflight commands (Story 4.3)
+            preflight::check_model_ready,
+            preflight::preflight_storage_check,
+            preflight::check_ram_availability,
+            preflight::check_gpu_capability,
+            // Credential commands (Story 5.1)
+            credentials::get_auth_status,
+            credentials::get_session_token,
+            credentials::clear_credentials,
+            credentials::check_credential_availability,
+            credentials::validate_credentials,
         ])
         .setup(|app| {
             // Initialize download state with app data directory

@@ -50,6 +50,10 @@ interface PrivacyState {
   networkLog: NetworkLogEntry[];
   /** Dashboard open state */
   isDashboardOpen: boolean;
+  /** Airplane Mode - forces local-only regardless of mode (Story 4.2) */
+  airplaneMode: boolean;
+  /** Previous mode saved when airplane mode enabled (for restoration) */
+  previousMode: PrivacyMode | null;
   /** Update privacy mode and regenerate jazzKey */
   setMode: (mode: PrivacyMode) => void;
   /** Log a network request attempt */
@@ -62,6 +66,8 @@ interface PrivacyState {
   openDashboard: () => void;
   /** Close dashboard */
   closeDashboard: () => void;
+  /** Set airplane mode - saves/restores previous privacy mode (Story 4.2) */
+  setAirplaneMode: (enabled: boolean) => void;
 }
 
 /**
@@ -82,6 +88,8 @@ export const usePrivacyStore = create<PrivacyState>((set) => ({
   jazzKey: generateJazzKey("local-only"),
   networkLog: [],
   isDashboardOpen: false,
+  airplaneMode: false,
+  previousMode: null,
 
   setMode: (mode) =>
     set({
@@ -105,4 +113,21 @@ export const usePrivacyStore = create<PrivacyState>((set) => ({
   openDashboard: () => set({ isDashboardOpen: true }),
 
   closeDashboard: () => set({ isDashboardOpen: false }),
+
+  setAirplaneMode: (enabled) =>
+    set((state) => {
+      if (enabled) {
+        return {
+          airplaneMode: true,
+          previousMode: state.mode,
+          // Note: mode stays unchanged - gate provider handles override
+        };
+      }
+      return {
+        airplaneMode: false,
+        previousMode: null,
+        // Restore previous mode if saved, otherwise keep current
+        mode: state.previousMode ?? state.mode,
+      };
+    }),
 }));
