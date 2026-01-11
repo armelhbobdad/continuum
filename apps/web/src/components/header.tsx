@@ -32,7 +32,7 @@ export default function Header() {
   }, [preflightResolver]);
 
   const handlePreflightSkip = useCallback(() => {
-    preflightResolver?.(true); // Skip still enables airplane mode
+    preflightResolver?.(false); // Skip cancels airplane mode enable
     setPreflightResolver(null);
   }, [preflightResolver]);
 

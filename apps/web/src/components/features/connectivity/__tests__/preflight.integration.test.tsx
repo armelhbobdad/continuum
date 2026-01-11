@@ -45,6 +45,10 @@ import { usePreFlightChecks } from "@/hooks/use-preflight-checks";
 import { PreFlightChecklist } from "../preflight-checklist";
 import { PreFlightDialog } from "../preflight-dialog";
 
+// Top-level regex for performance (avoids re-creation in test loops)
+const SKIP_BUTTON_REGEX = /skip/i;
+const ENABLE_AIRPLANE_MODE_REGEX = /enable airplane mode/i;
+
 describe("Pre-Flight Integration Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -303,6 +307,73 @@ describe("Pre-Flight Integration Tests", () => {
     });
   });
 
+  describe("Skip vs Proceed Button Behavior", () => {
+    it("Skip button closes dialog without enabling airplane mode", () => {
+      // This test documents the expected behavior: Skip = cancel, not enable
+      const onSkip = vi.fn();
+      const onOpenChange = vi.fn();
+
+      vi.mocked(usePreFlightChecks).mockReturnValue({
+        checks: [],
+        isLoading: false,
+        error: null,
+        overallStatus: "ready",
+        runChecks: vi.fn(),
+        rerunCheck: vi.fn(),
+      });
+
+      render(
+        <PreFlightDialog
+          onOpenChange={onOpenChange}
+          onProceed={vi.fn()}
+          onSkip={onSkip}
+          open={true}
+        />
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: SKIP_BUTTON_REGEX }));
+
+      // Skip should call onSkip (which in header.tsx resolves to false = cancel)
+      expect(onSkip).toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+
+      // Airplane mode should NOT be enabled after Skip
+      expect(usePrivacyStore.getState().airplaneMode).toBe(false);
+    });
+
+    it("Enable Airplane Mode button enables airplane mode via onProceed", () => {
+      // This test documents that Proceed = enable airplane mode
+      const onProceed = vi.fn();
+      const onOpenChange = vi.fn();
+
+      vi.mocked(usePreFlightChecks).mockReturnValue({
+        checks: [],
+        isLoading: false,
+        error: null,
+        overallStatus: "ready",
+        runChecks: vi.fn(),
+        rerunCheck: vi.fn(),
+      });
+
+      render(
+        <PreFlightDialog
+          onOpenChange={onOpenChange}
+          onProceed={onProceed}
+          onSkip={vi.fn()}
+          open={true}
+        />
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: ENABLE_AIRPLANE_MODE_REGEX })
+      );
+
+      // Proceed should call onProceed (which in header.tsx resolves to true = enable)
+      expect(onProceed).toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
   describe("Dialog Integration", () => {
     it("shows checklist content in dialog", () => {
       vi.mocked(usePreFlightChecks).mockReturnValue({
@@ -358,7 +429,7 @@ describe("Pre-Flight Integration Tests", () => {
       );
 
       fireEvent.click(
-        screen.getByRole("button", { name: /enable airplane mode/i })
+        screen.getByRole("button", { name: ENABLE_AIRPLANE_MODE_REGEX })
       );
 
       expect(onProceed).toHaveBeenCalled();

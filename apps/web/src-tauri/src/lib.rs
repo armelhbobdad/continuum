@@ -17,6 +17,7 @@ mod connectivity;
 mod downloads;
 mod hardware;
 mod inference;
+mod preflight;
 mod verification;
 
 use downloads::DownloadState;
@@ -58,6 +59,11 @@ pub fn run() {
             verification::commands::delete_quarantined_file,
             // Connectivity commands (Story 4.1)
             connectivity::check_connectivity,
+            // Preflight commands (Story 4.3)
+            preflight::check_model_ready,
+            preflight::preflight_storage_check,
+            preflight::check_ram_availability,
+            preflight::check_gpu_capability,
         ])
         .setup(|app| {
             // Initialize download state with app data directory

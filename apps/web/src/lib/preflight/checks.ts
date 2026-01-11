@@ -75,7 +75,7 @@ export async function checkStorageSpace(): Promise<PreFlightCheck> {
   try {
     if (isTauri()) {
       const result = await invoke<{ available_gb: number }>(
-        "check_storage_space"
+        "preflight_storage_check"
       );
       const availableGB = result.available_gb;
 
