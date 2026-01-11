@@ -1,12 +1,14 @@
-//! Integration tests for Credential Bridge module (Story 5.1)
+//! Integration tests for Credential Bridge module (Story 5.1, 5.2)
 //!
 //! These tests verify the end-to-end functionality of the credential system.
+//! Story 5.2 adds: Storage tier detection, persistence, and fallback testing.
 
 #![allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 #![allow(clippy::cast_possible_wrap)] // Timestamps are within i64 range
 
 use super::bridge::CredentialBridge;
 use super::state::CredentialState;
+use super::storage::StorageTier;
 use super::types::{CredentialError, CredentialStatus, StoredCredentials, TokenType, UserInfo};
 use std::sync::Arc;
 use std::thread;
@@ -287,4 +289,125 @@ fn test_multiple_store_operations_overwrite() {
     let user2 = status2.user_info.unwrap();
     assert_eq!(user2.display_name, Some("Second".to_string()));
     assert_eq!(user2.id, "user_2");
+}
+
+// ============================================================================
+// Story 5.2: Storage Tier Integration Tests
+// ============================================================================
+
+#[test]
+fn test_storage_tier_detection() {
+    let bridge = CredentialBridge::new_with_storage(None);
+    let tier = bridge.storage_tier();
+
+    // Should detect one of the three tiers
+    assert!(matches!(
+        tier,
+        StorageTier::Keychain | StorageTier::Stronghold | StorageTier::MemoryOnly
+    ));
+}
+
+#[test]
+fn test_storage_info_matches_tier() {
+    let bridge = CredentialBridge::new_with_storage(None);
+    let tier = bridge.storage_tier();
+    let info = bridge.get_storage_info();
+
+    // Info tier should match the current tier
+    assert_eq!(info.tier, tier);
+
+    // Display name should not be empty
+    assert!(!info.display_name.is_empty());
+
+    // Description should not be empty
+    assert!(!info.description.is_empty());
+
+    // Persistence should match tier
+    match tier {
+        StorageTier::Keychain | StorageTier::Stronghold => {
+            assert!(info.persists_on_restart);
+        },
+        StorageTier::MemoryOnly => {
+            assert!(!info.persists_on_restart);
+        },
+    }
+}
+
+#[test]
+fn test_storage_tier_security_level() {
+    use super::storage::SecurityLevel;
+
+    let bridge = CredentialBridge::new_with_storage(None);
+    let info = bridge.get_storage_info();
+
+    // Security level should be appropriate for tier
+    match info.tier {
+        StorageTier::Keychain => {
+            assert_eq!(info.security_level, SecurityLevel::Highest);
+        },
+        StorageTier::Stronghold => {
+            assert_eq!(info.security_level, SecurityLevel::Good);
+        },
+        StorageTier::MemoryOnly => {
+            assert_eq!(info.security_level, SecurityLevel::Limited);
+        },
+    }
+}
+
+#[test]
+fn test_storage_operations_with_bridge() {
+    let bridge = CredentialBridge::new_with_storage(None);
+
+    // Store credentials
+    bridge
+        .store_credentials(create_valid_credentials())
+        .unwrap();
+
+    // Verify stored
+    assert!(bridge.check_availability());
+
+    // Clear credentials
+    bridge.clear_credentials().unwrap();
+
+    // Verify cleared
+    assert!(!bridge.check_availability());
+}
+
+#[test]
+fn test_credential_state_with_storage() {
+    let state = CredentialState::new();
+
+    // Get storage tier via state
+    let tier = state.bridge.storage_tier();
+
+    // Should have a valid tier
+    assert!(matches!(
+        tier,
+        StorageTier::Keychain | StorageTier::Stronghold | StorageTier::MemoryOnly
+    ));
+
+    // Get storage info via state
+    let info = state.bridge.get_storage_info();
+    assert_eq!(info.tier, tier);
+}
+
+#[test]
+fn test_storage_tier_consistency() {
+    let bridge = CredentialBridge::new_with_storage(None);
+
+    // Get tier multiple times - should be consistent
+    let tier1 = bridge.storage_tier();
+    let tier2 = bridge.storage_tier();
+    let tier3 = bridge.storage_tier();
+
+    assert_eq!(tier1, tier2);
+    assert_eq!(tier2, tier3);
+
+    // Get info multiple times - should be consistent
+    let info1 = bridge.get_storage_info();
+    let info2 = bridge.get_storage_info();
+
+    assert_eq!(info1.tier, info2.tier);
+    assert_eq!(info1.display_name, info2.display_name);
+    assert_eq!(info1.security_level, info2.security_level);
 }

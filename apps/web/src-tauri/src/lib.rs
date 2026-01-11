@@ -35,7 +35,6 @@ pub fn run() {
     tauri::Builder::default()
         .manage(InferenceState::new())
         .manage(HardwareState::new())
-        .manage(CredentialState::new())
         .invoke_handler(tauri::generate_handler![
             // Inference commands (Story 1.4)
             inference::load_model,
@@ -74,15 +73,20 @@ pub fn run() {
             credentials::clear_credentials,
             credentials::check_credential_availability,
             credentials::validate_credentials,
+            // Credential storage commands (Story 5.2)
+            credentials::get_storage_info,
+            credentials::get_storage_tier,
         ])
         .setup(|app| {
-            // Initialize download state with app data directory
+            // Initialize states that need app data directory
             let app_data_dir = app
                 .path()
                 .app_data_dir()
                 .expect("Failed to get app data directory");
             app.manage(DownloadState::new(app_data_dir.clone()));
-            app.manage(VerificationState::new(app_data_dir));
+            app.manage(VerificationState::new(app_data_dir.clone()));
+            // Credential state with storage tier detection (Story 5.2)
+            app.manage(CredentialState::new_with_storage(app_data_dir));
 
             // Notification plugin (Story 2.3)
             app.handle().plugin(tauri_plugin_notification::init())?;

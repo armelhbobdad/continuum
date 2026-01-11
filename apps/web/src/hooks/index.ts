@@ -27,5 +27,8 @@ export type { UsePreFlightChecksResult } from "./use-preflight-checks";
 export { usePreFlightChecks } from "./use-preflight-checks";
 // Session hooks (Story 1.7)
 export { useSessionRecovery } from "./use-session-recovery";
+// Storage hooks (Story 5.2)
+export type { UseStorageInfoResult } from "./use-storage-info";
+export { useStorageInfo, useStorageTier } from "./use-storage-info";
 export { useSummarization } from "./use-summarization";
 export { useSyncOnReconnect } from "./use-sync-on-reconnect";

@@ -1,4 +1,4 @@
-//! Tauri commands for Credential Bridge (Story 5.1)
+//! Tauri commands for Credential Bridge (Story 5.1, 5.2)
 //!
 //! Provides IPC commands for frontend to interact with credentials.
 //! All commands return opaque data - raw credentials are NEVER exposed.
@@ -9,8 +9,11 @@
 //! - `clear_credentials` - Securely wipe all credentials (AC1, AC3)
 //! - `check_credential_availability` - Fast availability check (AC4)
 //! - `validate_credentials` - Check if credentials are valid (AC1)
+//! - `get_storage_info` - Get storage tier info for UI (Story 5.2, AC6)
+//! - `get_storage_tier` - Get current storage tier (Story 5.2)
 
 use super::state::CredentialState;
+use super::storage::{StorageInfo, StorageTier};
 use super::types::{AuthState, OpaqueToken};
 use std::time::Instant;
 use tauri::State;
@@ -74,6 +77,28 @@ pub async fn validate_credentials(state: State<'_, CredentialState>) -> Result<b
         .bridge
         .validate_credentials()
         .map_err(|e| e.to_string())
+}
+
+// ========== Story 5.2: Storage Commands ==========
+
+/// Get storage tier information for UI display (AC6)
+///
+/// Returns StorageInfo with tier details for displaying to the user.
+/// Includes display name, security level, and persistence status.
+#[tauri::command]
+#[allow(clippy::unused_async)] // Tauri commands require async signature
+pub async fn get_storage_info(state: State<'_, CredentialState>) -> Result<StorageInfo, String> {
+    Ok(state.bridge.get_storage_info())
+}
+
+/// Get current storage tier (Story 5.2)
+///
+/// Returns the current storage tier (Keychain, Stronghold, or MemoryOnly).
+/// Useful for quick checks without full StorageInfo.
+#[tauri::command]
+#[allow(clippy::unused_async)] // Tauri commands require async signature
+pub async fn get_storage_tier(state: State<'_, CredentialState>) -> Result<StorageTier, String> {
+    Ok(state.bridge.storage_tier())
 }
 
 #[cfg(test)]
@@ -209,5 +234,68 @@ mod command_tests {
         assert!(!token.id.contains("refresh"));
         assert!(!token.id.contains("token"));
         assert!(!token.id.contains("test_"));
+    }
+
+    // ========== Story 5.2: Storage Command Tests ==========
+
+    #[test]
+    fn test_get_storage_info() {
+        use super::super::storage::{SecurityLevel, StorageTier};
+
+        let state = CredentialState::new();
+        let info = state.bridge.get_storage_info();
+
+        // Info should have valid fields
+        assert!(!info.display_name.is_empty());
+        assert!(!info.description.is_empty());
+
+        // Security level should match tier
+        match info.tier {
+            StorageTier::Keychain => {
+                assert_eq!(info.security_level, SecurityLevel::Highest);
+                assert!(info.persists_on_restart);
+            },
+            StorageTier::Stronghold => {
+                assert_eq!(info.security_level, SecurityLevel::Good);
+                assert!(info.persists_on_restart);
+            },
+            StorageTier::MemoryOnly => {
+                assert_eq!(info.security_level, SecurityLevel::Limited);
+                assert!(!info.persists_on_restart);
+            },
+        }
+    }
+
+    #[test]
+    fn test_get_storage_tier() {
+        use super::super::storage::StorageTier;
+
+        let state = CredentialState::new();
+        let tier = state.bridge.storage_tier();
+
+        // Should be a valid tier
+        assert!(matches!(
+            tier,
+            StorageTier::Keychain | StorageTier::Stronghold | StorageTier::MemoryOnly
+        ));
+
+        // Tier should match storage info
+        let info = state.bridge.get_storage_info();
+        assert_eq!(tier, info.tier);
+    }
+
+    #[test]
+    fn test_storage_info_consistency() {
+        let state = CredentialState::new();
+
+        // Get info multiple times
+        let info1 = state.bridge.get_storage_info();
+        let info2 = state.bridge.get_storage_info();
+
+        // Should be consistent
+        assert_eq!(info1.tier, info2.tier);
+        assert_eq!(info1.display_name, info2.display_name);
+        assert_eq!(info1.security_level, info2.security_level);
+        assert_eq!(info1.persists_on_restart, info2.persists_on_restart);
     }
 }

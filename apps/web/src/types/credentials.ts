@@ -1,5 +1,5 @@
 /**
- * Credential Bridge Types (Story 5.1)
+ * Credential Bridge Types (Story 5.1, 5.2)
  *
  * Type definitions for secure credential management.
  * These types mirror the Rust backend types but contain NO secrets.
@@ -7,8 +7,12 @@
  * SECURITY: This file NEVER contains raw credential types.
  * All sensitive data remains in Rust backend.
  *
- * AC2: Opaque tokens via IPC
- * AC3: No credentials in web storage
+ * Story 5.1: Credential Bridge Foundation
+ * - AC2: Opaque tokens via IPC
+ * - AC3: No credentials in web storage
+ *
+ * Story 5.2: OS Keychain Integration
+ * - AC6: Storage tier indicator
  */
 
 /**
@@ -128,3 +132,66 @@ export const DEFAULT_AUTH_STATE: AuthState = {
   expiry_timestamp: null,
   user_info: null,
 };
+
+// =============================================================================
+// Story 5.2: OS Keychain Integration - Storage Tier Types
+// =============================================================================
+
+/**
+ * Storage tier for credentials (AC6)
+ *
+ * Represents the current storage backend being used for credentials.
+ * - Keychain: OS-managed keychain (highest security)
+ * - Stronghold: Encrypted vault storage (good security)
+ * - MemoryOnly: Session-only storage (fallback, no persistence)
+ */
+export type StorageTier = "Keychain" | "Stronghold" | "MemoryOnly";
+
+/**
+ * Security level for display purposes (AC6)
+ */
+export type SecurityLevel = "Highest" | "Good" | "Limited";
+
+/**
+ * Storage info for UI display (AC6)
+ *
+ * Contains all information needed to display the current storage
+ * tier status in the settings UI.
+ */
+export interface StorageInfo {
+  /** Current storage tier */
+  tier: StorageTier;
+  /** Human-readable name for display */
+  display_name: string;
+  /** Security level indicator */
+  security_level: SecurityLevel;
+  /** Detailed description for tooltip/help text */
+  description: string;
+  /** Whether credentials persist across app restarts */
+  persists_on_restart: boolean;
+}
+
+/**
+ * Default storage info when loading or unknown
+ */
+export const DEFAULT_STORAGE_INFO: StorageInfo = {
+  tier: "MemoryOnly",
+  display_name: "Loading...",
+  security_level: "Limited",
+  description: "Checking available storage backends...",
+  persists_on_restart: false,
+};
+
+/**
+ * Helper to check if storage tier provides persistence
+ */
+export function storageTierPersists(tier: StorageTier): boolean {
+  return tier === "Keychain" || tier === "Stronghold";
+}
+
+/**
+ * Helper to check if storage is in memory-only fallback mode
+ */
+export function isMemoryOnlyMode(tier: StorageTier): boolean {
+  return tier === "MemoryOnly";
+}

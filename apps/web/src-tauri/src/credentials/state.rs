@@ -1,29 +1,54 @@
-//! Credential state management for Tauri (Story 5.1)
+//! Credential state management for Tauri (Story 5.1, 5.2)
 //!
 //! Provides thread-safe credential state that can be managed by Tauri.
 //!
 //! # Performance Requirements
 //! - NFR-CRED-2: Credential availability check must complete within 500ms on cold start
+//!
+//! # Story 5.2 Additions
+//! - Storage-aware initialization with app_data_dir
+//! - Automatic tier detection (Keychain > Stronghold > Memory)
 
 use super::bridge::CredentialBridge;
+use std::path::PathBuf;
 
 /// Credential state managed by Tauri (AC1, AC4)
 ///
 /// This struct wraps the CredentialBridge for Tauri's state management system.
 /// It is initialized once at app startup and shared across all commands.
+///
+/// Story 5.2: Now supports storage-aware initialization with automatic
+/// tier detection based on available backends.
 pub struct CredentialState {
     /// The credential bridge for secure credential operations
     pub bridge: CredentialBridge,
 }
 
 impl CredentialState {
-    /// Create a new credential state with empty credentials
+    /// Create a new credential state with empty credentials (memory-only)
     ///
     /// Performance: This initialization is part of app startup
     /// and contributes to the cold start timing (NFR-CRED-2).
+    ///
+    /// Note: For production use, prefer `new_with_storage` to enable
+    /// persistent credential storage.
     pub fn new() -> Self {
         Self {
             bridge: CredentialBridge::new(),
+        }
+    }
+
+    /// Create a new credential state with storage tier detection (Story 5.2)
+    ///
+    /// # Arguments
+    ///
+    /// * `app_data_dir` - Path to app data directory for vault storage
+    ///
+    /// This initializes the credential bridge with automatic storage tier
+    /// detection: OS Keychain > Stronghold > Memory fallback.
+    pub fn new_with_storage(app_data_dir: PathBuf) -> Self {
+        Self {
+            bridge: CredentialBridge::new_with_storage(Some(app_data_dir)),
         }
     }
 

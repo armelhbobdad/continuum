@@ -93,8 +93,9 @@ pub struct OpaqueToken {
 
 /// OAuth secrets (NEVER exposed to frontend) (AC3)
 /// Note: Will be used for OAuth flow in Story 5.3
+/// Story 5.2: Serializable for encrypted storage in keychain/Stronghold.
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct OAuthSecrets {
     pub client_id: String,
     pub client_secret: String,
@@ -104,10 +105,11 @@ pub(crate) struct OAuthSecrets {
 /// Internal stored credentials (NEVER exposed to frontend) (AC1, AC3)
 ///
 /// SECURITY: This struct contains all sensitive credential data
-/// and MUST NEVER be serialized or returned to JavaScript.
+/// and MUST NEVER be returned to JavaScript.
+/// Story 5.2: Serializable for encrypted storage in keychain/Stronghold.
 /// Note: Used in tests; populated via keychain integration in Story 5.2
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct StoredCredentials {
     /// The actual access token (NEVER returned to JS)
     pub access_token: String,
