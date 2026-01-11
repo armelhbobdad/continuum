@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * Privacy Mode Selector Component
- *
- * Dropdown menu for selecting privacy mode with three options:
- * - Local-only: "Your data never leaves this device"
- * - Hybrid: "Private by default, share when you choose"
- * - Cloud: "Maximum power, standard cloud privacy"
- *
- * Story 1.2: Privacy Gate Provider & Zustand Stores
- */
 import { cva } from "class-variance-authority";
 import {
   DropdownMenu,
@@ -77,11 +67,23 @@ interface PrivacyModeSelectorProps {
 export function PrivacyModeSelector({ className }: PrivacyModeSelectorProps) {
   const mode = usePrivacyStore((state) => state.mode);
   const setMode = usePrivacyStore((state) => state.setMode);
+  const airplaneMode = usePrivacyStore((state) => state.airplaneMode);
 
   const handleModeChange = (newMode: string) => {
+    // Prevent switching to cloud modes when airplane mode is enabled
+    if (airplaneMode && newMode !== "local-only") {
+      return;
+    }
     // Optimistic UI - mode updates immediately
     setMode(newMode as PrivacyMode);
   };
+
+  /**
+   * Check if a mode requires network connectivity
+   * Returns true for modes that need cloud/network access
+   */
+  const requiresNetwork = (modeValue: PrivacyMode): boolean =>
+    modeValue === "trusted-network" || modeValue === "cloud-enhanced";
 
   return (
     <DropdownMenu>
@@ -101,22 +103,30 @@ export function PrivacyModeSelector({ className }: PrivacyModeSelectorProps) {
           <DropdownMenuLabel>Privacy Mode</DropdownMenuLabel>
 
           <DropdownMenuRadioGroup onValueChange={handleModeChange} value={mode}>
-            {PRIVACY_MODE_OPTIONS.map((option) => (
-              <DropdownMenuRadioItem
-                className="flex flex-col items-start gap-0.5 py-3"
-                data-slot={`privacy-mode-option-${option.value}`}
-                key={option.value}
-                value={option.value}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={optionDotVariants({ mode: option.value })} />
-                  <span className="font-medium">{option.label}</span>
-                </div>
-                <span className="ml-4 text-muted-foreground text-xs">
-                  {option.description}
-                </span>
-              </DropdownMenuRadioItem>
-            ))}
+            {PRIVACY_MODE_OPTIONS.map((option) => {
+              const isDisabled = airplaneMode && requiresNetwork(option.value);
+              return (
+                <DropdownMenuRadioItem
+                  className="flex flex-col items-start gap-0.5 py-3"
+                  data-slot={`privacy-mode-option-${option.value}`}
+                  disabled={isDisabled}
+                  key={option.value}
+                  value={option.value}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={optionDotVariants({ mode: option.value })}
+                    />
+                    <span className="font-medium">{option.label}</span>
+                  </div>
+                  <span className="ml-4 text-muted-foreground text-xs">
+                    {isDisabled
+                      ? "Unavailable in Airplane Mode"
+                      : option.description}
+                  </span>
+                </DropdownMenuRadioItem>
+              );
+            })}
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
       </DropdownMenuContent>
