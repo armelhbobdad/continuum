@@ -3,6 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ConnectivityErrorBoundary } from "../connectivity-error-boundary";
 
+// Top-level regex patterns for test assertions
+const SOMETHING_WENT_WRONG = /something went wrong/i;
+const CONNECTION_INTERRUPTED = /connection interrupted/i;
+const YOUR_WORK_IS_SAFE = /your work is safe/i;
+const CONTINUE_OFFLINE = /continue offline/i;
+const TRY_AGAIN = /try again/i;
+
 /**
  * ConnectivityErrorBoundary Component Tests
  *
@@ -38,7 +45,9 @@ describe("ConnectivityErrorBoundary", () => {
 
   it("renders error UI when child throws error", () => {
     // Suppress console.error for this test
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     render(
       <ConnectivityErrorBoundary>
@@ -46,12 +55,14 @@ describe("ConnectivityErrorBoundary", () => {
       </ConnectivityErrorBoundary>
     );
 
-    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByText(SOMETHING_WENT_WRONG)).toBeInTheDocument();
     consoleSpy.mockRestore();
   });
 
   it("detects network errors and shows appropriate message", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     render(
       <ConnectivityErrorBoundary>
@@ -59,13 +70,15 @@ describe("ConnectivityErrorBoundary", () => {
       </ConnectivityErrorBoundary>
     );
 
-    expect(screen.getByText(/connection interrupted/i)).toBeInTheDocument();
-    expect(screen.getByText(/your work is safe/i)).toBeInTheDocument();
+    expect(screen.getByText(CONNECTION_INTERRUPTED)).toBeInTheDocument();
+    expect(screen.getByText(YOUR_WORK_IS_SAFE)).toBeInTheDocument();
     consoleSpy.mockRestore();
   });
 
   it("shows continue offline button for network errors", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     render(
       <ConnectivityErrorBoundary>
@@ -74,13 +87,15 @@ describe("ConnectivityErrorBoundary", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: /continue offline/i })
+      screen.getByRole("button", { name: CONTINUE_OFFLINE })
     ).toBeInTheDocument();
     consoleSpy.mockRestore();
   });
 
   it("resets error state when retry button clicked", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     let shouldError = true;
     function ConditionalError() {
@@ -96,13 +111,13 @@ describe("ConnectivityErrorBoundary", () => {
       </ConnectivityErrorBoundary>
     );
 
-    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByText(SOMETHING_WENT_WRONG)).toBeInTheDocument();
 
     // Fix the error condition before retrying
     shouldError = false;
 
     // Click retry
-    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    fireEvent.click(screen.getByRole("button", { name: TRY_AGAIN }));
 
     // Re-render to pick up the state change
     rerender(
@@ -116,7 +131,9 @@ describe("ConnectivityErrorBoundary", () => {
   });
 
   it("calls onError callback when error caught", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     const onError = vi.fn();
 
     render(
@@ -130,7 +147,9 @@ describe("ConnectivityErrorBoundary", () => {
   });
 
   it("renders custom fallback when provided", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     render(
       <ConnectivityErrorBoundary fallback={<div>Custom fallback UI</div>}>
@@ -143,7 +162,9 @@ describe("ConnectivityErrorBoundary", () => {
   });
 
   it("has correct data-slot attribute", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     render(
       <ConnectivityErrorBoundary>
@@ -159,7 +180,9 @@ describe("ConnectivityErrorBoundary", () => {
   });
 
   it("has correct accessibility attributes", () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     render(
       <ConnectivityErrorBoundary>

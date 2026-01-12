@@ -107,6 +107,7 @@ pub(crate) struct OAuthSecrets {
 /// SECURITY: This struct contains all sensitive credential data
 /// and MUST NEVER be returned to JavaScript.
 /// Story 5.2: Serializable for encrypted storage in keychain/Stronghold.
+/// Story 5.4: Added offline_valid_until and last_refresh_at for offline auth.
 /// Note: Used in tests; populated via keychain integration in Story 5.2
 #[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,13 +126,24 @@ pub(crate) struct StoredCredentials {
     pub expires_at: Option<i64>,
     /// User info (safe to expose)
     pub user_info: Option<UserInfo>,
+    /// When offline validity expires (stored_at + 30 days) (Story 5.4, AC1, AC2)
+    #[serde(default)]
+    pub offline_valid_until: Option<i64>,
+    /// Last time credentials were refreshed (Story 5.4, AC5)
+    #[serde(default)]
+    pub last_refresh_at: Option<i64>,
 }
+
+/// Offline validity constant (30 days in seconds) - Story 5.4
+const OFFLINE_VALIDITY_SECONDS: i64 = 30 * 86_400;
 
 /// Builder methods for StoredCredentials
 /// Note: Used in tests; will be populated via keychain integration in Story 5.2
+/// Story 5.4: Added offline validity calculation on creation
 #[allow(dead_code)]
 impl StoredCredentials {
     /// Create new stored credentials
+    /// Story 5.4: Automatically calculates offline_valid_until as stored_at + 30 days
     pub fn new(access_token: String) -> Self {
         use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -148,6 +160,8 @@ impl StoredCredentials {
             stored_at: now,
             expires_at: None,
             user_info: None,
+            offline_valid_until: Some(now + OFFLINE_VALIDITY_SECONDS),
+            last_refresh_at: Some(now),
         }
     }
 
@@ -179,6 +193,47 @@ impl StoredCredentials {
     pub fn with_oauth_secrets(mut self, secrets: OAuthSecrets) -> Self {
         self.oauth_secrets = Some(secrets);
         self
+    }
+
+    /// Set custom offline validity period (Story 5.4, AC2)
+    /// Used for testing or overriding default 30-day window
+    pub fn set_offline_validity(mut self, offline_valid_until: i64) -> Self {
+        self.offline_valid_until = Some(offline_valid_until);
+        self
+    }
+
+    /// Update last refresh timestamp (Story 5.4, AC5)
+    /// Called after successful credential refresh
+    pub fn with_last_refresh_at(mut self, last_refresh_at: i64) -> Self {
+        self.last_refresh_at = Some(last_refresh_at);
+        self
+    }
+
+    /// Refresh offline validity window (Story 5.4)
+    /// Resets offline_valid_until to now + 30 days
+    pub fn refresh_offline_validity(&mut self) {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+
+        self.offline_valid_until = Some(now + OFFLINE_VALIDITY_SECONDS);
+        self.last_refresh_at = Some(now);
+    }
+
+    /// Check if offline validity has expired (Story 5.4)
+    pub fn is_offline_expired(&self) -> bool {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+
+        self.offline_valid_until
+            .is_none_or(|valid_until| now > valid_until)
     }
 }
 
@@ -279,5 +334,93 @@ mod type_tests {
             CredentialError::StorageError("disk full".to_string()).to_string(),
             "Storage error: disk full"
         );
+    }
+
+    // ========== Story 5.4: Offline credential field tests (6 tests) ==========
+
+    #[test]
+    fn test_stored_credentials_has_offline_fields() {
+        let creds = StoredCredentials::new("token".to_string());
+
+        // Should have offline fields set automatically
+        assert!(creds.offline_valid_until.is_some());
+        assert!(creds.last_refresh_at.is_some());
+
+        // offline_valid_until should be 30 days from stored_at
+        let expected = creds.stored_at + (30 * 86_400);
+        assert_eq!(creds.offline_valid_until, Some(expected));
+    }
+
+    #[test]
+    fn test_set_offline_validity_builder() {
+        let custom_expiry = 1_800_000_000i64;
+        let creds = StoredCredentials::new("token".to_string()).set_offline_validity(custom_expiry);
+
+        assert_eq!(creds.offline_valid_until, Some(custom_expiry));
+    }
+
+    #[test]
+    fn test_with_last_refresh_at_builder() {
+        let refresh_time = 1_700_000_000i64;
+        let creds = StoredCredentials::new("token".to_string()).with_last_refresh_at(refresh_time);
+
+        assert_eq!(creds.last_refresh_at, Some(refresh_time));
+    }
+
+    #[test]
+    fn test_refresh_offline_validity() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        // Create credentials with expired offline validity
+        let past = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0)
+            - 1000;
+
+        let mut creds = StoredCredentials::new("token".to_string()).set_offline_validity(past);
+
+        // Should be expired
+        assert!(creds.is_offline_expired());
+
+        // Refresh the validity
+        creds.refresh_offline_validity();
+
+        // Should no longer be expired
+        assert!(!creds.is_offline_expired());
+        assert!(creds.last_refresh_at.is_some());
+    }
+
+    #[test]
+    fn test_is_offline_expired_with_valid_credentials() {
+        let creds = StoredCredentials::new("token".to_string());
+        // Newly created credentials should not be expired
+        assert!(!creds.is_offline_expired());
+    }
+
+    #[test]
+    fn test_is_offline_expired_with_no_validity_set() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+
+        // Create credentials without offline validity (simulating legacy data)
+        let creds = StoredCredentials {
+            access_token: "token".to_string(),
+            refresh_token: None,
+            api_keys: HashMap::new(),
+            oauth_secrets: None,
+            stored_at: now,
+            expires_at: None,
+            user_info: None,
+            offline_valid_until: None, // No validity set
+            last_refresh_at: None,
+        };
+
+        // Should be treated as expired
+        assert!(creds.is_offline_expired());
     }
 }

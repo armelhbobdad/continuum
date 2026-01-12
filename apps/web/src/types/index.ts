@@ -9,20 +9,34 @@ export type {
   PartialResponseState,
   TransitionState,
 } from "./connectivity-transition";
-// Credential types (Story 5.1)
+// Credential types (Story 5.1, 5.2, 5.4)
 export type {
   AuthState,
   CredentialError,
   CredentialErrorType,
   CredentialStatus,
+  DegradedMode,
+  OfflineValidationResult,
   OpaqueToken,
+  RefreshResult,
+  SecurityLevel,
+  StorageInfo,
+  StorageTier,
   TokenType,
   UserInfo,
 } from "./credentials";
 export {
+  canWriteInMode,
   DEFAULT_AUTH_STATE,
+  DEFAULT_OFFLINE_VALIDATION,
+  DEFAULT_STORAGE_INFO,
+  getModeDescription,
   isExpiredError,
+  isExpiringSoon,
+  isMemoryOnlyMode,
   isNotFoundError,
+  needsReauth,
+  storageTierPersists,
 } from "./credentials";
 // Inference types (Story 1.5)
 export type {

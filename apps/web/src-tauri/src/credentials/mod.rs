@@ -29,6 +29,8 @@ pub mod bridge;
 pub mod commands;
 pub mod keychain;
 pub mod memory;
+pub mod offline;
+pub mod refresh;
 pub mod state;
 pub mod storage;
 pub mod stronghold;
@@ -44,6 +46,15 @@ pub use types::{AuthState, CredentialError, CredentialStatus, OpaqueToken, Token
 // Re-export storage types for IPC (Story 5.2)
 #[allow(unused_imports)]
 pub use storage::{SecurityLevel, StorageInfo, StorageTier};
+// Re-export offline types for IPC (Story 5.4)
+#[allow(unused_imports)]
+pub use offline::{
+    DegradedMode, OfflineCredentialState, OfflineValidationResult, OfflineValidator,
+    OFFLINE_VALIDITY_DAYS, READ_ONLY_GRACE_DAYS, SECONDS_PER_DAY,
+};
+// Re-export refresh types for IPC (Story 5.4)
+#[allow(unused_imports)]
+pub use refresh::{CredentialRefresher, RefreshResult};
 
 #[cfg(test)]
 mod tests;

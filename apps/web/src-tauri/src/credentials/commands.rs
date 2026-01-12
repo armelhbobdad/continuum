@@ -1,4 +1,4 @@
-//! Tauri commands for Credential Bridge (Story 5.1, 5.2)
+//! Tauri commands for Credential Bridge (Story 5.1, 5.2, 5.4)
 //!
 //! Provides IPC commands for frontend to interact with credentials.
 //! All commands return opaque data - raw credentials are NEVER exposed.
@@ -11,7 +11,15 @@
 //! - `validate_credentials` - Check if credentials are valid (AC1)
 //! - `get_storage_info` - Get storage tier info for UI (Story 5.2, AC6)
 //! - `get_storage_tier` - Get current storage tier (Story 5.2)
+//! - `validate_offline_credentials` - Validate credentials for offline use (Story 5.4, AC1)
+//! - `get_offline_status` - Get offline validation result (Story 5.4, AC1-4)
+//! - `refresh_credentials` - Manual credential refresh (Story 5.4, AC7)
+//! - `get_degraded_mode` - Get current degraded mode level (Story 5.4, AC3)
 
+use super::offline::{
+    DegradedMode, OfflineCredentialState, OfflineValidationResult, OfflineValidator,
+};
+use super::refresh::RefreshResult;
 use super::state::CredentialState;
 use super::storage::{StorageInfo, StorageTier};
 use super::types::{AuthState, OpaqueToken};
@@ -99,6 +107,97 @@ pub async fn get_storage_info(state: State<'_, CredentialState>) -> Result<Stora
 #[allow(clippy::unused_async)] // Tauri commands require async signature
 pub async fn get_storage_tier(state: State<'_, CredentialState>) -> Result<StorageTier, String> {
     Ok(state.bridge.storage_tier())
+}
+
+// ========== Story 5.4: Offline Authentication Commands ==========
+
+/// Validate credentials for offline use (Story 5.4, AC1, AC4)
+///
+/// Validates stored credentials locally without network access.
+/// Performance: Must complete within 100ms (NFR-CRED-6)
+///
+/// Returns OfflineValidationResult with validity status and degraded mode.
+#[tauri::command]
+pub async fn validate_offline_credentials(
+    state: State<'_, CredentialState>,
+) -> Result<OfflineValidationResult, String> {
+    let start = Instant::now();
+
+    // Get stored credentials
+    let credentials = state
+        .bridge
+        .get_stored_credentials()
+        .map_err(|e| e.to_string())?;
+
+    // Create offline state from credentials
+    let offline_state = OfflineCredentialState::from_timestamp(credentials.stored_at);
+
+    // Validate offline
+    let result =
+        OfflineValidator::validate(&credentials, &offline_state).map_err(|e| e.to_string())?;
+
+    let elapsed = start.elapsed();
+
+    // Performance warning if slow (NFR-CRED-6)
+    if elapsed.as_millis() > 100 {
+        log::warn!(
+            "Offline validation took {}ms (> 100ms NFR-CRED-6)",
+            elapsed.as_millis()
+        );
+    }
+
+    Ok(result)
+}
+
+/// Get offline status (Story 5.4, AC1-4)
+///
+/// Returns the current offline validation result including:
+/// - Whether credentials are valid for offline use
+/// - Current degraded mode (FullAccess, ReadOnly, RequiresReauth)
+/// - Days remaining in offline window
+/// - Whether refresh is needed when online
+#[tauri::command]
+pub async fn get_offline_status(
+    state: State<'_, CredentialState>,
+) -> Result<OfflineValidationResult, String> {
+    // Delegate to validate_offline_credentials
+    validate_offline_credentials(state).await
+}
+
+/// Refresh credentials manually (Story 5.4, AC7)
+///
+/// Triggers a credential refresh attempt.
+/// This is a placeholder that returns a requires-reauth result
+/// until OAuth providers are configured.
+#[tauri::command]
+#[allow(clippy::unused_async)] // Tauri commands require async signature
+pub async fn refresh_credentials(
+    _state: State<'_, CredentialState>,
+) -> Result<RefreshResult, String> {
+    // TODO: Implement actual refresh when OAuth providers are configured
+    // For now, return a result indicating refresh is not yet implemented
+    Ok(RefreshResult::failure(
+        "Credential refresh not yet configured - OAuth providers required".to_string(),
+    ))
+}
+
+/// Get current degraded mode (Story 5.4, AC3)
+///
+/// Returns the current access level based on offline credential validity:
+/// - FullAccess: Within 30-day offline window
+/// - ReadOnly: 30-37 days offline (grace period)
+/// - RequiresReauth: > 37 days offline
+#[tauri::command]
+pub async fn get_degraded_mode(state: State<'_, CredentialState>) -> Result<DegradedMode, String> {
+    // Get stored credentials
+    let credentials = state
+        .bridge
+        .get_stored_credentials()
+        .map_err(|e| e.to_string())?;
+
+    // Create offline state and calculate mode
+    let offline_state = OfflineCredentialState::from_timestamp(credentials.stored_at);
+    Ok(offline_state.calculate_mode())
 }
 
 #[cfg(test)]
@@ -297,5 +396,123 @@ mod command_tests {
         assert_eq!(info1.display_name, info2.display_name);
         assert_eq!(info1.security_level, info2.security_level);
         assert_eq!(info1.persists_on_restart, info2.persists_on_restart);
+    }
+
+    // ========== Story 5.4: Offline Command Tests (8 tests) ==========
+
+    #[test]
+    fn test_get_stored_credentials_not_found() {
+        let state = CredentialState::new();
+        let result = state.bridge.get_stored_credentials();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_stored_credentials_with_credentials() {
+        let state = CredentialState::new();
+        state
+            .bridge
+            .store_credentials(create_test_credentials())
+            .unwrap();
+
+        let creds = state.bridge.get_stored_credentials().unwrap();
+        assert_eq!(creds.access_token, "test_access_token");
+    }
+
+    #[test]
+    fn test_offline_validation_with_valid_credentials() {
+        use super::super::offline::{OfflineCredentialState, OfflineValidator};
+
+        let state = CredentialState::new();
+        state
+            .bridge
+            .store_credentials(create_test_credentials())
+            .unwrap();
+
+        let creds = state.bridge.get_stored_credentials().unwrap();
+        let offline_state = OfflineCredentialState::from_timestamp(creds.stored_at);
+
+        let result = OfflineValidator::validate(&creds, &offline_state).unwrap();
+        assert!(result.is_valid);
+        assert_eq!(result.mode, super::super::offline::DegradedMode::FullAccess);
+    }
+
+    #[test]
+    fn test_offline_validation_performance() {
+        use super::super::offline::{OfflineCredentialState, OfflineValidator};
+
+        let state = CredentialState::new();
+        state
+            .bridge
+            .store_credentials(create_test_credentials())
+            .unwrap();
+
+        let creds = state.bridge.get_stored_credentials().unwrap();
+        let offline_state = OfflineCredentialState::from_timestamp(creds.stored_at);
+
+        let start = Instant::now();
+        let _result = OfflineValidator::validate(&creds, &offline_state);
+        let elapsed = start.elapsed();
+
+        // NFR-CRED-6: Must complete within 100ms
+        assert!(
+            elapsed.as_millis() < 100,
+            "Validation took {}ms",
+            elapsed.as_millis()
+        );
+    }
+
+    #[test]
+    fn test_degraded_mode_full_access_for_new_credentials() {
+        use super::super::offline::OfflineCredentialState;
+
+        let state = CredentialState::new();
+        state
+            .bridge
+            .store_credentials(create_test_credentials())
+            .unwrap();
+
+        let creds = state.bridge.get_stored_credentials().unwrap();
+        let offline_state = OfflineCredentialState::from_timestamp(creds.stored_at);
+
+        assert_eq!(
+            offline_state.calculate_mode(),
+            super::super::offline::DegradedMode::FullAccess
+        );
+    }
+
+    #[test]
+    fn test_degraded_mode_read_only_after_30_days() {
+        use super::super::offline::{DegradedMode, OfflineCredentialState, SECONDS_PER_DAY};
+
+        let now = get_current_timestamp();
+        let old_timestamp = now - (31 * SECONDS_PER_DAY);
+
+        let offline_state = OfflineCredentialState::from_timestamp(old_timestamp);
+        assert_eq!(offline_state.calculate_mode(), DegradedMode::ReadOnly);
+    }
+
+    #[test]
+    fn test_degraded_mode_requires_reauth_after_37_days() {
+        use super::super::offline::{DegradedMode, OfflineCredentialState, SECONDS_PER_DAY};
+
+        let now = get_current_timestamp();
+        let old_timestamp = now - (38 * SECONDS_PER_DAY);
+
+        let offline_state = OfflineCredentialState::from_timestamp(old_timestamp);
+        assert_eq!(offline_state.calculate_mode(), DegradedMode::RequiresReauth);
+    }
+
+    #[test]
+    fn test_refresh_result_serialization() {
+        use super::super::refresh::RefreshResult;
+
+        let result = RefreshResult::success();
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"success\":true"));
+
+        let result = RefreshResult::requires_reauth("Token expired".to_string());
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"requires_reauth\":true"));
     }
 }

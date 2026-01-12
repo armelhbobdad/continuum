@@ -212,7 +212,7 @@ export async function checkRamAvailability(): Promise<PreFlightCheck> {
 /**
  * Check knowledge base sync status
  */
-export async function checkKnowledgeSync(): Promise<PreFlightCheck> {
+export function checkKnowledgeSync(): PreFlightCheck {
   try {
     // This would check Jazz sync status or local knowledge store
     // For now, return ready as knowledge bases are optional
@@ -318,7 +318,11 @@ export function calculateOverallStatus(
   const hasCritical = checks.some((c) => c.status === "critical");
   const hasWarning = checks.some((c) => c.status === "warning");
 
-  if (hasCritical) return "critical";
-  if (hasWarning) return "warning";
+  if (hasCritical) {
+    return "critical";
+  }
+  if (hasWarning) {
+    return "warning";
+  }
   return "ready";
 }

@@ -261,6 +261,19 @@ impl CredentialBridge {
             .map(|guard| guard.as_ref().is_some_and(|c| c.refresh_token.is_some()))
             .unwrap_or(false)
     }
+
+    /// Get stored credentials (internal only) (Story 5.4)
+    ///
+    /// SECURITY: This returns a clone of credentials for internal use only.
+    /// Must NOT be exposed to frontend directly.
+    pub(crate) fn get_stored_credentials(&self) -> Result<StoredCredentials, CredentialError> {
+        let guard = self
+            .credentials
+            .lock()
+            .map_err(|e| CredentialError::InternalError(e.to_string()))?;
+
+        guard.clone().ok_or(CredentialError::NotFound)
+    }
 }
 
 impl Default for CredentialBridge {

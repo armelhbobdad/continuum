@@ -195,3 +195,96 @@ export function storageTierPersists(tier: StorageTier): boolean {
 export function isMemoryOnlyMode(tier: StorageTier): boolean {
   return tier === "MemoryOnly";
 }
+
+// =============================================================================
+// Story 5.4: Offline Authentication - Types
+// =============================================================================
+
+/**
+ * Degraded mode levels for offline access (AC3)
+ *
+ * - FullAccess: Within 30-day offline window
+ * - ReadOnly: 30-37 days offline (grace period)
+ * - RequiresReauth: > 37 days offline, must re-authenticate
+ */
+export type DegradedMode = "FullAccess" | "ReadOnly" | "RequiresReauth";
+
+/**
+ * Offline validation result from Rust backend (AC1, AC4)
+ *
+ * Contains all information about offline credential validity.
+ */
+export interface OfflineValidationResult {
+  /** Whether credentials are valid for offline use */
+  is_valid: boolean;
+  /** When offline validity expires (Unix timestamp) */
+  expires_at: number;
+  /** Current degraded mode level */
+  mode: DegradedMode;
+  /** Days remaining in offline window */
+  days_remaining: number;
+  /** Whether credentials need refresh when online */
+  needs_refresh: boolean;
+}
+
+/**
+ * Refresh result from credential refresh attempt (AC5, AC6, AC7)
+ */
+export interface RefreshResult {
+  /** Whether refresh was successful */
+  success: boolean;
+  /** Error message if refresh failed */
+  error: string | null;
+  /** Whether re-authentication is required */
+  requires_reauth: boolean;
+  /** Time until next retry in milliseconds (if applicable) */
+  retry_after_ms: number | null;
+}
+
+/**
+ * Default offline validation result when not authenticated
+ */
+export const DEFAULT_OFFLINE_VALIDATION: OfflineValidationResult = {
+  is_valid: false,
+  expires_at: 0,
+  mode: "RequiresReauth",
+  days_remaining: 0,
+  needs_refresh: true,
+};
+
+/**
+ * Helper to check if degraded mode allows write operations
+ */
+export function canWriteInMode(mode: DegradedMode): boolean {
+  return mode === "FullAccess";
+}
+
+/**
+ * Helper to check if degraded mode requires re-authentication
+ */
+export function needsReauth(mode: DegradedMode): boolean {
+  return mode === "RequiresReauth";
+}
+
+/**
+ * Helper to check if credentials are expiring soon (within 3 days)
+ */
+export function isExpiringSoon(result: OfflineValidationResult): boolean {
+  return result.days_remaining <= 3 && result.days_remaining > 0;
+}
+
+/**
+ * Helper to get human-readable mode description
+ */
+export function getModeDescription(mode: DegradedMode): string {
+  switch (mode) {
+    case "FullAccess":
+      return "Full access - all features available offline";
+    case "ReadOnly":
+      return "Read-only mode - sync when online to continue editing";
+    case "RequiresReauth":
+      return "Authentication required - please sign in";
+    default:
+      return "Unknown authentication mode";
+  }
+}

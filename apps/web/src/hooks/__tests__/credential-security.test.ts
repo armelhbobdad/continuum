@@ -11,12 +11,13 @@ describe("Credential Security", () => {
     // Clear all storage before each test
     localStorage.clear();
     sessionStorage.clear();
-    // Clear all cookies
-    document.cookie.split(";").forEach((c) => {
+    // Clear all cookies - intentional cookie manipulation for security testing
+    for (const c of document.cookie.split(";")) {
+      // biome-ignore lint/suspicious/noDocumentCookie: Required for security test setup
       document.cookie = c
         .replace(/^ +/, "")
         .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
-    });
+    }
   });
 
   afterEach(() => {

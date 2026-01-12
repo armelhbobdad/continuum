@@ -23,7 +23,9 @@ export { useNotificationPreference } from "./use-notification-preference";
 export type { UseOAuthFlowResult } from "./use-oauth-flow";
 // OAuth hooks (Story 5.3)
 export { PROGRESS_POLL_INTERVAL_MS, useOAuthFlow } from "./use-oauth-flow";
-// Offline hooks (Story 4.5)
+// Offline hooks (Story 4.5, 5.4)
+export type { UseOfflineAuthResult } from "./use-offline-auth";
+export { useOfflineAuth } from "./use-offline-auth";
 export { useOfflineCapability } from "./use-offline-capability";
 // Preflight hooks (Story 4.3)
 export type { UsePreFlightChecksResult } from "./use-preflight-checks";

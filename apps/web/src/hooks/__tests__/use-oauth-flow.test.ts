@@ -27,7 +27,7 @@ const mockTauriWindow = () => {
 };
 
 const clearTauriWindow = () => {
-  delete (window as unknown as Record<string, unknown>).__TAURI__;
+  (window as unknown as Record<string, unknown>).__TAURI__ = undefined;
 };
 
 // Helper to create progress with state

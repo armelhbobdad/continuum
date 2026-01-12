@@ -16,10 +16,14 @@ const STORAGE_KEY = "continuum-notification-preferences";
  * Check if notification is suppressed (non-hook version for imperative use)
  */
 function checkSuppressed(key: keyof NotificationPreferences): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") {
+    return false;
+  }
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return false;
+    if (!stored) {
+      return false;
+    }
     const prefs = JSON.parse(stored) as NotificationPreferences;
     return prefs[key] ?? false;
   } catch {
@@ -181,12 +185,16 @@ export function showModeChangeToast(event: TransitionEvent): void {
 
   const { title, message, variant } = getToastContent(event);
 
-  const toastMethod =
-    variant === "recovery"
-      ? toast.success
-      : variant === "graceful"
-        ? toast.info
-        : toast.warning;
+  const getToastMethod = () => {
+    if (variant === "recovery") {
+      return toast.success;
+    }
+    if (variant === "graceful") {
+      return toast.info;
+    }
+    return toast.warning;
+  };
+  const toastMethod = getToastMethod();
 
   toastMethod(title, {
     description: message,

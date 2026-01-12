@@ -82,6 +82,11 @@ pub fn run() {
             // Credential storage commands (Story 5.2)
             credentials::get_storage_info,
             credentials::get_storage_tier,
+            // Offline authentication commands (Story 5.4)
+            credentials::validate_offline_credentials,
+            credentials::get_offline_status,
+            credentials::refresh_credentials,
+            credentials::get_degraded_mode,
             // OAuth commands (Story 5.3)
             auth::start_oauth_flow,
             auth::get_oauth_progress,
