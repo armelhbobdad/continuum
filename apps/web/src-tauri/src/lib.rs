@@ -10,10 +10,14 @@
 //! - **Model Downloads**: Resumable downloads with pause/cancel (Story 2.3)
 //! - **Integrity Verification**: SHA-256 verification with quarantine (Story 2.5)
 //! - **Credential Bridge**: Secure credential storage in Rust (Story 5.1)
+//! - **OAuth Authentication**: 3-tier fallback OAuth flow (Story 5.3)
 
 // Application startup legitimately uses expect() for fatal initialization errors
 #![allow(clippy::expect_used)]
+// Tauri's generate_context! macro allocates large stack frames - this is unavoidable
+#![allow(clippy::large_stack_frames)]
 
+mod auth;
 mod connectivity;
 mod credentials;
 mod downloads;
@@ -22,6 +26,7 @@ mod inference;
 mod preflight;
 mod verification;
 
+use auth::OAuthManagedState;
 use credentials::CredentialState;
 use downloads::DownloadState;
 use hardware::HardwareState;
@@ -35,6 +40,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(InferenceState::new())
         .manage(HardwareState::new())
+        .manage(OAuthManagedState::new())
         .invoke_handler(tauri::generate_handler![
             // Inference commands (Story 1.4)
             inference::load_model,
@@ -76,6 +82,16 @@ pub fn run() {
             // Credential storage commands (Story 5.2)
             credentials::get_storage_info,
             credentials::get_storage_tier,
+            // OAuth commands (Story 5.3)
+            auth::start_oauth_flow,
+            auth::get_oauth_progress,
+            auth::submit_manual_code,
+            auth::cancel_oauth_flow,
+            auth::get_oauth_authorization_url,
+            auth::handle_oauth_callback,
+            auth::fallback_to_local_server,
+            auth::fallback_to_manual_entry,
+            auth::exchange_oauth_tokens,
         ])
         .setup(|app| {
             // Initialize states that need app data directory
@@ -90,6 +106,33 @@ pub fn run() {
 
             // Notification plugin (Story 2.3)
             app.handle().plugin(tauri_plugin_notification::init())?;
+
+            // Shell plugin (Story 5.3 - opening OAuth URLs in browser)
+            app.handle().plugin(tauri_plugin_shell::init())?;
+
+            // Deep link plugin (Story 5.3 - OAuth callbacks)
+            app.handle().plugin(tauri_plugin_deep_link::init())?;
+
+            // Register deep link event handler for OAuth callbacks
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let app_handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        let url_str = url.to_string();
+                        if url_str.starts_with("continuum://callback") {
+                            let oauth_state = app_handle.state::<OAuthManagedState>();
+                            let oauth_state_clone = oauth_state.inner().clone();
+                            tauri::async_runtime::spawn(async move {
+                                if let Err(e) = oauth_state_clone.handle_deep_link(&url_str).await {
+                                    log::error!("Failed to handle OAuth deep link: {e}");
+                                }
+                            });
+                        }
+                    }
+                });
+            }
 
             if cfg!(debug_assertions) {
                 app.handle().plugin(

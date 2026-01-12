@@ -10,6 +10,7 @@
 //! - Automatic tier detection (Keychain > Stronghold > Memory)
 
 use super::bridge::CredentialBridge;
+use super::types::{CredentialError, StoredCredentials};
 use std::path::PathBuf;
 
 /// Credential state managed by Tauri (AC1, AC4)
@@ -63,6 +64,41 @@ impl CredentialState {
     #[allow(dead_code)]
     pub fn check_availability(&self) -> bool {
         self.bridge.check_availability()
+    }
+
+    /// Store OAuth tokens securely (Story 5.3 AC5)
+    ///
+    /// Stores the access and refresh tokens received from OAuth token exchange
+    /// via the Credential Bridge.
+    ///
+    /// # Arguments
+    ///
+    /// * `access_token` - The access token from the OAuth provider
+    /// * `refresh_token` - Optional refresh token
+    /// * `expires_at` - Optional expiry timestamp (Unix seconds)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Tokens stored successfully
+    /// * `Err(CredentialError)` - If storage fails
+    #[allow(clippy::unused_async)]
+    pub async fn store_oauth_tokens(
+        &self,
+        access_token: String,
+        refresh_token: Option<String>,
+        expires_at: Option<i64>,
+    ) -> Result<(), CredentialError> {
+        let mut credentials = StoredCredentials::new(access_token);
+
+        if let Some(rt) = refresh_token {
+            credentials = credentials.with_refresh_token(rt);
+        }
+
+        if let Some(exp) = expires_at {
+            credentials = credentials.with_expiry(exp);
+        }
+
+        self.bridge.store_credentials(credentials)
     }
 }
 

@@ -20,6 +20,9 @@ export { useModelSwitch } from "./use-model-switch";
 export { useNetworkRecovery } from "./use-network-recovery";
 // Notification hooks (Story 4.4)
 export { useNotificationPreference } from "./use-notification-preference";
+export type { UseOAuthFlowResult } from "./use-oauth-flow";
+// OAuth hooks (Story 5.3)
+export { PROGRESS_POLL_INTERVAL_MS, useOAuthFlow } from "./use-oauth-flow";
 // Offline hooks (Story 4.5)
 export { useOfflineCapability } from "./use-offline-capability";
 // Preflight hooks (Story 4.3)

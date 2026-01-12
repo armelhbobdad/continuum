@@ -31,7 +31,24 @@ export type {
   InferenceSource,
   StreamingMetadata,
 } from "./inference";
-
+// OAuth types (Story 5.3)
+export type {
+  OAuthError,
+  OAuthProgress,
+  OAuthProvider,
+  OAuthState,
+} from "./oauth";
+export {
+  DEFAULT_OAUTH_PROGRESS,
+  getOAuthErrorMessage,
+  getStepLabel,
+  isOAuthComplete,
+  isOAuthFailed,
+  isOAuthIdle,
+  isOAuthLoading,
+  isRetriableError,
+  isTimeoutError,
+} from "./oauth";
 // Preflight types (Story 4.3)
 export type {
   CheckAction,
@@ -40,7 +57,6 @@ export type {
   PreFlightCheck,
   PreFlightResult,
 } from "./preflight";
-
 // Sync queue types (Story 4.5)
 export type {
   SyncOperation,
