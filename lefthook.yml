@@ -16,6 +16,16 @@ pre-commit:
         - "*.css"
       stage_fixed: true
 
+    # TypeScript type checking
+    - name: typescript
+      env:
+        PATH: "{root}/node_modules/.bin:$HOME/.bun/bin:$PATH"
+      root: apps/web
+      glob:
+        - "*.ts"
+        - "*.tsx"
+      run: bun run --silent tsc --noEmit
+
     # Rust formatting
     - name: rustfmt
       root: apps/web/src-tauri

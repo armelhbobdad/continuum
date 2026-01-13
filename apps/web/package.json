@@ -6,6 +6,7 @@
     "dev": "alchemy dev",
     "build": "next build",
     "start": "next start",
+    "check-types": "tsc --noEmit",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:dev:cuda": "tauri dev --features cuda",
