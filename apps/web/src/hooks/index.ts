@@ -14,6 +14,9 @@ export { useContextHealth } from "./use-context-health";
 export type { UseCredentialBridgeResult } from "./use-credential-bridge";
 // Credential hooks (Story 5.1)
 export { useCredentialBridge } from "./use-credential-bridge";
+export type { UseMigrationResult } from "./use-migration";
+// Migration hooks (Story 5.5)
+export { useMigration } from "./use-migration";
 // Model hooks (Story 2.3, 2.4)
 export { useModelDownload } from "./use-model-download";
 export { useModelSwitch } from "./use-model-switch";

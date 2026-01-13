@@ -19,8 +19,16 @@ const mockFallbackToManualEntry = vi.fn();
 
 const mockUseOAuthFlow = vi.fn();
 
+// Mock useMigration hook (Story 5.5 integration)
+const mockUseMigration = vi.fn(() => ({
+  showDialog: false,
+  status: "idle" as const,
+  anonymousSessionCount: 0,
+}));
+
 vi.mock("@/hooks", () => ({
   useOAuthFlow: () => mockUseOAuthFlow(),
+  useMigration: () => mockUseMigration(),
 }));
 
 // Import after mocking

@@ -1,5 +1,5 @@
 /**
- * Stores barrel export (Story 5.1)
+ * Stores barrel export (Story 5.1, 5.5)
  *
  * Central export point for Zustand stores.
  */
@@ -14,6 +14,9 @@ export { useCredentialStore } from "./credentials";
 export { useDownloadStore } from "./downloads";
 // Hardware store (Story 2.1) - MEMORY ONLY
 export { useHardwareStore } from "./hardware";
+export type { MigrationStoreState } from "./migration";
+// Migration store (Story 5.5) - MEMORY ONLY
+export { useMigrationStore } from "./migration";
 // Models store (Story 2.2) - MEMORY ONLY
 export { useModelStore } from "./models";
 // Privacy store (Story 1.2) - MEMORY ONLY

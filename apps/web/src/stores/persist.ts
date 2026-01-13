@@ -11,6 +11,7 @@
  * - Jazz sync: Deferred to Epic 6 (not in scope for Story 1.7)
  *
  * Story 1.7: Session Persistence & Auto-Save
+ * Story 5.5: Added ownerId, anonymousId, migratedAt migration
  * ADR-PERSIST-001: Zustand Persist Middleware for Sessions
  */
 import type { PersistStorage, StorageValue } from "zustand/middleware";
@@ -25,8 +26,12 @@ export const STORAGE_KEY = "continuum-sessions";
 /**
  * Current storage schema version for migration support.
  * Increment when SessionState schema changes.
+ *
+ * Version history:
+ * - v1: Initial schema (Story 1.7)
+ * - v2: Added ownerId, anonymousId, migratedAt fields (Story 5.5)
  */
-export const STORAGE_VERSION = 1;
+export const STORAGE_VERSION = 2;
 
 /**
  * Performance budget in milliseconds per NFR-STATE-3.
@@ -132,6 +137,24 @@ export interface PartialSessionState {
 }
 
 /**
+ * Zustand persist migrate option configuration.
+ * Wraps migrateSessionState for Zustand's expected signature.
+ *
+ * @param persistedState - State loaded from storage
+ * @param version - Version number from storage
+ * @returns Migrated state compatible with current schema
+ */
+export function createMigrateFunction(): (
+  persistedState: unknown,
+  version: number
+) => PartialSessionState {
+  return (persistedState: unknown, version: number): PartialSessionState => {
+    const migrated = migrateSessionState(persistedState, version);
+    return migrated.state ?? { sessions: [], activeSessionId: null };
+  };
+}
+
+/**
  * Migration function for handling schema changes between versions.
  *
  * @param persistedState - State loaded from storage
@@ -142,13 +165,65 @@ export function migrateSessionState(
   persistedState: unknown,
   version: number
 ): StorageValue<PartialSessionState> {
+  // Type assertion for working with the state
+  let state = persistedState as StorageValue<PartialSessionState>;
+
+  // Use local variable for migration tracking (avoid parameter reassignment)
+  let currentVersion = version;
+
   // Handle migration from version 0 to 1 (no-op for initial version)
-  if (version === 0) {
-    // Future migrations can transform data here
-    // For now, version 0 -> 1 is identity migration
+  if (currentVersion === 0) {
+    // Version 0 -> 1 is identity migration
+    currentVersion = 1;
   }
 
-  return persistedState as StorageValue<PartialSessionState>;
+  // Handle migration from version 1 to 2 (Story 5.5)
+  // Add ownerId, anonymousId for existing sessions
+  if (currentVersion === 1 && state?.state?.sessions) {
+    const anonymousId = generateLegacyAnonymousId();
+    state = {
+      ...state,
+      state: {
+        ...state.state,
+        sessions: state.state.sessions.map((session) => ({
+          ...session,
+          // Mark existing sessions as anonymous (no owner)
+          ownerId: session.ownerId ?? null,
+          // Assign device-based anonymous ID for tracking
+          anonymousId: session.anonymousId ?? anonymousId,
+          // migratedAt remains undefined (not migrated yet)
+        })),
+      },
+    };
+  }
+
+  return state;
+}
+
+/**
+ * Generate a legacy anonymous ID for migration purposes.
+ * Uses existing localStorage ID if available, otherwise generates new one.
+ *
+ * Note: This is separate from session.ts generateAnonymousId to avoid
+ * circular imports during persistence initialization.
+ */
+function generateLegacyAnonymousId(): string {
+  const ANONYMOUS_ID_KEY = "continuum-anonymous-id";
+
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem(ANONYMOUS_ID_KEY);
+    if (stored) {
+      return stored;
+    }
+
+    // Generate and store new ID
+    const newId = `anon-${crypto.randomUUID()}`;
+    localStorage.setItem(ANONYMOUS_ID_KEY, newId);
+    return newId;
+  }
+
+  // Fallback for SSR or environments without localStorage
+  return `anon-${crypto.randomUUID()}`;
 }
 
 // Note: Date deserialization is now handled by dateReviver in createStorageAdapter().

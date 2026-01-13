@@ -87,6 +87,14 @@ pub fn run() {
             credentials::get_offline_status,
             credentials::refresh_credentials,
             credentials::get_degraded_mode,
+            // Migration commands (Story 5.5)
+            credentials::start_session_migration,
+            credentials::get_migration_progress,
+            credentials::get_migration_status,
+            credentials::get_migration_result,
+            credentials::cancel_migration,
+            credentials::get_anonymous_session_count,
+            credentials::reset_migration,
             // OAuth commands (Story 5.3)
             auth::start_oauth_flow,
             auth::get_oauth_progress,

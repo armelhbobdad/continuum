@@ -11,21 +11,26 @@
  *
  * Story 1.3: Basic Chat UI Shell
  * Story 1.7: Session Persistence & Auto-Save
+ * Story 5.5: Anonymous to Authenticated Migration
  * ADR-CHAT-001: Zustand for Session State
  * ADR-PERSIST-001: Zustand Persist Middleware for Sessions
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { InferenceMetadata } from "@/types/inference";
+import type {
+  Message,
+  MessageMetadata,
+  Session,
+  SummarizationMetadata,
+} from "@/types/session";
 import {
+  createMigrateFunction,
   createStorageAdapter,
   partializeSessionState,
   STORAGE_KEY,
   STORAGE_VERSION,
 } from "./persist";
-
-// Re-export types for consumers that import from session store
-export type { InferenceMetadata, InferenceSource } from "@/types/inference";
 
 /**
  * Module-level storage for original messages (Story 3.5)
@@ -34,63 +39,6 @@ export type { InferenceMetadata, InferenceSource } from "@/types/inference";
  * For persistence, consider storing in session.originalMessages field.
  */
 const originalMessagesStore = new Map<string, Message[]>();
-
-/**
- * Metadata for summarized messages (Story 3.5 Task 1.1, 1.2)
- * Tracks original messages that were condensed into a summary.
- */
-export interface SummarizationMetadata {
-  /** This message is a summary */
-  isSummary: true;
-  /** IDs of original messages that were summarized */
-  originalMessageIds: string[];
-  /** When summarization occurred */
-  summarizedAt: Date;
-  /** Number of messages summarized */
-  messageCount: number;
-  /** Token count before summarization */
-  originalTokenCount: number;
-  /** Token count after summarization */
-  summarizedTokenCount: number;
-}
-
-/** Metadata for finalized messages (Story 1.4 Task 8.3, extended in 1.5, 2.4, 3.5) */
-export interface MessageMetadata {
-  tokensGenerated?: number;
-  finishReason?: "completed" | "aborted" | "error";
-  durationMs?: number;
-  /** Inference metadata (Story 1.5) */
-  inference?: InferenceMetadata;
-  /** Model ID that generated this message (Story 2.4 Task 8.1) */
-  modelId?: string;
-  /** Summarization metadata (Story 3.5 Task 1.1) */
-  summarization?: SummarizationMetadata;
-}
-
-/**
- * Message in a chat session.
- * Role: 'user' for human messages, 'assistant' for AI responses.
- */
-export interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  /** Metadata populated after generation completes (assistant messages only) */
-  metadata?: MessageMetadata;
-}
-
-/**
- * Chat session containing messages.
- * Title is generated from first message (max 50 chars).
- */
-export interface Session {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 /**
  * Session store state interface.
@@ -452,7 +400,66 @@ export const useSessionStore = create<SessionState>()(
       version: STORAGE_VERSION,
       storage: createStorageAdapter(),
       partialize: partializeSessionState,
+      migrate: createMigrateFunction(),
       // Date deserialization handled by createStorageAdapter() with dateReviver
     }
   )
 );
+
+// =============================================================================
+// Story 5.5 Selectors: Owner-based session filtering (Task 1.4)
+// =============================================================================
+
+/**
+ * Selector: Get all anonymous sessions (ownerId is null or undefined).
+ * Used to detect sessions that need migration (AC1).
+ *
+ * @param state - Session store state
+ * @returns Array of anonymous sessions
+ */
+export const selectAnonymousSessions = (state: SessionState): Session[] =>
+  state.sessions.filter((s) => s.ownerId === null || s.ownerId === undefined);
+
+/**
+ * Selector: Get sessions owned by a specific user.
+ *
+ * @param userId - User ID to filter by
+ * @returns Selector function that returns user's sessions
+ */
+export const selectSessionsByOwner =
+  (userId: string) =>
+  (state: SessionState): Session[] =>
+    state.sessions.filter((s) => s.ownerId === userId);
+
+/**
+ * Selector: Check if there are any anonymous sessions.
+ * Used to trigger migration dialog after authentication (AC1).
+ *
+ * @param state - Session store state
+ * @returns true if anonymous sessions exist
+ */
+export const selectHasAnonymousSessions = (state: SessionState): boolean =>
+  state.sessions.some((s) => s.ownerId === null || s.ownerId === undefined);
+
+/**
+ * Selector: Get count of anonymous sessions.
+ * Displayed in migration dialog (AC2).
+ *
+ * @param state - Session store state
+ * @returns Count of anonymous sessions
+ */
+export const selectAnonymousSessionCount = (state: SessionState): number =>
+  state.sessions.filter((s) => s.ownerId === null || s.ownerId === undefined)
+    .length;
+
+/**
+ * Selector: Get migrated sessions.
+ * Sessions that have been migrated have migratedAt set (AC3).
+ *
+ * @param state - Session store state
+ * @returns Array of migrated sessions
+ */
+export const selectMigratedSessions = (state: SessionState): Session[] =>
+  state.sessions.filter(
+    (s) => s.migratedAt !== undefined && s.migratedAt !== null
+  );

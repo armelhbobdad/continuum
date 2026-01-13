@@ -1,4 +1,4 @@
-//! Credential Bridge module (Story 5.1, 5.2)
+//! Credential Bridge module (Story 5.1, 5.2, 5.5)
 //!
 //! Provides secure credential storage in Rust backend with only opaque tokens
 //! exposed to the WebView. All sensitive credentials (access tokens, refresh tokens,
@@ -29,6 +29,7 @@ pub mod bridge;
 pub mod commands;
 pub mod keychain;
 pub mod memory;
+pub mod migration;
 pub mod offline;
 pub mod refresh;
 pub mod state;
@@ -55,6 +56,11 @@ pub use offline::{
 // Re-export refresh types for IPC (Story 5.4)
 #[allow(unused_imports)]
 pub use refresh::{CredentialRefresher, RefreshResult};
+// Re-export migration types for IPC (Story 5.5)
+#[allow(unused_imports)]
+pub use migration::{
+    MigrationChoice, MigrationManager, MigrationProgress, MigrationResult, MigrationStatus,
+};
 
 #[cfg(test)]
 mod tests;

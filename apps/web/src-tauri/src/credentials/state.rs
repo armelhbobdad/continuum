@@ -1,4 +1,4 @@
-//! Credential state management for Tauri (Story 5.1, 5.2)
+//! Credential state management for Tauri (Story 5.1, 5.2, 5.5)
 //!
 //! Provides thread-safe credential state that can be managed by Tauri.
 //!
@@ -8,8 +8,12 @@
 //! # Story 5.2 Additions
 //! - Storage-aware initialization with app_data_dir
 //! - Automatic tier detection (Keychain > Stronghold > Memory)
+//!
+//! # Story 5.5 Additions
+//! - MigrationManager for anonymous-to-authenticated migration
 
 use super::bridge::CredentialBridge;
+use super::migration::MigrationManager;
 use super::types::{CredentialError, StoredCredentials};
 use std::path::PathBuf;
 
@@ -20,9 +24,13 @@ use std::path::PathBuf;
 ///
 /// Story 5.2: Now supports storage-aware initialization with automatic
 /// tier detection based on available backends.
+///
+/// Story 5.5: Includes MigrationManager for anonymous-to-authenticated migration.
 pub struct CredentialState {
     /// The credential bridge for secure credential operations
     pub bridge: CredentialBridge,
+    /// Migration manager for anonymous-to-authenticated migration (Story 5.5)
+    pub migration: MigrationManager,
 }
 
 impl CredentialState {
@@ -36,6 +44,7 @@ impl CredentialState {
     pub fn new() -> Self {
         Self {
             bridge: CredentialBridge::new(),
+            migration: MigrationManager::new(),
         }
     }
 
@@ -50,6 +59,7 @@ impl CredentialState {
     pub fn new_with_storage(app_data_dir: PathBuf) -> Self {
         Self {
             bridge: CredentialBridge::new_with_storage(Some(app_data_dir)),
+            migration: MigrationManager::new(),
         }
     }
 

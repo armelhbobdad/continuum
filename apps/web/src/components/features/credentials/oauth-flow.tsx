@@ -1,8 +1,11 @@
 /**
- * OAuth Flow Component (Story 5.3, AC1-AC4)
+ * OAuth Flow Component (Story 5.3, AC1-AC4; Story 5.5 Integration)
  *
  * Displays OAuth authentication progress with visual feedback.
  * Supports 3-tier fallback: Deep Link -> Local Server -> Manual Entry.
+ *
+ * Story 5.5: Integrates migration dialog for anonymous-to-authenticated flow.
+ * Shows MigrationDialog after OAuth completes if user has anonymous sessions.
  *
  * # Usage
  * ```tsx
@@ -18,11 +21,13 @@
  * - Countdown timer for timeout states
  * - Manual code entry fallback
  * - Error display with retry option
+ * - Migration dialog after OAuth (Story 5.5)
  */
 
 import { useEffect, useState } from "react";
+import { MigrationDialog } from "@/components/features/auth/migration-dialog";
 import { Button } from "@/components/ui/button";
-import { useOAuthFlow } from "@/hooks";
+import { useMigration, useOAuthFlow } from "@/hooks";
 import type { OAuthProvider } from "@/types";
 import { ManualCodeEntry } from "./manual-code-entry";
 import { OAuthError } from "./oauth-error";
@@ -136,9 +141,55 @@ const STEP_NAMES = [
 ];
 
 /**
+ * Render a single step item in the progress indicator
+ */
+function StepItem({
+  name,
+  stepNum,
+  currentStep,
+  isOAuthComplete,
+}: {
+  name: string;
+  stepNum: number;
+  currentStep: number;
+  isOAuthComplete: boolean;
+}) {
+  const isActive = stepNum === currentStep;
+  const isPast = stepNum < currentStep || isOAuthComplete;
+
+  return (
+    <li
+      aria-current={isActive ? "step" : undefined}
+      className="flex flex-1 flex-col items-center"
+    >
+      <div
+        className={`mb-2 flex h-8 w-8 items-center justify-center rounded-full ${getStepBackgroundClass(isPast, isActive)}`}
+      >
+        {getStepIcon(stepNum, currentStep, isOAuthComplete)}
+      </div>
+      <span
+        className={`text-center text-xs ${getStepTextClass(isPast, isActive)}`}
+      >
+        {name}
+      </span>
+    </li>
+  );
+}
+
+/**
+ * Check if manual entry button should be shown
+ */
+function shouldShowManualEntryButton(stateType: string): boolean {
+  return (
+    stateType === "AwaitingDeepLink" || stateType === "AwaitingLocalServer"
+  );
+}
+
+/**
  * OAuth Flow Component
  *
  * Displays the OAuth authentication flow with progress indicators.
+ * Story 5.5: Integrates migration dialog for anonymous-to-authenticated flow.
  */
 export function OAuthFlow({
   provider,
@@ -149,7 +200,7 @@ export function OAuthFlow({
   const {
     progress,
     isLoading,
-    isComplete,
+    isComplete: isOAuthComplete,
     isFailed,
     currentStep,
     stepDescription,
@@ -164,22 +215,37 @@ export function OAuthFlow({
     fallbackToManualEntry,
   } = useOAuthFlow();
 
+  // Story 5.5: Migration integration (Task 12.1)
+  const {
+    showDialog: showMigrationDialog,
+    status: migrationStatus,
+    anonymousSessionCount,
+  } = useMigration();
+
   const [hasStarted, setHasStarted] = useState(false);
 
-  // Notify parent when complete
+  // Story 5.5: Determine if truly complete (OAuth done AND migration handled)
+  // Complete = OAuth complete AND (no anonymous sessions OR migration completed)
+  const isTrulyComplete =
+    isOAuthComplete &&
+    (anonymousSessionCount === 0 ||
+      migrationStatus === "completed" ||
+      migrationStatus === "failed");
+
+  // Notify parent when truly complete (OAuth + migration handled)
   useEffect(() => {
-    if (isComplete) {
+    if (isTrulyComplete) {
       onComplete?.();
     }
-  }, [isComplete, onComplete]);
+  }, [isTrulyComplete, onComplete]);
 
   // Start OAuth flow automatically on mount
   useEffect(() => {
-    if (!(hasStarted || isLoading || isComplete || isFailed)) {
+    if (!(hasStarted || isLoading || isOAuthComplete || isFailed)) {
       setHasStarted(true);
       startOAuth(provider);
     }
-  }, [hasStarted, isLoading, isComplete, isFailed, provider, startOAuth]);
+  }, [hasStarted, isLoading, isOAuthComplete, isFailed, provider, startOAuth]);
 
   // Handle cancel
   const handleCancel = async () => {
@@ -212,8 +278,46 @@ export function OAuthFlow({
     );
   }
 
-  // Show completion state
-  if (isComplete) {
+  // Story 5.5: Show migration dialog when OAuth complete and user has anonymous sessions (Task 12.2, 12.3)
+  // MigrationDialog blocks app usage until migration choice is made (AC4)
+  if (isOAuthComplete && showMigrationDialog) {
+    return (
+      <>
+        <output
+          className={`block rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-950 ${className}`}
+        >
+          <div className="flex items-center gap-3">
+            <svg
+              aria-hidden="true"
+              className="h-8 w-8 text-blue-600 dark:text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+              />
+            </svg>
+            <div>
+              <h3 className="font-medium text-blue-800 text-lg dark:text-blue-200">
+                Sign-in Complete
+              </h3>
+              <p className="text-blue-700 text-sm dark:text-blue-300">
+                Please choose how to handle your existing sessions.
+              </p>
+            </div>
+          </div>
+        </output>
+        <MigrationDialog />
+      </>
+    );
+  }
+
+  // Show completion state (no migration needed or migration done)
+  if (isTrulyComplete) {
     return (
       <output
         className={`block rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-950 ${className}`}
@@ -267,30 +371,15 @@ export function OAuthFlow({
       {/* Progress steps */}
       <div className="mb-6">
         <ol aria-label="Sign-in progress" className="flex justify-between">
-          {STEP_NAMES.map((name, index) => {
-            const stepNum = index + 1;
-            const isActive = stepNum === currentStep;
-            const isPast = stepNum < currentStep || isComplete;
-
-            return (
-              <li
-                aria-current={isActive ? "step" : undefined}
-                className="flex flex-1 flex-col items-center"
-                key={name}
-              >
-                <div
-                  className={`mb-2 flex h-8 w-8 items-center justify-center rounded-full ${getStepBackgroundClass(isPast, isActive)}`}
-                >
-                  {getStepIcon(stepNum, currentStep, isComplete)}
-                </div>
-                <span
-                  className={`text-center text-xs ${getStepTextClass(isPast, isActive)}`}
-                >
-                  {name}
-                </span>
-              </li>
-            );
-          })}
+          {STEP_NAMES.map((name, index) => (
+            <StepItem
+              currentStep={currentStep}
+              isOAuthComplete={isOAuthComplete}
+              key={name}
+              name={name}
+              stepNum={index + 1}
+            />
+          ))}
         </ol>
       </div>
 
@@ -323,8 +412,7 @@ export function OAuthFlow({
           </Button>
         )}
 
-        {(progress.state.type === "AwaitingDeepLink" ||
-          progress.state.type === "AwaitingLocalServer") && (
+        {shouldShowManualEntryButton(progress.state.type) && (
           <Button
             onClick={fallbackToManualEntry}
             type="button"

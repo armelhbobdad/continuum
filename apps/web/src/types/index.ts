@@ -1,5 +1,5 @@
 /**
- * Types barrel export (Story 5.1)
+ * Types barrel export (Story 5.1, 5.5)
  *
  * Central export point for shared TypeScript types.
  */
@@ -45,6 +45,22 @@ export type {
   InferenceSource,
   StreamingMetadata,
 } from "./inference";
+// Migration types (Story 5.5)
+export type {
+  MigrationChoice,
+  MigrationProgress,
+  MigrationResult,
+  MigrationState,
+  MigrationStatus,
+} from "./migration";
+export {
+  DEFAULT_MIGRATION_STATE,
+  getMigrationProgressPercentage,
+  isMigrationComplete,
+  isMigrationFailed,
+  isMigrationIdle,
+  isMigrationInProgress,
+} from "./migration";
 // OAuth types (Story 5.3)
 export type {
   OAuthError,
@@ -71,6 +87,19 @@ export type {
   PreFlightCheck,
   PreFlightResult,
 } from "./preflight";
+// Session types (Story 5.5)
+export type {
+  Message,
+  MessageMetadata,
+  Session,
+  SummarizationMetadata,
+} from "./session";
+export {
+  generateAnonymousId,
+  isAnonymousSession,
+  isMigratedSession,
+  isOwnedByUser,
+} from "./session";
 // Sync queue types (Story 4.5)
 export type {
   SyncOperation,

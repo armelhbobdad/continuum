@@ -1,4 +1,4 @@
-//! Tauri commands for Credential Bridge (Story 5.1, 5.2, 5.4)
+//! Tauri commands for Credential Bridge (Story 5.1, 5.2, 5.4, 5.5)
 //!
 //! Provides IPC commands for frontend to interact with credentials.
 //! All commands return opaque data - raw credentials are NEVER exposed.
@@ -15,7 +15,12 @@
 //! - `get_offline_status` - Get offline validation result (Story 5.4, AC1-4)
 //! - `refresh_credentials` - Manual credential refresh (Story 5.4, AC7)
 //! - `get_degraded_mode` - Get current degraded mode level (Story 5.4, AC3)
+//! - `start_session_migration` - Start anonymous-to-authenticated migration (Story 5.5)
+//! - `get_migration_progress` - Get migration progress (Story 5.5)
+//! - `cancel_migration` - Cancel in-progress migration (Story 5.5)
+//! - `get_anonymous_session_count` - Get count for migration dialog (Story 5.5)
 
+use super::migration::{MigrationChoice, MigrationProgress, MigrationResult, MigrationStatus};
 use super::offline::{
     DegradedMode, OfflineCredentialState, OfflineValidationResult, OfflineValidator,
 };
@@ -198,6 +203,119 @@ pub async fn get_degraded_mode(state: State<'_, CredentialState>) -> Result<Degr
     // Create offline state and calculate mode
     let offline_state = OfflineCredentialState::from_timestamp(credentials.stored_at);
     Ok(offline_state.calculate_mode())
+}
+
+// ========== Story 5.5: Migration Commands ==========
+
+/// Start anonymous-to-authenticated migration (Story 5.5, AC3)
+///
+/// Initiates migration of anonymous sessions to the authenticated user.
+/// The migration runs atomically - all sessions are migrated or none.
+///
+/// # Arguments
+/// * `choice` - User's migration choice (merge, keep-separate, discard)
+/// * `user_id` - The authenticated user's ID to assign ownership
+///
+/// # Returns
+/// * `Ok(())` - Migration started successfully
+/// * `Err(String)` - If migration is already in progress or failed to start
+#[tauri::command]
+pub async fn start_session_migration(
+    state: State<'_, CredentialState>,
+    choice: MigrationChoice,
+    user_id: String,
+) -> Result<(), String> {
+    state.migration.start_migration(choice, user_id)
+}
+
+/// Get migration progress (Story 5.5, AC4)
+///
+/// Returns the current migration progress for UI display.
+/// Returns None if no migration is in progress.
+///
+/// # Returns
+/// * `Ok(Some(MigrationProgress))` - Current progress info
+/// * `Ok(None)` - No migration in progress
+#[tauri::command]
+#[allow(clippy::unused_async)] // Tauri commands require async signature
+pub async fn get_migration_progress(
+    state: State<'_, CredentialState>,
+) -> Result<Option<MigrationProgress>, String> {
+    Ok(state.migration.get_progress())
+}
+
+/// Get migration status (Story 5.5, AC4)
+///
+/// Returns the current migration status.
+///
+/// # Returns
+/// * `Ok(MigrationStatus)` - Current status (idle, in-progress, completed, failed)
+#[tauri::command]
+#[allow(clippy::unused_async)] // Tauri commands require async signature
+pub async fn get_migration_status(
+    state: State<'_, CredentialState>,
+) -> Result<MigrationStatus, String> {
+    Ok(state.migration.get_status())
+}
+
+/// Get migration result (Story 5.5, AC3, AC5)
+///
+/// Returns the result after migration completes.
+/// Returns None if migration hasn't completed.
+///
+/// # Returns
+/// * `Ok(Some(MigrationResult))` - Migration result
+/// * `Ok(None)` - Migration not yet completed
+#[tauri::command]
+#[allow(clippy::unused_async)] // Tauri commands require async signature
+pub async fn get_migration_result(
+    state: State<'_, CredentialState>,
+) -> Result<Option<MigrationResult>, String> {
+    Ok(state.migration.get_result())
+}
+
+/// Cancel in-progress migration (Story 5.5, AC5)
+///
+/// Requests cancellation of an in-progress migration.
+/// The migration will stop at the next safe point and rollback.
+///
+/// # Returns
+/// * `Ok(())` - Cancellation requested
+/// * `Err(String)` - If no migration is in progress
+#[tauri::command]
+pub async fn cancel_migration(state: State<'_, CredentialState>) -> Result<(), String> {
+    state.migration.cancel()
+}
+
+/// Get anonymous session count for migration dialog (Story 5.5, AC2)
+///
+/// Returns the count of anonymous sessions that would be affected by migration.
+/// This is a placeholder that returns 0 - actual implementation will query
+/// the session store when integrated.
+///
+/// # Returns
+/// * `Ok(usize)` - Number of anonymous sessions
+#[tauri::command]
+#[allow(clippy::unused_async)] // Tauri commands require async signature
+pub async fn get_anonymous_session_count(
+    _state: State<'_, CredentialState>,
+) -> Result<usize, String> {
+    // TODO: Integrate with session store to get actual count
+    // For now, return 0 as a placeholder
+    Ok(0)
+}
+
+/// Reset migration state (Story 5.5)
+///
+/// Resets the migration manager to idle state.
+/// Used after user acknowledges migration result.
+///
+/// # Returns
+/// * `Ok(())` - Reset successful
+/// * `Err(String)` - If reset failed
+#[tauri::command]
+pub async fn reset_migration(state: State<'_, CredentialState>) -> Result<(), String> {
+    state.migration.reset()
 }
 
 #[cfg(test)]
@@ -514,5 +632,155 @@ mod command_tests {
         let result = RefreshResult::requires_reauth("Token expired".to_string());
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("\"requires_reauth\":true"));
+    }
+
+    // ========== Story 5.5: Migration Command Tests (10 tests) ==========
+
+    #[test]
+    fn test_migration_manager_initialization() {
+        use super::super::migration::MigrationStatus;
+
+        let state = CredentialState::new();
+        assert_eq!(state.migration.get_status(), MigrationStatus::Idle);
+        assert!(state.migration.get_progress().is_none());
+        assert!(state.migration.get_result().is_none());
+    }
+
+    #[test]
+    fn test_start_session_migration() {
+        use super::super::migration::{MigrationChoice, MigrationStatus};
+
+        let state = CredentialState::new();
+        let result = state
+            .migration
+            .start_migration(MigrationChoice::Merge, "user-123".to_string());
+
+        assert!(result.is_ok());
+        assert_eq!(state.migration.get_status(), MigrationStatus::InProgress);
+    }
+
+    #[test]
+    fn test_start_migration_with_different_choices() {
+        use super::super::migration::MigrationChoice;
+
+        // Test KeepSeparate
+        let state1 = CredentialState::new();
+        let result = state1
+            .migration
+            .start_migration(MigrationChoice::KeepSeparate, "user-1".to_string());
+        assert!(result.is_ok());
+        assert_eq!(
+            state1.migration.get_choice(),
+            Some(MigrationChoice::KeepSeparate)
+        );
+
+        // Test Discard
+        let state2 = CredentialState::new();
+        let result = state2
+            .migration
+            .start_migration(MigrationChoice::Discard, "user-2".to_string());
+        assert!(result.is_ok());
+        assert_eq!(
+            state2.migration.get_choice(),
+            Some(MigrationChoice::Discard)
+        );
+    }
+
+    #[test]
+    fn test_get_migration_progress_no_migration() {
+        let state = CredentialState::new();
+        let progress = state.migration.get_progress();
+        assert!(progress.is_none());
+    }
+
+    #[test]
+    fn test_get_migration_progress_during_migration() {
+        use super::super::migration::MigrationChoice;
+
+        let state = CredentialState::new();
+        state
+            .migration
+            .start_migration(MigrationChoice::Merge, "user-123".to_string())
+            .unwrap();
+
+        let progress = state.migration.get_progress();
+        assert!(progress.is_some());
+
+        let p = progress.unwrap();
+        assert_eq!(p.current, 0);
+        assert_eq!(p.percentage, 0);
+    }
+
+    #[test]
+    fn test_cancel_migration() {
+        use super::super::migration::MigrationChoice;
+
+        let state = CredentialState::new();
+        state
+            .migration
+            .start_migration(MigrationChoice::Merge, "user-123".to_string())
+            .unwrap();
+
+        let result = state.migration.cancel();
+        assert!(result.is_ok());
+        assert!(state.migration.is_cancel_requested());
+    }
+
+    #[test]
+    fn test_cancel_migration_not_in_progress() {
+        let state = CredentialState::new();
+        let result = state.migration.cancel();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No migration in progress"));
+    }
+
+    #[test]
+    fn test_reset_migration() {
+        use super::super::migration::{MigrationChoice, MigrationStatus};
+
+        let state = CredentialState::new();
+        state
+            .migration
+            .start_migration(MigrationChoice::Merge, "user-123".to_string())
+            .unwrap();
+
+        let result = state.migration.reset();
+        assert!(result.is_ok());
+        assert_eq!(state.migration.get_status(), MigrationStatus::Idle);
+        assert!(state.migration.get_choice().is_none());
+    }
+
+    #[test]
+    fn test_migration_user_id_tracking() {
+        use super::super::migration::MigrationChoice;
+
+        let state = CredentialState::new();
+        state
+            .migration
+            .start_migration(MigrationChoice::Merge, "user-abc-123".to_string())
+            .unwrap();
+
+        assert_eq!(
+            state.migration.get_user_id(),
+            Some("user-abc-123".to_string())
+        );
+    }
+
+    #[test]
+    fn test_migration_choice_serialization_ipc() {
+        use super::super::migration::MigrationChoice;
+
+        // Verify IPC serialization format matches TypeScript expectations
+        let merge = MigrationChoice::Merge;
+        let json = serde_json::to_string(&merge).unwrap();
+        assert_eq!(json, "\"merge\"");
+
+        let keep = MigrationChoice::KeepSeparate;
+        let json = serde_json::to_string(&keep).unwrap();
+        assert_eq!(json, "\"keep-separate\"");
+
+        let discard = MigrationChoice::Discard;
+        let json = serde_json::to_string(&discard).unwrap();
+        assert_eq!(json, "\"discard\"");
     }
 }
