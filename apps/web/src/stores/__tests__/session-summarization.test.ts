@@ -8,7 +8,7 @@
  * summarized messages, and retrieving original messages.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SummarizationMetadata } from "../session";
+import type { SummarizationMetadata } from "@/types/session";
 import { useSessionStore } from "../session";
 
 // Mock localStorage

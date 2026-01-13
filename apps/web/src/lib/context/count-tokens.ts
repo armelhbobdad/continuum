@@ -10,7 +10,7 @@
  *
  * NFR: Must complete within 10ms for 1000 messages
  */
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 
 /**
  * Token estimation ratio: ~4 characters per token.

@@ -27,7 +27,8 @@ import {
   filterSessions,
   type SessionFilterOptions,
 } from "@/lib/sessions/filter-sessions";
-import { type Session, useSessionStore } from "@/stores/session";
+import { useSessionStore } from "@/stores/session";
+import type { Session } from "@/types/session";
 
 /** Duration for undo toast in milliseconds (30 seconds per Story 3.3) */
 const UNDO_DURATION_MS = 30_000;

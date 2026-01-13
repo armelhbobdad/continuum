@@ -9,7 +9,7 @@
  * AC #3 (export format selection)
  */
 
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 
 /** Export metadata included in JSON exports */
 interface ExportMeta {

@@ -24,8 +24,8 @@ import {
   summarizeMessages,
 } from "@/lib/context/summarize";
 import { getInferenceAdapterAsync } from "@/lib/inference/get-adapter";
-import type { Message, Session } from "@/stores/session";
 import { useSessionStore } from "@/stores/session";
+import type { Message, Session } from "@/types/session";
 
 /**
  * Summarization state machine states (Task 5.4)

@@ -7,7 +7,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 import { SessionActions } from "../session-actions";
 
 // Top-level regex patterns for performance

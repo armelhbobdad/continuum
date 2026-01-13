@@ -23,9 +23,9 @@
  * Reference: Story 1.3 Task 5.7 - Virtual scrolling placeholder
  */
 
-import type { Message as MessageType } from "@/stores/session";
 import { useSessionStore } from "@/stores/session";
 import type { StreamingMetadata } from "@/types/inference";
+import type { Message as MessageType } from "@/types/session";
 import { SummarizedMessage } from "../context";
 import { Message } from "./message";
 import { StreamingMessage } from "./streaming-message";

@@ -9,7 +9,7 @@
  * Task 3: Subtasks 3.1-3.6
  */
 
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 
 /**
  * Filter options for session filtering.
