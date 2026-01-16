@@ -12,7 +12,7 @@
 
 import type { InferenceAdapter, InferenceToken } from "@continuum/inference";
 import { describe, expect, it, vi } from "vitest";
-import type { Message } from "@/stores/session";
+import type { Message } from "@/types/session";
 import {
   selectMessagesForSummarization,
   summarizeMessages,

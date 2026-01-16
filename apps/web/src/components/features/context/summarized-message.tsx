@@ -18,7 +18,7 @@
 import { Collapsible } from "@base-ui/react/collapsible";
 import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { Message } from "@/stores/session";
+import type { Message } from "@/types/session";
 
 /**
  * Props for SummarizedMessage

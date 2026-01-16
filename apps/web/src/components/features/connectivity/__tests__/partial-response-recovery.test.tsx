@@ -173,8 +173,10 @@ describe("PartialResponseRecovery", () => {
       />
     );
 
-    const container = screen.getByTestId("partial-response-recovery");
-    expect(container).toHaveAttribute("role", "region");
-    expect(container).toHaveAttribute("aria-label", "Interrupted response");
+    // <section> with aria-label implicitly has region role per HTML spec
+    const container = screen.getByRole("region", {
+      name: "Interrupted response",
+    });
+    expect(container).toBeInTheDocument();
   });
 });

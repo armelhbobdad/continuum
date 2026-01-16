@@ -8,8 +8,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Session } from "@/stores/session";
 import { useSessionStore } from "@/stores/session";
+import type { Session } from "@/types/session";
 import { SessionList } from "../session-list";
 
 // Mock @tanstack/react-virtual for deterministic tests

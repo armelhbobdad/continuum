@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 import {
   countActiveFilters,
   filterSessions,

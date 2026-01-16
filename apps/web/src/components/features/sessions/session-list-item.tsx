@@ -17,7 +17,7 @@ import { memo } from "react";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import type { MatchRange } from "@/lib/sessions/filter-sessions";
 import { cn } from "@/lib/utils";
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 import { HighlightText } from "./highlight-text";
 import { SessionActions } from "./session-actions";
 

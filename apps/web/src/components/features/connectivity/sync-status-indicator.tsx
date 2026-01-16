@@ -41,13 +41,19 @@ export function SyncStatusIndicator({ className }: SyncStatusIndicatorProps) {
   const pendingSyncCount = useConnectivityStore((s) => s.pendingSyncCount);
 
   // Determine display status
-  const status = isSyncing
-    ? "syncing"
-    : !isOnline && pendingSyncCount > 0
-      ? "pending"
-      : "idle";
+  const getStatus = () => {
+    if (isSyncing) {
+      return "syncing";
+    }
+    if (!isOnline && pendingSyncCount > 0) {
+      return "pending";
+    }
+    return "idle";
+  };
+  const status = getStatus();
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: div with role="status" is appropriate here - output element is for form results
     <div
       aria-atomic="true"
       aria-live="polite"

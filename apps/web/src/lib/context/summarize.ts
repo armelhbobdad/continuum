@@ -13,7 +13,7 @@
  */
 
 import type { InferenceAdapter, InferenceRequest } from "@continuum/inference";
-import type { Message } from "@/stores/session";
+import type { Message } from "@/types/session";
 
 /**
  * Result from message selection algorithm

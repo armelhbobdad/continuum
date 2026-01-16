@@ -131,6 +131,10 @@ jobs:
   build-windows:
     name: Build Windows
     runs-on: windows-latest
+    env:
+      # Use baseline x86_64 to avoid SIMD instruction issues with libsodium/stronghold
+      # GitHub Actions Windows runners may not support all AVX instructions
+      RUSTFLAGS: "-C target-cpu=x86-64"
     steps:
       - uses: actions/checkout@v4
 

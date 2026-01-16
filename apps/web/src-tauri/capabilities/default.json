@@ -8,6 +8,9 @@
   "permissions": [
     "core:default",
     "mcp-bridge:default",
-    "notification:default"
+    "notification:default",
+    "stronghold:default",
+    "shell:allow-open",
+    "deep-link:default"
   ]
 }

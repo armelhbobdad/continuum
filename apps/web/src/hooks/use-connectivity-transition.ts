@@ -139,6 +139,7 @@ export function useConnectivityTransition(): UseConnectivityTransitionResult {
     [isOnline, mode, emitEvent]
   );
 
+  // biome-ignore lint/suspicious/useAwait: async needed for future integration with inference adapter
   const retryPartialResponse = useCallback(async () => {
     if (!(partialResponse && isOnline)) {
       return;

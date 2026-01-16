@@ -10,10 +10,14 @@
 //! - **Model Downloads**: Resumable downloads with pause/cancel (Story 2.3)
 //! - **Integrity Verification**: SHA-256 verification with quarantine (Story 2.5)
 //! - **Credential Bridge**: Secure credential storage in Rust (Story 5.1)
+//! - **OAuth Authentication**: 3-tier fallback OAuth flow (Story 5.3)
 
 // Application startup legitimately uses expect() for fatal initialization errors
 #![allow(clippy::expect_used)]
+// Tauri's generate_context! macro allocates large stack frames - this is unavoidable
+#![allow(clippy::large_stack_frames)]
 
+mod auth;
 mod connectivity;
 mod credentials;
 mod downloads;
@@ -22,6 +26,7 @@ mod inference;
 mod preflight;
 mod verification;
 
+use auth::OAuthManagedState;
 use credentials::CredentialState;
 use downloads::DownloadState;
 use hardware::HardwareState;
@@ -29,13 +34,40 @@ use inference::InferenceState;
 use tauri::Manager;
 use verification::commands::VerificationState;
 
+/// Load environment variables from .env file (Story 5.3)
+///
+/// Tries multiple locations in order:
+/// 1. Compile-time CARGO_MANIFEST_DIR/.env (most reliable in development)
+/// 2. `src-tauri/.env` - when CWD is `apps/web`
+/// 3. `.env` - when CWD is `src-tauri` or for production
+///
+/// Uses `_override` variants to ensure .env values take precedence over
+/// any pre-existing environment variables (e.g., from parent process).
+fn load_env_file() {
+    // In development, use compile-time path to src-tauri/.env
+    // Use override to ensure .env values win over inherited empty vars
+    let manifest_env = concat!(env!("CARGO_MANIFEST_DIR"), "/.env");
+    if dotenvy::from_filename_override(manifest_env).is_ok() {
+        return;
+    }
+    // Try src-tauri/.env (when CWD is apps/web)
+    if dotenvy::from_filename_override("src-tauri/.env").is_ok() {
+        return;
+    }
+    // Fall back to .env in current directory
+    let _ = dotenvy::dotenv_override();
+}
+
 /// Run the Tauri application
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load .env file for OAuth credentials (Story 5.3)
+    load_env_file();
+
     tauri::Builder::default()
         .manage(InferenceState::new())
         .manage(HardwareState::new())
-        .manage(CredentialState::new())
+        .manage(OAuthManagedState::new())
         .invoke_handler(tauri::generate_handler![
             // Inference commands (Story 1.4)
             inference::load_model,
@@ -74,18 +106,71 @@ pub fn run() {
             credentials::clear_credentials,
             credentials::check_credential_availability,
             credentials::validate_credentials,
+            // Credential storage commands (Story 5.2)
+            credentials::get_storage_info,
+            credentials::get_storage_tier,
+            // Offline authentication commands (Story 5.4)
+            credentials::validate_offline_credentials,
+            credentials::get_offline_status,
+            credentials::refresh_credentials,
+            credentials::get_degraded_mode,
+            // Migration commands (Story 5.5)
+            credentials::start_session_migration,
+            credentials::get_migration_progress,
+            credentials::get_migration_status,
+            credentials::get_migration_result,
+            credentials::cancel_migration,
+            credentials::get_anonymous_session_count,
+            credentials::reset_migration,
+            // OAuth commands (Story 5.3)
+            auth::start_oauth_flow,
+            auth::get_oauth_progress,
+            auth::cancel_oauth_flow,
+            auth::get_oauth_authorization_url,
+            auth::handle_oauth_callback,
+            auth::fallback_to_local_server,
+            auth::exchange_oauth_tokens,
         ])
         .setup(|app| {
-            // Initialize download state with app data directory
+            // Initialize states that need app data directory
             let app_data_dir = app
                 .path()
                 .app_data_dir()
                 .expect("Failed to get app data directory");
             app.manage(DownloadState::new(app_data_dir.clone()));
-            app.manage(VerificationState::new(app_data_dir));
+            app.manage(VerificationState::new(app_data_dir.clone()));
+            // Credential state with storage tier detection (Story 5.2)
+            app.manage(CredentialState::new_with_storage(app_data_dir));
 
             // Notification plugin (Story 2.3)
             app.handle().plugin(tauri_plugin_notification::init())?;
+
+            // Shell plugin (Story 5.3 - opening OAuth URLs in browser)
+            app.handle().plugin(tauri_plugin_shell::init())?;
+
+            // Deep link plugin (Story 5.3 - OAuth callbacks)
+            app.handle().plugin(tauri_plugin_deep_link::init())?;
+
+            // Register deep link event handler for OAuth callbacks
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let app_handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        let url_str = url.to_string();
+                        if url_str.starts_with("continuum://callback") {
+                            let oauth_state = app_handle.state::<OAuthManagedState>();
+                            let oauth_state_clone = oauth_state.inner().clone();
+                            tauri::async_runtime::spawn(async move {
+                                if let Err(e) = oauth_state_clone.handle_deep_link(&url_str).await {
+                                    log::error!("Failed to handle OAuth deep link: {e}");
+                                }
+                            });
+                        }
+                    }
+                });
+            }
 
             if cfg!(debug_assertions) {
                 app.handle().plugin(

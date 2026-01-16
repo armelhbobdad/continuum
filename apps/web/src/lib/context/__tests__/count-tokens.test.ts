@@ -6,7 +6,7 @@
  * AC: #1, #2, #3, #4
  */
 import { describe, expect, it } from "vitest";
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 import { countSessionTokens, estimateTokens } from "../count-tokens";
 
 describe("estimateTokens", () => {

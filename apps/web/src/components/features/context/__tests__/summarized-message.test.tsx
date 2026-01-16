@@ -12,7 +12,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Message } from "@/stores/session";
+import type { Message } from "@/types/session";
 import { SummarizedMessage } from "../summarized-message";
 
 // Top-level regex patterns for performance

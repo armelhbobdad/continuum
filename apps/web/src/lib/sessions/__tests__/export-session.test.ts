@@ -5,7 +5,7 @@
  * AC #3 (export format selection)
  */
 import { describe, expect, it } from "vitest";
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 import {
   exportSessionToJson,
   exportSessionToMarkdown,

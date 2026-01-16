@@ -29,7 +29,7 @@ export function PartialResponseRecovery({
   className,
 }: PartialResponseRecoveryProps) {
   return (
-    <div
+    <section
       aria-label="Interrupted response"
       className={cn(
         "rounded-lg border border-amber-300 border-dashed dark:border-amber-700",
@@ -38,7 +38,6 @@ export function PartialResponseRecovery({
       )}
       data-slot="partial-response-recovery"
       data-testid="partial-response-recovery"
-      role="region"
     >
       {/* Partial content preview */}
       <div className="prose prose-sm dark:prose-invert max-w-none opacity-80">
@@ -94,6 +93,6 @@ export function PartialResponseRecovery({
           {partialResponse.error}
         </p>
       )}
-    </div>
+    </section>
   );
 }

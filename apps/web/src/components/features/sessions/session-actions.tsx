@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Session } from "@/stores/session";
+import type { Session } from "@/types/session";
 import { DeleteSessionDialog } from "./delete-session-dialog";
 
 export interface SessionActionsProps {

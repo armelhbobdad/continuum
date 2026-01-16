@@ -45,11 +45,20 @@
       }
     },
     {
-      "includes": ["**/__tests__/**", "**/tests/**"],
+      "includes": [
+        "**/__tests__/**",
+        "**/tests/**",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
       "linter": {
         "rules": {
           "suspicious": {
-            "useAwait": "off"
+            "useAwait": "off",
+            "noEmptyBlockStatements": "off"
+          },
+          "performance": {
+            "useTopLevelRegex": "off"
           }
         }
       }
