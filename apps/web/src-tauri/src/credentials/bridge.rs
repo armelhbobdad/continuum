@@ -5,6 +5,29 @@
 //!
 //! SECURITY: This module NEVER exposes raw credentials to the frontend.
 //! All public methods return opaque representations only.
+//!
+//! # Design Decision: Single-Provider Authentication (ADR-CRED-1)
+//!
+//! This module implements **single-provider-at-a-time** authentication by design.
+//! When a user signs in with a new OAuth provider, any existing credentials are replaced.
+//!
+//! **Rationale:**
+//! - Desktop app users typically choose one preferred OAuth provider
+//! - Web app has separate auth system (better-auth) - no cross-platform identity linking needed
+//! - Multi-provider identity linking would require a user database and account merging UX
+//! - YAGNI: Deferring complexity until user research indicates demand
+//!
+//! **Implications:**
+//! - Signing in with GitHub replaces existing Google credentials (and vice versa)
+//! - User ID is provider-specific (Google `sub` vs GitHub numeric `id`)
+//! - No account linking or identity unification across providers
+//!
+//! **Future Enhancement (if needed):**
+//! - Add `provider` field to `UserInfo` for tracking credential source
+//! - Use provider-keyed storage: `continuum_credentials_{provider}`
+//! - Implement account linking flow with email verification
+//!
+//! See: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` (ADR-CRED-1)
 
 // Allow clippy suggestions that don't improve readability in this context
 #![allow(clippy::missing_const_for_fn)] // Mutex::new isn't const
