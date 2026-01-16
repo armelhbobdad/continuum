@@ -120,7 +120,7 @@ export function useCredentialBridge(): UseCredentialBridgeResult {
   /**
    * Clear all credentials (logout) (AC1, AC3)
    *
-   * Triggers secure wipe in Rust backend.
+   * Triggers secure wipe in Rust backend and resets OAuth state.
    */
   const clearCredentials = useCallback(async () => {
     // Skip if not in Tauri environment
@@ -130,7 +130,10 @@ export function useCredentialBridge(): UseCredentialBridgeResult {
     }
 
     try {
+      // Clear credentials from secure storage
       await invoke("clear_credentials");
+      // Reset OAuth flow state to allow new sign-in
+      await invoke("cancel_oauth_flow");
       clearAuthState();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);

@@ -27,7 +27,9 @@
 use super::deep_link::{DeepLinkHandler, DEEP_LINK_TIMEOUT_MS};
 use super::local_server::{LocalOAuthServer, LOCAL_SERVER_TIMEOUT_MS};
 use super::pkce::Pkce;
-use super::types::{OAuthConfig, OAuthError, OAuthProgress, OAuthState, TokenResponse};
+use super::types::{
+    OAuthConfig, OAuthError, OAuthProgress, OAuthState, OAuthUserInfo, TokenResponse,
+};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use getrandom::getrandom;
 use std::collections::HashMap;
@@ -55,6 +57,29 @@ fn now_ms() -> i64 {
         .as_millis() as i64
 }
 
+/// Redirect URI method for OAuth callback
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RedirectMethod {
+    /// Deep link callback (continuum://callback)
+    DeepLink,
+    /// Local server callback (http://127.0.0.1:{port})
+    LocalServer { port: u16 },
+    /// Manual code entry (no redirect)
+    Manual,
+}
+
+impl RedirectMethod {
+    /// Get the redirect URI string for this method
+    pub fn redirect_uri(&self) -> String {
+        match self {
+            Self::DeepLink => "continuum://callback".to_string(),
+            // Google requires loopback redirect WITHOUT path for desktop apps
+            Self::LocalServer { port } => format!("http://127.0.0.1:{port}"),
+            Self::Manual => "urn:ietf:wg:oauth:2.0:oob".to_string(),
+        }
+    }
+}
+
 /// Internal flow state
 #[derive(Debug)]
 struct FlowState {
@@ -68,6 +93,8 @@ struct FlowState {
     config: Option<OAuthConfig>,
     /// Authorization code (received from callback)
     auth_code: Option<String>,
+    /// Active redirect method (tracks which URI was used for authorization)
+    redirect_method: RedirectMethod,
 }
 
 impl Default for FlowState {
@@ -78,6 +105,7 @@ impl Default for FlowState {
             state_param: None,
             config: None,
             auth_code: None,
+            redirect_method: RedirectMethod::DeepLink,
         }
     }
 }
@@ -151,9 +179,13 @@ impl OAuthFlowManager {
     /// * `Err(OAuthError)` - If flow cannot be started
     pub async fn start_flow(&self, config: OAuthConfig) -> Result<String, OAuthError> {
         let mut state = self.flow_state.lock().await;
+        let mut server_lock = self.local_server.lock().await;
 
-        // Check if flow already in progress
-        if !matches!(state.state, OAuthState::Idle | OAuthState::Failed { .. }) {
+        // Check if flow already in progress (allow starting from Idle, Failed, or Complete)
+        if !matches!(
+            state.state,
+            OAuthState::Idle | OAuthState::Failed { .. } | OAuthState::Complete
+        ) {
             return Err(OAuthError::InternalError {
                 message: "OAuth flow already in progress".to_string(),
             });
@@ -163,21 +195,69 @@ impl OAuthFlowManager {
         let pkce = Pkce::generate();
         let state_param = generate_state();
 
-        // Build authorization URL
-        let auth_url = self.build_authorization_url(&config, &pkce, &state_param)?;
+        // Check if provider supports deep links (Google does NOT for desktop apps)
+        if config.supports_deep_link {
+            // Start with deep link method
+            let redirect_method = RedirectMethod::DeepLink;
 
-        // Update state
-        let now = now_ms();
-        state.state = OAuthState::AwaitingDeepLink {
-            started_at: now,
-            timeout_at: now + DEEP_LINK_TIMEOUT_MS,
-        };
-        state.pkce = Some(pkce);
-        state.state_param = Some(state_param);
-        state.config = Some(config);
-        state.auth_code = None;
+            // Build authorization URL
+            let auth_url =
+                self.build_authorization_url(&config, &pkce, &state_param, &redirect_method)?;
 
-        Ok(auth_url)
+            // Update state
+            let now = now_ms();
+            state.state = OAuthState::AwaitingDeepLink {
+                started_at: now,
+                timeout_at: now + DEEP_LINK_TIMEOUT_MS,
+            };
+            state.pkce = Some(pkce);
+            state.state_param = Some(state_param);
+            state.config = Some(config);
+            state.auth_code = None;
+            state.redirect_method = redirect_method;
+
+            Ok(auth_url)
+        } else {
+            // Provider doesn't support deep links (e.g., Google, GitHub, Zoom)
+            // Start directly with local server
+            let server = LocalOAuthServer::new(&state_param);
+            let port = server.start(config.preferred_port).await?;
+
+            let redirect_method = RedirectMethod::LocalServer { port };
+
+            // Build authorization URL with local server redirect
+            let auth_url =
+                self.build_authorization_url(&config, &pkce, &state_param, &redirect_method)?;
+
+            // Update state
+            let now = now_ms();
+            state.state = OAuthState::AwaitingLocalServer {
+                port,
+                started_at: now,
+                timeout_at: now + LOCAL_SERVER_TIMEOUT_MS as i64,
+            };
+            state.pkce = Some(pkce);
+            state.state_param = Some(state_param);
+            state.config = Some(config);
+            state.auth_code = None;
+            state.redirect_method = redirect_method;
+
+            // Store server for the background listener
+            *server_lock = Some(server);
+
+            // Drop locks before spawning background task
+            drop(state);
+            drop(server_lock);
+
+            // Spawn background task to listen for callback
+            let flow_state = Arc::clone(&self.flow_state);
+            let local_server = Arc::clone(&self.local_server);
+            tokio::spawn(async move {
+                Self::background_await_callback(flow_state, local_server).await;
+            });
+
+            Ok(auth_url)
+        }
     }
 
     /// Build the OAuth authorization URL with PKCE
@@ -186,6 +266,7 @@ impl OAuthFlowManager {
         config: &OAuthConfig,
         pkce: &Pkce,
         state: &str,
+        redirect_method: &RedirectMethod,
     ) -> Result<String, OAuthError> {
         use url::Url;
 
@@ -198,7 +279,7 @@ impl OAuthFlowManager {
         url.query_pairs_mut()
             .append_pair("response_type", "code")
             .append_pair("client_id", &config.client_id)
-            .append_pair("redirect_uri", "continuum://callback")
+            .append_pair("redirect_uri", &redirect_method.redirect_uri())
             .append_pair("state", state)
             .append_pair("code_challenge", &pkce.code_challenge)
             .append_pair("code_challenge_method", Pkce::challenge_method());
@@ -210,6 +291,64 @@ impl OAuthFlowManager {
         }
 
         Ok(url.to_string())
+    }
+
+    /// Background task to wait for local server callback
+    ///
+    /// This is spawned by `start_flow` when using local server (e.g., Google OAuth).
+    /// It waits for the callback and updates the flow state to `ExchangingTokens`.
+    /// The frontend then calls `exchange_oauth_tokens` to complete the flow.
+    async fn background_await_callback(
+        flow_state: Arc<Mutex<FlowState>>,
+        local_server: Arc<Mutex<Option<LocalOAuthServer>>>,
+    ) {
+        // Take ownership of the server
+        let server = {
+            let mut server_lock = local_server.lock().await;
+            match server_lock.take() {
+                Some(s) => s,
+                None => {
+                    // Server was already taken or stopped - this shouldn't happen
+                    return;
+                },
+            }
+        };
+
+        // Wait for callback
+        let callback_result = server.await_callback().await;
+        server.stop().await;
+
+        // Update flow state based on result
+        let mut state = flow_state.lock().await;
+
+        // Only update if still waiting for local server
+        if !matches!(state.state, OAuthState::AwaitingLocalServer { .. }) {
+            // State changed (e.g., cancelled) while waiting
+            return;
+        }
+
+        match callback_result {
+            Ok(callback_data) => {
+                // Store auth code and transition to ExchangingTokens
+                // The frontend will detect this state and call exchange_oauth_tokens
+                state.auth_code = Some(callback_data.code);
+                state.state = OAuthState::ExchangingTokens;
+            },
+            Err(OAuthError::LocalServerTimeout) => {
+                // Timeout - transition to manual entry
+                state.state = OAuthState::AwaitingManualEntry {
+                    started_at: now_ms(),
+                };
+            },
+            Err(OAuthError::Cancelled) => {
+                // Flow was cancelled - reset to idle
+                state.state = OAuthState::Idle;
+            },
+            Err(e) => {
+                // Other error - mark as failed
+                state.state = OAuthState::Failed { error: e };
+            },
+        }
     }
 
     /// Handle a deep link callback
@@ -256,27 +395,52 @@ impl OAuthFlowManager {
     /// Transition to local server fallback
     ///
     /// Called when deep link timeout occurs.
+    /// Returns the port number AND a new authorization URL with the local server redirect.
     ///
     /// # Returns
     ///
-    /// * `Ok(u16)` - The port number for the local server
+    /// * `Ok((u16, String))` - The port number and new authorization URL
     /// * `Err(OAuthError)` - If server cannot be started
-    pub async fn fallback_to_local_server(&self) -> Result<u16, OAuthError> {
+    pub async fn fallback_to_local_server(&self) -> Result<(u16, String), OAuthError> {
         let mut state = self.flow_state.lock().await;
         let mut server_lock = self.local_server.lock().await;
 
         // Get expected state
-        let expected_state =
-            state
-                .state_param
-                .as_ref()
-                .ok_or_else(|| OAuthError::InternalError {
-                    message: "Missing state parameter".to_string(),
-                })?;
+        let expected_state = state
+            .state_param
+            .as_ref()
+            .ok_or_else(|| OAuthError::InternalError {
+                message: "Missing state parameter".to_string(),
+            })?
+            .clone();
 
-        // Create and start local server
-        let server = LocalOAuthServer::new(expected_state);
-        let port = server.start().await?;
+        // Get config and PKCE (we reuse the same PKCE for security)
+        let config = state
+            .config
+            .as_ref()
+            .ok_or_else(|| OAuthError::InternalError {
+                message: "Missing OAuth config".to_string(),
+            })?
+            .clone();
+
+        let pkce = state
+            .pkce
+            .as_ref()
+            .ok_or_else(|| OAuthError::InternalError {
+                message: "Missing PKCE data".to_string(),
+            })?;
+
+        // Create and start local server (use preferred port if configured)
+        let preferred_port = config.preferred_port;
+        let server = LocalOAuthServer::new(&expected_state);
+        let port = server.start(preferred_port).await?;
+
+        // Update redirect method to local server
+        let redirect_method = RedirectMethod::LocalServer { port };
+
+        // Build new authorization URL with local server redirect
+        let auth_url =
+            self.build_authorization_url(&config, pkce, &expected_state, &redirect_method)?;
 
         // Update state
         let now = now_ms();
@@ -285,10 +449,23 @@ impl OAuthFlowManager {
             started_at: now,
             timeout_at: now + LOCAL_SERVER_TIMEOUT_MS as i64,
         };
+        state.redirect_method = redirect_method;
 
+        // Store server for the background listener
         *server_lock = Some(server);
 
-        Ok(port)
+        // Drop locks before spawning background task
+        drop(state);
+        drop(server_lock);
+
+        // Spawn background task to listen for callback
+        let flow_state = Arc::clone(&self.flow_state);
+        let local_server = Arc::clone(&self.local_server);
+        tokio::spawn(async move {
+            Self::background_await_callback(flow_state, local_server).await;
+        });
+
+        Ok((port, auth_url))
     }
 
     /// Get the redirect URI for local server
@@ -446,6 +623,7 @@ impl OAuthFlowManager {
     /// Exchange authorization code for tokens (AC5)
     ///
     /// Makes HTTP POST request to the token endpoint with PKCE code verifier.
+    /// Uses the same redirect_uri that was used during authorization.
     ///
     /// # Returns
     ///
@@ -453,7 +631,7 @@ impl OAuthFlowManager {
     /// * `Err(OAuthError)` - If exchange fails
     pub async fn exchange_code_for_tokens(&self) -> Result<TokenResponse, OAuthError> {
         // Extract all needed values under a single lock, then release it
-        let (token_url, client_id, code, code_verifier) = {
+        let (token_url, client_id, client_secret, code, code_verifier, redirect_uri) = {
             let state = self.flow_state.lock().await;
 
             // Verify we're in the token exchange state
@@ -488,11 +666,16 @@ impl OAuthFlowManager {
                 .code_verifier
                 .clone();
 
+            // Get the redirect URI that was used during authorization
+            let redirect_uri = state.redirect_method.redirect_uri();
+
             (
                 config.token_url.clone(),
                 config.client_id.clone(),
+                config.client_secret.clone(),
                 code,
                 code_verifier,
+                redirect_uri,
             )
         };
 
@@ -500,9 +683,14 @@ impl OAuthFlowManager {
         let mut params = HashMap::new();
         params.insert("grant_type", "authorization_code".to_string());
         params.insert("code", code);
-        params.insert("redirect_uri", "continuum://callback".to_string());
+        params.insert("redirect_uri", redirect_uri);
         params.insert("client_id", client_id);
         params.insert("code_verifier", code_verifier);
+
+        // Add client_secret if provided (required for Google desktop OAuth)
+        if let Some(secret) = client_secret {
+            params.insert("client_secret", secret);
+        }
 
         // Make the token exchange request
         let client = reqwest::Client::new();
@@ -542,6 +730,73 @@ impl OAuthFlowManager {
     pub async fn get_config(&self) -> Option<OAuthConfig> {
         self.flow_state.lock().await.config.clone()
     }
+
+    /// Fetch user info from the OAuth provider's userinfo endpoint
+    ///
+    /// Called after token exchange to get user profile (name, email, picture).
+    ///
+    /// # Arguments
+    ///
+    /// * `access_token` - The access token from token exchange
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Some(OAuthUserInfo))` - User info from provider
+    /// * `Ok(None)` - If provider doesn't have userinfo endpoint or fetch failed gracefully
+    /// * `Err(OAuthError)` - If fetch fails critically
+    pub async fn fetch_user_info(
+        &self,
+        access_token: &str,
+    ) -> Result<Option<OAuthUserInfo>, OAuthError> {
+        let config = self.get_config().await;
+        let provider = config.as_ref().map_or("unknown", |c| c.provider.as_str());
+
+        // Get userinfo URL for this provider
+        let Some(userinfo_url) = OAuthUserInfo::userinfo_url(provider) else {
+            log::debug!("No userinfo endpoint for provider: {provider}");
+            return Ok(None);
+        };
+
+        // Build request with appropriate headers for each provider
+        let client = reqwest::Client::new();
+        let mut request = client
+            .get(userinfo_url)
+            .header("Authorization", format!("Bearer {access_token}"));
+
+        // GitHub requires User-Agent and Accept headers
+        if provider == "github" {
+            request = request
+                .header("User-Agent", "Continuum-Desktop-App")
+                .header("Accept", "application/vnd.github+json");
+        }
+
+        // Make the request
+        let response = request.send().await.map_err(|e| {
+            log::warn!("Failed to fetch userinfo: {e}");
+            OAuthError::NetworkError {
+                message: format!("Failed to fetch user info: {e}"),
+            }
+        })?;
+
+        // Check response status
+        if !response.status().is_success() {
+            let status = response.status();
+            log::warn!("Userinfo request failed with status: {status}");
+            // Don't fail the whole flow for userinfo errors - return None
+            return Ok(None);
+        }
+
+        // Parse response
+        let user_info: OAuthUserInfo = response.json().await.map_err(|e| {
+            log::warn!("Failed to parse userinfo response: {e}");
+            OAuthError::InternalError {
+                message: format!("Failed to parse user info: {e}"),
+            }
+        })?;
+
+        log::info!("Successfully fetched user info for provider: {provider}");
+        Ok(Some(user_info))
+    }
 }
 
 #[cfg(test)]
@@ -579,6 +834,7 @@ mod tests {
         assert!(auth_url.starts_with("https://example.com/oauth/authorize?"));
         assert!(auth_url.contains("client_id=client_id_123"));
         assert!(auth_url.contains("response_type=code"));
+        // Deep link redirect for initial flow
         assert!(auth_url.contains("redirect_uri=continuum%3A%2F%2Fcallback"));
         assert!(auth_url.contains("code_challenge="));
         assert!(auth_url.contains("code_challenge_method=S256"));
@@ -589,7 +845,15 @@ mod tests {
     #[tokio::test]
     async fn test_start_flow_transitions_to_awaiting_deep_link() {
         let manager = OAuthFlowManager::new();
-        let config = test_config();
+        // Use a non-Google provider that supports deep links
+        let config = OAuthConfig::with_deep_link_support(
+            "github",
+            "client_id_123",
+            "https://github.com/login/oauth/authorize",
+            "https://github.com/login/oauth/access_token",
+            vec!["read:user".to_string()],
+            true, // supports deep link
+        );
 
         manager
             .start_flow(config)
@@ -598,6 +862,28 @@ mod tests {
 
         let state = manager.get_state().await;
         assert!(matches!(state, OAuthState::AwaitingDeepLink { .. }));
+    }
+
+    #[tokio::test]
+    async fn test_start_flow_google_skips_deep_link() {
+        let manager = OAuthFlowManager::new();
+        // Google does NOT support deep links for desktop - goes straight to local server
+        let config = OAuthConfig::new(
+            "google", // Google provider has supports_deep_link = false
+            "client_id_123",
+            "https://accounts.google.com/o/oauth2/v2/auth",
+            "https://oauth2.googleapis.com/token",
+            vec!["openid".to_string(), "email".to_string()],
+        );
+
+        manager
+            .start_flow(config)
+            .await
+            .expect("start should succeed");
+
+        let state = manager.get_state().await;
+        // Google should start directly with local server, not deep link
+        assert!(matches!(state, OAuthState::AwaitingLocalServer { .. }));
     }
 
     #[tokio::test]
@@ -639,11 +925,14 @@ mod tests {
             .await
             .expect("start should succeed");
 
-        let port = manager
+        let (port, auth_url) = manager
             .fallback_to_local_server()
             .await
             .expect("fallback should succeed");
         assert!(port > 0);
+
+        // Auth URL should now have local server redirect (no path per Google spec)
+        assert!(auth_url.contains(&format!("redirect_uri=http%3A%2F%2F127.0.0.1%3A{port}")));
 
         let state = manager.get_state().await;
         assert!(matches!(state, OAuthState::AwaitingLocalServer { .. }));

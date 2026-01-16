@@ -343,6 +343,7 @@ mod command_tests {
                 id: "user_1".to_string(),
                 email: Some("test@test.com".to_string()),
                 display_name: Some("Test".to_string()),
+                picture: None,
             })
     }
 

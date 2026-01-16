@@ -69,6 +69,7 @@ describe("Credential Bridge Integration", () => {
           id: "user_integration",
           email: "integration@test.com",
           display_name: "Integration User",
+          picture: null,
         },
       };
 
@@ -221,7 +222,12 @@ describe("Credential Bridge Integration", () => {
           status: "Valid",
           session_id: "opaque_to_clear",
           expiry_timestamp: null,
-          user_info: { id: "1", email: "test@test.com", display_name: "Test" },
+          user_info: {
+            id: "1",
+            email: "test@test.com",
+            display_name: "Test",
+            picture: null,
+          },
         })
         .mockResolvedValueOnce({
           id: "opaque_token_to_clear",

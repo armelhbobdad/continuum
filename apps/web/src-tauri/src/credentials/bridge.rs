@@ -317,6 +317,7 @@ mod bridge_tests {
                 id: "user_123".to_string(),
                 email: Some("test@example.com".to_string()),
                 display_name: Some("Test User".to_string()),
+                picture: None,
             })
     }
 

@@ -76,6 +76,7 @@ describe("useCredentialBridge", () => {
           id: "user_1",
           email: "test@example.com",
           display_name: "Test User",
+          picture: null,
         },
       };
 
@@ -182,7 +183,8 @@ describe("useCredentialBridge", () => {
 
       mockInvoke
         .mockResolvedValueOnce(mockAuthState)
-        .mockResolvedValueOnce(undefined); // clear_credentials returns void
+        .mockResolvedValueOnce(undefined) // clear_credentials returns void
+        .mockResolvedValueOnce(undefined); // cancel_oauth_flow returns void (Story 5.3 fix)
 
       const { result } = renderHook(() => useCredentialBridge());
 
@@ -195,6 +197,7 @@ describe("useCredentialBridge", () => {
       });
 
       expect(mockInvoke).toHaveBeenCalledWith("clear_credentials");
+      expect(mockInvoke).toHaveBeenCalledWith("cancel_oauth_flow");
       expect(result.current.authState).toBeNull();
       expect(result.current.sessionToken).toBeNull();
     });

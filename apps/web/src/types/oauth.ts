@@ -77,7 +77,7 @@ export type OAuthError =
  *
  * Used for specifying which provider to authenticate with.
  */
-export type OAuthProvider = "google" | "github" | "default";
+export type OAuthProvider = "google" | "github" | "zoom" | "default";
 
 /**
  * Get user-friendly error message (AC6)

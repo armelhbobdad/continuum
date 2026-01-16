@@ -10,7 +10,9 @@
 //! from multiple frontend calls.
 
 use super::oauth::OAuthFlowManager;
-use super::types::{OAuthConfig, OAuthError, OAuthProgress, OAuthState, TokenResponse};
+use super::types::{
+    OAuthConfig, OAuthError, OAuthProgress, OAuthState, OAuthUserInfo, TokenResponse,
+};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -91,7 +93,9 @@ impl OAuthManagedState {
     }
 
     /// Transition to local server fallback
-    pub async fn fallback_to_local_server(&self) -> Result<u16, OAuthError> {
+    ///
+    /// Returns the port number and a new authorization URL with the local server redirect.
+    pub async fn fallback_to_local_server(&self) -> Result<(u16, String), OAuthError> {
         let manager = self.manager.lock().await;
         manager.fallback_to_local_server().await
     }
@@ -160,6 +164,15 @@ impl OAuthManagedState {
     pub async fn exchange_code_for_tokens(&self) -> Result<TokenResponse, OAuthError> {
         let manager = self.manager.lock().await;
         manager.exchange_code_for_tokens().await
+    }
+
+    /// Fetch user info from the OAuth provider's userinfo endpoint
+    pub async fn fetch_user_info(
+        &self,
+        access_token: &str,
+    ) -> Result<Option<OAuthUserInfo>, OAuthError> {
+        let manager = self.manager.lock().await;
+        manager.fetch_user_info(access_token).await
     }
 }
 

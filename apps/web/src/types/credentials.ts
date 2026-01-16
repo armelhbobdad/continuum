@@ -40,6 +40,8 @@ export interface UserInfo {
   email: string | null;
   /** Display name */
   display_name: string | null;
+  /** Profile picture URL (if available) */
+  picture: string | null;
 }
 
 /**

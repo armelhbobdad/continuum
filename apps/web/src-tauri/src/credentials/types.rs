@@ -48,6 +48,8 @@ pub struct UserInfo {
     pub email: Option<String>,
     /// Display name
     pub display_name: Option<String>,
+    /// Profile picture URL (if available)
+    pub picture: Option<String>,
 }
 
 /// Authentication state returned to frontend (AC1, AC2)
@@ -312,6 +314,7 @@ mod type_tests {
                 id: "user_1".to_string(),
                 email: Some("test@example.com".to_string()),
                 display_name: Some("Test User".to_string()),
+                picture: None,
             });
 
         assert_eq!(creds.access_token, "access_token_123");

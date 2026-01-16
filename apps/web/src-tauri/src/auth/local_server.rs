@@ -132,18 +132,25 @@ impl LocalOAuthServer {
 
     /// Start the local server and return the assigned port
     ///
-    /// Binds to localhost:0 to get an ephemeral port assigned by the OS.
+    /// If `preferred_port` is provided, binds to that specific port.
+    /// Otherwise, binds to localhost:0 to get an ephemeral port assigned by the OS.
     /// The listener is kept alive to prevent port race conditions.
+    ///
+    /// # Arguments
+    ///
+    /// * `preferred_port` - Optional specific port to bind to (for providers like Zoom
+    ///   that require exact redirect URI with specific port)
     ///
     /// # Returns
     ///
     /// * `Ok(u16)` - The port number the server is listening on
     /// * `Err(OAuthError)` - If binding fails
-    pub async fn start(&self) -> Result<u16, OAuthError> {
-        let listener = TcpListener::bind(format!("{LOCALHOST}:0"))
+    pub async fn start(&self, preferred_port: Option<u16>) -> Result<u16, OAuthError> {
+        let bind_port = preferred_port.unwrap_or(0);
+        let listener = TcpListener::bind(format!("{LOCALHOST}:{bind_port}"))
             .await
             .map_err(|e| OAuthError::InternalError {
-                message: format!("Failed to bind local server: {e}"),
+                message: format!("Failed to bind local server to port {bind_port}: {e}"),
             })?;
 
         let port = listener
@@ -247,19 +254,25 @@ impl LocalOAuthServer {
 
     /// Build the redirect URI for this server
     ///
+    /// Google OAuth for desktop apps requires loopback redirect WITHOUT path.
+    /// See: https://developers.google.com/identity/protocols/oauth2/native-app#redirect-uri_loopback
+    ///
     /// # Returns
     ///
-    /// * `Some(String)` - The redirect URI if server is started
+    /// * `Some(String)` - The redirect URI if server is started (e.g., `http://127.0.0.1:54321`)
     /// * `None` - If server is not started
     pub async fn redirect_uri(&self) -> Option<String> {
         self.port
             .lock()
             .await
-            .map(|port| format!("http://{LOCALHOST}:{port}/callback"))
+            .map(|port| format!("http://{LOCALHOST}:{port}"))
     }
 }
 
 /// Parse an HTTP request and extract OAuth callback data
+///
+/// Google OAuth for desktop apps redirects to `http://127.0.0.1:port?code=...&state=...`
+/// (root path, no /callback). We accept both root path and /callback for compatibility.
 fn parse_http_request(
     request: &str,
     expected_state: &str,
@@ -274,8 +287,12 @@ fn parse_http_request(
 
     let path = parts[1];
 
-    // Check if this is a callback request
-    if !path.starts_with("/callback") {
+    // Accept root path (Google OAuth) or /callback path (backward compat)
+    // Google redirects to http://127.0.0.1:port?code=...&state=... (root path)
+    let is_root_with_query = path.starts_with("/?");
+    let is_callback_path = path.starts_with("/callback");
+
+    if !is_root_with_query && !is_callback_path {
         return None;
     }
 
@@ -359,7 +376,23 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_http_request_valid() {
+    fn test_parse_http_request_valid_root_path() {
+        // Google OAuth redirects to root path: http://127.0.0.1:port/?code=...&state=...
+        let request = "GET /?code=auth123&state=state456 HTTP/1.1\r\nHost: localhost\r\n\r\n";
+        let result = parse_http_request(request, "state456");
+
+        match result {
+            Some(Ok(data)) => {
+                assert_eq!(data.code, "auth123");
+                assert_eq!(data.state, "state456");
+            },
+            _ => panic!("Expected valid callback data"),
+        }
+    }
+
+    #[test]
+    fn test_parse_http_request_valid_callback_path() {
+        // Also accept /callback path for backward compatibility
         let request =
             "GET /callback?code=auth123&state=state456 HTTP/1.1\r\nHost: localhost\r\n\r\n";
         let result = parse_http_request(request, "state456");
@@ -375,7 +408,7 @@ mod tests {
 
     #[test]
     fn test_parse_http_request_invalid_state() {
-        let request = "GET /callback?code=auth123&state=wrong HTTP/1.1\r\nHost: localhost\r\n\r\n";
+        let request = "GET /?code=auth123&state=wrong HTTP/1.1\r\nHost: localhost\r\n\r\n";
         let result = parse_http_request(request, "expected");
 
         match result {
@@ -386,8 +419,7 @@ mod tests {
 
     #[test]
     fn test_parse_http_request_provider_error() {
-        let request =
-            "GET /callback?error=access_denied&error_description=User%20denied HTTP/1.1\r\n\r\n";
+        let request = "GET /?error=access_denied&error_description=User%20denied HTTP/1.1\r\n\r\n";
         let result = parse_http_request(request, "state");
 
         match result {
@@ -401,13 +433,14 @@ mod tests {
 
     #[test]
     fn test_parse_http_request_missing_params() {
-        let request = "GET /callback?code=auth123 HTTP/1.1\r\n\r\n";
+        let request = "GET /?code=auth123 HTTP/1.1\r\n\r\n";
         let result = parse_http_request(request, "state");
         assert!(result.is_none());
     }
 
     #[test]
     fn test_parse_http_request_not_callback() {
+        // Paths other than / or /callback should be rejected
         let request = "GET /other?code=auth123 HTTP/1.1\r\n\r\n";
         let result = parse_http_request(request, "state");
         assert!(result.is_none());
@@ -415,7 +448,7 @@ mod tests {
 
     #[test]
     fn test_parse_http_request_post_ignored() {
-        let request = "POST /callback?code=auth123&state=state HTTP/1.1\r\n\r\n";
+        let request = "POST /?code=auth123&state=state HTTP/1.1\r\n\r\n";
         let result = parse_http_request(request, "state");
         assert!(result.is_none());
     }
@@ -429,7 +462,7 @@ mod tests {
     #[tokio::test]
     async fn test_local_server_start_assigns_port() {
         let server = LocalOAuthServer::new("test_state");
-        let port = server.start().await.expect("start should succeed");
+        let port = server.start(None).await.expect("start should succeed");
 
         assert!(port > 0);
         assert_eq!(server.port().await, Some(port));
@@ -439,16 +472,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_local_server_start_with_preferred_port() {
+        let server = LocalOAuthServer::new("test_state");
+        // Use a high port number to avoid conflicts
+        let preferred = 18085;
+        let port = server
+            .start(Some(preferred))
+            .await
+            .expect("start should succeed");
+
+        assert_eq!(port, preferred);
+        assert_eq!(server.port().await, Some(preferred));
+
+        server.stop().await;
+    }
+
+    #[tokio::test]
     async fn test_local_server_redirect_uri() {
         let server = LocalOAuthServer::new("test_state");
 
         // Before start, no redirect URI
         assert!(server.redirect_uri().await.is_none());
 
-        let port = server.start().await.expect("start should succeed");
+        let port = server.start(None).await.expect("start should succeed");
         let uri = server.redirect_uri().await.expect("should have URI");
 
-        assert_eq!(uri, format!("http://127.0.0.1:{port}/callback"));
+        // Google requires path-less loopback redirect for desktop apps
+        assert_eq!(uri, format!("http://127.0.0.1:{port}"));
 
         server.stop().await;
     }

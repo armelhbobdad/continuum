@@ -31,12 +31,34 @@ fn get_oauth_client_id(provider: &str) -> Result<String, String> {
     let env_var = match provider {
         "google" => "CONTINUUM_GOOGLE_CLIENT_ID",
         "github" => "CONTINUUM_GITHUB_CLIENT_ID",
+        "zoom" => "CONTINUUM_ZOOM_CLIENT_ID",
         other => return Err(format!("Unknown OAuth provider: {other}")),
     };
 
     std::env::var(env_var).map_err(|_| {
         format!("OAuth client ID not configured. Set the {env_var} environment variable.")
     })
+}
+
+/// Get OAuth client secret from environment variable (optional)
+///
+/// # Arguments
+///
+/// * `provider` - The provider name (google, github, etc.)
+///
+/// # Returns
+///
+/// * `Some(String)` - The client secret if configured
+/// * `None` - If not configured
+fn get_oauth_client_secret(provider: &str) -> Option<String> {
+    let env_var = match provider {
+        "google" => "CONTINUUM_GOOGLE_CLIENT_SECRET",
+        "github" => "CONTINUUM_GITHUB_CLIENT_SECRET",
+        "zoom" => "CONTINUUM_ZOOM_CLIENT_SECRET",
+        _ => return None,
+    };
+
+    std::env::var(env_var).ok()
 }
 
 /// Start a new OAuth flow
@@ -61,26 +83,59 @@ pub async fn start_oauth_flow(
 
     // Get client ID from environment variable
     let client_id = get_oauth_client_id(provider_name)?;
+    // Get client secret (optional, but required for Google desktop OAuth)
+    let client_secret = get_oauth_client_secret(provider_name);
 
     let config = match provider_name {
-        "google" => OAuthConfig::new(
-            "google",
-            client_id,
-            "https://accounts.google.com/o/oauth2/v2/auth",
-            "https://oauth2.googleapis.com/token",
-            vec![
-                "openid".to_string(),
-                "email".to_string(),
-                "profile".to_string(),
-            ],
-        ),
-        "github" => OAuthConfig::new(
-            "github",
-            client_id,
-            "https://github.com/login/oauth/authorize",
-            "https://github.com/login/oauth/access_token",
-            vec!["read:user".to_string(), "user:email".to_string()],
-        ),
+        "google" => {
+            // Google requires client_secret for desktop OAuth token exchange
+            let secret = client_secret.ok_or_else(|| {
+                "Google OAuth client secret not configured. Set the CONTINUUM_GOOGLE_CLIENT_SECRET environment variable.".to_string()
+            })?;
+            OAuthConfig::with_secret(
+                "google",
+                client_id,
+                secret,
+                "https://accounts.google.com/o/oauth2/v2/auth",
+                "https://oauth2.googleapis.com/token",
+                vec![
+                    "openid".to_string(),
+                    "email".to_string(),
+                    "profile".to_string(),
+                ],
+            )
+        },
+        "github" => {
+            // GitHub requires client_secret for web flow token exchange
+            let secret = client_secret.ok_or_else(|| {
+                "GitHub OAuth client secret not configured. Set the CONTINUUM_GITHUB_CLIENT_SECRET environment variable.".to_string()
+            })?;
+            OAuthConfig::with_secret(
+                "github",
+                client_id,
+                secret,
+                "https://github.com/login/oauth/authorize",
+                "https://github.com/login/oauth/access_token",
+                vec!["read:user".to_string(), "user:email".to_string()],
+            )
+        },
+        "zoom" => {
+            // Zoom requires client_secret for token exchange (Basic auth header)
+            // Zoom requires exact redirect URI including port - use fixed port 8085
+            // User must register http://127.0.0.1:8085 as redirect URI in Zoom app settings
+            let secret = client_secret.ok_or_else(|| {
+                "Zoom OAuth client secret not configured. Set the CONTINUUM_ZOOM_CLIENT_SECRET environment variable.".to_string()
+            })?;
+            OAuthConfig::with_secret_and_port(
+                "zoom",
+                client_id,
+                secret,
+                "https://zoom.us/oauth/authorize",
+                "https://zoom.us/oauth/token",
+                vec!["user:read:user".to_string()],
+                8085, // Fixed port - must match Zoom OAuth app redirect URI
+            )
+        },
         other => {
             return Err(format!("Unknown OAuth provider: {other}"));
         },
@@ -183,16 +238,32 @@ pub async fn handle_oauth_callback(
         .map_err(|e| e.to_string())
 }
 
+/// Response from fallback_to_local_server command
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LocalServerFallbackResponse {
+    /// Port number the server is listening on
+    pub port: u16,
+    /// New authorization URL with local server redirect
+    pub authorization_url: String,
+}
+
 /// Trigger fallback to local server
 ///
 /// Called when deep link timeout occurs.
-/// Returns the port number for building the new redirect URI.
+/// Returns the port number and new authorization URL with local server redirect.
 #[tauri::command]
-pub async fn fallback_to_local_server(state: State<'_, OAuthManagedState>) -> Result<u16, String> {
-    state
+pub async fn fallback_to_local_server(
+    state: State<'_, OAuthManagedState>,
+) -> Result<LocalServerFallbackResponse, String> {
+    let (port, authorization_url) = state
         .fallback_to_local_server()
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    Ok(LocalServerFallbackResponse {
+        port,
+        authorization_url,
+    })
 }
 
 /// Trigger fallback to manual entry
@@ -206,8 +277,8 @@ pub async fn fallback_to_manual_entry(state: State<'_, OAuthManagedState>) -> Re
 
 /// Exchange authorization code for tokens and store via Credential Bridge (AC5)
 ///
-/// Performs the token exchange with the OAuth provider and stores
-/// the resulting tokens securely via the Credential Bridge.
+/// Performs the token exchange with the OAuth provider, fetches user info,
+/// and stores the resulting tokens securely via the Credential Bridge.
 ///
 /// # Returns
 ///
@@ -235,12 +306,21 @@ pub async fn exchange_oauth_tokens(
         (now + secs) as i64
     });
 
-    // Store tokens via Credential Bridge
+    // Fetch user info from provider's userinfo endpoint
+    let user_info = oauth_state
+        .fetch_user_info(&token_response.access_token)
+        .await
+        .ok()
+        .flatten()
+        .and_then(|info| info.to_user_info());
+
+    // Store tokens via Credential Bridge (with user info if available)
     credential_state
         .store_oauth_tokens(
             token_response.access_token,
             token_response.refresh_token,
             expires_at,
+            user_info,
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -382,11 +462,12 @@ mod tests {
             .await
             .expect("start should succeed");
 
-        let port = state
+        let (port, auth_url) = state
             .fallback_to_local_server()
             .await
             .expect("fallback should succeed");
         assert!(port > 0);
+        assert!(auth_url.contains(&port.to_string()));
 
         let redirect_uri = state.get_local_server_redirect_uri().await;
         assert!(redirect_uri.is_some());

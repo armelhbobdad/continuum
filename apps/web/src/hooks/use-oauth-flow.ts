@@ -111,6 +111,44 @@ export function useOAuthFlow(): UseOAuthFlowResult {
     return remaining > 0 ? remaining : 0;
   })();
 
+  // Track if we've already triggered token exchange to avoid duplicate calls
+  const exchangeTriggeredRef = useRef(false);
+
+  /**
+   * Handle token exchange when in ExchangingTokens state
+   */
+  const handleTokenExchange = useCallback(async (): Promise<void> => {
+    exchangeTriggeredRef.current = true;
+    try {
+      await invoke("exchange_oauth_tokens");
+      // Token exchange succeeded - poll again to get the Complete state
+      const finalProgress = await invoke<OAuthProgress>("get_oauth_progress");
+      setProgress(finalProgress);
+    } catch (exchangeErr) {
+      const message =
+        exchangeErr instanceof Error
+          ? exchangeErr.message
+          : String(exchangeErr);
+      setError({ type: "InternalError", message });
+    }
+  }, []);
+
+  /**
+   * Check if polling should stop and handle cleanup
+   */
+  const checkAndStopPolling = useCallback(
+    (progressState: OAuthProgress["state"]): void => {
+      const shouldStop =
+        isOAuthComplete(progressState) || isOAuthFailed(progressState);
+      if (shouldStop && pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+        exchangeTriggeredRef.current = false;
+      }
+    },
+    []
+  );
+
   /**
    * Poll for progress updates (AC4)
    */
@@ -128,20 +166,21 @@ export function useOAuthFlow(): UseOAuthFlowResult {
         setError(newProgress.state.error);
       }
 
-      // Stop polling when flow is complete or failed
-      if (
-        (isOAuthComplete(newProgress.state) ||
-          isOAuthFailed(newProgress.state)) &&
-        pollingRef.current
-      ) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
+      // Trigger token exchange when ready
+      const shouldExchange =
+        newProgress.state.type === "ExchangingTokens" &&
+        !exchangeTriggeredRef.current;
+      if (shouldExchange) {
+        await handleTokenExchange();
       }
+
+      // Stop polling when flow is complete or failed
+      checkAndStopPolling(newProgress.state);
     } catch (err) {
       // Log but don't set error - polling failures are transient
       console.warn("OAuth progress poll failed:", err);
     }
-  }, []);
+  }, [handleTokenExchange, checkAndStopPolling]);
 
   /**
    * Start progress polling
@@ -235,6 +274,7 @@ export function useOAuthFlow(): UseOAuthFlowResult {
    */
   const cancelOAuth = useCallback(async () => {
     stopPolling();
+    exchangeTriggeredRef.current = false;
 
     if (!isTauriEnvironment()) {
       setProgress(DEFAULT_OAUTH_PROGRESS);
@@ -275,15 +315,14 @@ export function useOAuthFlow(): UseOAuthFlowResult {
 
     try {
       setError(null);
-      await invoke<number>("fallback_to_local_server");
+      // Get the port and new authorization URL from the backend
+      const response = await invoke<{
+        port: number;
+        authorization_url: string;
+      }>("fallback_to_local_server");
 
-      // Get new authorization URL with local server redirect
-      const authUrl = await invoke<string>("get_oauth_authorization_url", {
-        provider: lastProvider ?? null,
-      });
-
-      // Open in system browser using Tauri shell plugin
-      await open(authUrl);
+      // Open the new authorization URL (with local server redirect) in system browser
+      await open(response.authorization_url);
 
       // Continue polling
       await pollProgress();
@@ -291,7 +330,7 @@ export function useOAuthFlow(): UseOAuthFlowResult {
       const message = err instanceof Error ? err.message : String(err);
       setError({ type: "InternalError", message });
     }
-  }, [lastProvider, pollProgress]);
+  }, [pollProgress]);
 
   /**
    * Trigger fallback to manual entry (AC3)

@@ -31,6 +31,7 @@ fn create_valid_credentials() -> StoredCredentials {
             id: "user_integration_test".to_string(),
             email: Some("integration@test.com".to_string()),
             display_name: Some("Integration Test User".to_string()),
+            picture: None,
         })
         .with_api_key("openai".to_string(), "sk-secret-api-key".to_string())
 }
@@ -270,6 +271,7 @@ fn test_multiple_store_operations_overwrite() {
         id: "user_1".to_string(),
         email: None,
         display_name: Some("First".to_string()),
+        picture: None,
     });
     bridge.store_credentials(creds1).unwrap();
 
@@ -282,6 +284,7 @@ fn test_multiple_store_operations_overwrite() {
         id: "user_2".to_string(),
         email: None,
         display_name: Some("Second".to_string()),
+        picture: None,
     });
     bridge.store_credentials(creds2).unwrap();
 

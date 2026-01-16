@@ -48,6 +48,7 @@ describe("useCredentialStore", () => {
           id: "user_1",
           email: "test@example.com",
           display_name: "Test User",
+          picture: null,
         },
       };
 
@@ -114,7 +115,7 @@ describe("useCredentialStore", () => {
         status: "Valid",
         session_id: "opaque_abc123",
         expiry_timestamp: null,
-        user_info: { id: "1", email: null, display_name: null },
+        user_info: { id: "1", email: null, display_name: null, picture: null },
       });
       useCredentialStore.getState().setSessionToken({
         id: "opaque_token",

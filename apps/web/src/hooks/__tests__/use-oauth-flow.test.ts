@@ -290,6 +290,8 @@ describe("useOAuthFlow", () => {
 
   describe("fallback methods", () => {
     it("fallbackToLocalServer triggers local server mode", async () => {
+      vi.useRealTimers();
+
       const localServerProgress = createProgress(
         {
           type: "AwaitingLocalServer",
@@ -303,33 +305,44 @@ describe("useOAuthFlow", () => {
         "https://example.com/auth?redirect_uri=http://localhost:9876";
 
       mockInvoke
-        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS)
-        .mockResolvedValueOnce(9876) // fallback_to_local_server returns port
-        .mockResolvedValueOnce(authUrl) // get_oauth_authorization_url
-        .mockResolvedValueOnce(localServerProgress);
+        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS) // Initial fetch on mount
+        .mockResolvedValueOnce({ port: 9876, authorization_url: authUrl }) // fallback_to_local_server returns { port, authorization_url }
+        .mockResolvedValue(localServerProgress); // progress polls
 
       const { result } = renderHook(() => useOAuthFlow());
+
+      // Wait for initial fetch
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 10));
+      });
 
       await act(async () => {
         await result.current.fallbackToLocalServer();
       });
 
       expect(mockInvoke).toHaveBeenCalledWith("fallback_to_local_server");
-      expect(mockShellOpen).toHaveBeenCalled();
+      expect(mockShellOpen).toHaveBeenCalledWith(authUrl);
     });
 
     it("fallbackToManualEntry triggers manual entry mode", async () => {
+      vi.useRealTimers();
+
       const manualEntryProgress = createProgress(
         { type: "AwaitingManualEntry", started_at: Date.now() },
         3
       );
 
       mockInvoke
-        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS)
+        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS) // Initial fetch on mount
         .mockResolvedValueOnce(undefined) // fallback_to_manual_entry
-        .mockResolvedValueOnce(manualEntryProgress);
+        .mockResolvedValue(manualEntryProgress); // progress polls
 
       const { result } = renderHook(() => useOAuthFlow());
+
+      // Wait for initial fetch
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 10));
+      });
 
       await act(async () => {
         await result.current.fallbackToManualEntry();
@@ -351,25 +364,27 @@ describe("useOAuthFlow", () => {
       });
 
       // For retry, we need:
-      // 1. Initial progress (idle)
+      // 1. Initial progress (idle) - on mount
       // 2. cancel_oauth_flow (returns undefined)
       // 3. start_oauth_flow (returns authUrl)
       // 4. Progress poll (returns awaiting)
       mockInvoke
-        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS) // Initial fetch
+        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS) // Initial fetch on mount
         .mockResolvedValueOnce(undefined) // cancel_oauth_flow
         .mockResolvedValueOnce(authUrl) // start_oauth_flow
-        .mockResolvedValue(awaitingProgress); // All polls
+        .mockResolvedValue(awaitingProgress); // All subsequent polls
 
       const { result } = renderHook(() => useOAuthFlow());
 
-      // Wait for initial fetch
+      // Wait for initial fetch to complete
       await act(async () => {
-        await new Promise((r) => setTimeout(r, 10));
+        await new Promise((r) => setTimeout(r, 50));
       });
 
       await act(async () => {
         await result.current.retryOAuth();
+        // Wait for all async operations to settle
+        await new Promise((r) => setTimeout(r, 50));
       });
 
       expect(result.current.progress.state.type).toBe("AwaitingDeepLink");

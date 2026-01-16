@@ -34,9 +34,36 @@ use inference::InferenceState;
 use tauri::Manager;
 use verification::commands::VerificationState;
 
+/// Load environment variables from .env file (Story 5.3)
+///
+/// Tries multiple locations in order:
+/// 1. Compile-time CARGO_MANIFEST_DIR/.env (most reliable in development)
+/// 2. `src-tauri/.env` - when CWD is `apps/web`
+/// 3. `.env` - when CWD is `src-tauri` or for production
+///
+/// Uses `_override` variants to ensure .env values take precedence over
+/// any pre-existing environment variables (e.g., from parent process).
+fn load_env_file() {
+    // In development, use compile-time path to src-tauri/.env
+    // Use override to ensure .env values win over inherited empty vars
+    let manifest_env = concat!(env!("CARGO_MANIFEST_DIR"), "/.env");
+    if dotenvy::from_filename_override(manifest_env).is_ok() {
+        return;
+    }
+    // Try src-tauri/.env (when CWD is apps/web)
+    if dotenvy::from_filename_override("src-tauri/.env").is_ok() {
+        return;
+    }
+    // Fall back to .env in current directory
+    let _ = dotenvy::dotenv_override();
+}
+
 /// Run the Tauri application
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load .env file for OAuth credentials (Story 5.3)
+    load_env_file();
+
     tauri::Builder::default()
         .manage(InferenceState::new())
         .manage(HardwareState::new())

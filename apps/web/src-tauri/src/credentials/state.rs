@@ -86,6 +86,7 @@ impl CredentialState {
     /// * `access_token` - The access token from the OAuth provider
     /// * `refresh_token` - Optional refresh token
     /// * `expires_at` - Optional expiry timestamp (Unix seconds)
+    /// * `user_info` - Optional user profile info from the provider
     ///
     /// # Returns
     ///
@@ -97,6 +98,7 @@ impl CredentialState {
         access_token: String,
         refresh_token: Option<String>,
         expires_at: Option<i64>,
+        user_info: Option<super::types::UserInfo>,
     ) -> Result<(), CredentialError> {
         let mut credentials = StoredCredentials::new(access_token);
 
@@ -106,6 +108,10 @@ impl CredentialState {
 
         if let Some(exp) = expires_at {
             credentials = credentials.with_expiry(exp);
+        }
+
+        if let Some(info) = user_info {
+            credentials = credentials.with_user_info(info);
         }
 
         self.bridge.store_credentials(credentials)

@@ -1,5 +1,38 @@
 # Cargo configuration for Continuum Tauri backend
 
+# ============================================================================
+# OAuth Configuration (Story 5.3)
+# ============================================================================
+# SECURITY: OAuth credentials should be set via environment variables,
+# NOT hardcoded in this file. This file is committed to git.
+#
+# For development, create a .env file in the src-tauri directory:
+#   cp .env.example .env
+#   # Edit .env with your actual credentials
+#
+# For production, use a secrets manager or CI/CD environment variables.
+# ============================================================================
+[env]
+# Google OAuth (Desktop app type)
+# Get credentials from: https://console.cloud.google.com/apis/credentials
+# Create OAuth 2.0 Client ID with "Desktop app" type
+CONTINUUM_GOOGLE_CLIENT_ID = { value = "", force = false }
+CONTINUUM_GOOGLE_CLIENT_SECRET = { value = "", force = false }
+
+# GitHub OAuth
+# Get credentials from: https://github.com/settings/developers
+# Set Authorization callback URL to: http://127.0.0.1
+CONTINUUM_GITHUB_CLIENT_ID = { value = "", force = false }
+CONTINUUM_GITHUB_CLIENT_SECRET = { value = "", force = false }
+
+# Zoom OAuth (General app - User OAuth)
+# Get credentials from: https://marketplace.zoom.us/develop/create
+# Set OAuth redirect URL to: http://127.0.0.1:8085
+# Add scope: user:read:user
+# NOTE: Zoom apps in development mode only work for the app creator account
+CONTINUUM_ZOOM_CLIENT_ID = { value = "", force = false }
+CONTINUUM_ZOOM_CLIENT_SECRET = { value = "", force = false }
+
 [alias]
 # Linting aliases
 lint = "clippy --all-targets --all-features -- -D warnings"

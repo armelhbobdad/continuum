@@ -293,16 +293,29 @@ pub struct OAuthConfig {
     pub provider: String,
     /// Client ID from the provider
     pub client_id: String,
+    /// Client Secret from the provider (required for Google desktop OAuth)
+    /// Note: For desktop apps, Google requires client_secret even with PKCE
+    pub client_secret: Option<String>,
     /// Authorization endpoint URL
     pub authorization_url: String,
     /// Token endpoint URL
     pub token_url: String,
     /// Requested scopes
     pub scopes: Vec<String>,
+    /// Whether this provider supports custom URI scheme (deep links) for desktop apps.
+    /// Google, GitHub, and Zoom do NOT support deep links for desktop - only loopback IP.
+    /// See: https://developers.google.com/identity/protocols/oauth2/native-app#redirect-uri_loopback
+    /// See: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps
+    /// See: https://developers.zoom.us/docs/integrations/oauth/
+    pub supports_deep_link: bool,
+    /// Preferred port for local OAuth server (for providers like Zoom that require exact redirect URI).
+    /// If None, an ephemeral port will be used (suitable for Google, GitHub).
+    /// If Some(port), the local server will bind to that specific port.
+    pub preferred_port: Option<u16>,
 }
 
 impl OAuthConfig {
-    /// Create a new OAuth configuration
+    /// Create a new OAuth configuration (without client secret)
     pub fn new(
         provider: impl Into<String>,
         client_id: impl Into<String>,
@@ -310,12 +323,91 @@ impl OAuthConfig {
         token_url: impl Into<String>,
         scopes: Vec<String>,
     ) -> Self {
+        let provider_str = provider.into();
+        // Google, GitHub, and Zoom do NOT support custom URI schemes for desktop apps
+        // They only support loopback IP (http://127.0.0.1) as redirect URI
+        let supports_deep_link = !matches!(provider_str.as_str(), "google" | "github" | "zoom");
         Self {
-            provider: provider.into(),
+            provider: provider_str,
             client_id: client_id.into(),
+            client_secret: None,
             authorization_url: authorization_url.into(),
             token_url: token_url.into(),
             scopes,
+            supports_deep_link,
+            preferred_port: None,
+        }
+    }
+
+    /// Create a new OAuth configuration with client secret
+    pub fn with_secret(
+        provider: impl Into<String>,
+        client_id: impl Into<String>,
+        client_secret: impl Into<String>,
+        authorization_url: impl Into<String>,
+        token_url: impl Into<String>,
+        scopes: Vec<String>,
+    ) -> Self {
+        let provider_str = provider.into();
+        // Google, GitHub, and Zoom do NOT support custom URI schemes for desktop apps
+        // They only support loopback IP (http://127.0.0.1) as redirect URI
+        let supports_deep_link = !matches!(provider_str.as_str(), "google" | "github" | "zoom");
+        Self {
+            provider: provider_str,
+            client_id: client_id.into(),
+            client_secret: Some(client_secret.into()),
+            authorization_url: authorization_url.into(),
+            token_url: token_url.into(),
+            scopes,
+            supports_deep_link,
+            preferred_port: None,
+        }
+    }
+
+    /// Create a new OAuth configuration with client secret and preferred port
+    pub fn with_secret_and_port(
+        provider: impl Into<String>,
+        client_id: impl Into<String>,
+        client_secret: impl Into<String>,
+        authorization_url: impl Into<String>,
+        token_url: impl Into<String>,
+        scopes: Vec<String>,
+        preferred_port: u16,
+    ) -> Self {
+        let provider_str = provider.into();
+        // Google, GitHub, and Zoom do NOT support custom URI schemes for desktop apps
+        // They only support loopback IP (http://127.0.0.1) as redirect URI
+        let supports_deep_link = !matches!(provider_str.as_str(), "google" | "github" | "zoom");
+        Self {
+            provider: provider_str,
+            client_id: client_id.into(),
+            client_secret: Some(client_secret.into()),
+            authorization_url: authorization_url.into(),
+            token_url: token_url.into(),
+            scopes,
+            supports_deep_link,
+            preferred_port: Some(preferred_port),
+        }
+    }
+
+    /// Create config with explicit deep link support setting
+    pub fn with_deep_link_support(
+        provider: impl Into<String>,
+        client_id: impl Into<String>,
+        authorization_url: impl Into<String>,
+        token_url: impl Into<String>,
+        scopes: Vec<String>,
+        supports_deep_link: bool,
+    ) -> Self {
+        Self {
+            provider: provider.into(),
+            client_id: client_id.into(),
+            client_secret: None,
+            authorization_url: authorization_url.into(),
+            token_url: token_url.into(),
+            scopes,
+            supports_deep_link,
+            preferred_port: None,
         }
     }
 }
@@ -335,6 +427,51 @@ pub struct TokenResponse {
     pub refresh_token: Option<String>,
     /// Granted scopes (may differ from requested)
     pub scope: Option<String>,
+}
+
+/// User info response from OAuth provider's userinfo endpoint
+///
+/// Common structure across providers, with optional fields that may vary.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthUserInfo {
+    /// User's unique ID from the provider
+    #[serde(alias = "id", alias = "sub")]
+    pub id: Option<String>,
+    /// User's email address
+    pub email: Option<String>,
+    /// User's display name
+    #[serde(alias = "name", alias = "display_name", alias = "displayName")]
+    pub name: Option<String>,
+    /// User's profile picture URL
+    #[serde(alias = "picture", alias = "avatar_url", alias = "pic_url")]
+    pub picture: Option<String>,
+    /// Whether the email is verified (Google)
+    pub email_verified: Option<bool>,
+    /// User's login/username (GitHub)
+    pub login: Option<String>,
+}
+
+impl OAuthUserInfo {
+    /// Get the userinfo endpoint URL for a provider
+    pub fn userinfo_url(provider: &str) -> Option<&'static str> {
+        match provider {
+            "google" => Some("https://www.googleapis.com/oauth2/v2/userinfo"),
+            "github" => Some("https://api.github.com/user"),
+            "zoom" => Some("https://api.zoom.us/v2/users/me"),
+            _ => None,
+        }
+    }
+
+    /// Convert to credential UserInfo
+    pub fn to_user_info(&self) -> Option<crate::credentials::types::UserInfo> {
+        let id = self.id.clone().or_else(|| self.login.clone())?;
+        Some(crate::credentials::types::UserInfo {
+            id,
+            email: self.email.clone(),
+            display_name: self.name.clone().or_else(|| self.login.clone()),
+            picture: self.picture.clone(),
+        })
+    }
 }
 
 #[cfg(test)]
