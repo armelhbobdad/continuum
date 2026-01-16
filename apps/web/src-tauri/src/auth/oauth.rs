@@ -735,15 +735,63 @@ impl OAuthFlowManager {
         }
 
         // Parse response
-        let user_info: OAuthUserInfo = response.json().await.map_err(|e| {
+        let mut user_info: OAuthUserInfo = response.json().await.map_err(|e| {
             log::warn!("Failed to parse userinfo response: {e}");
             OAuthError::InternalError {
                 message: format!("Failed to parse user info: {e}"),
             }
         })?;
 
+        // GitHub: If email is not in the main response, fetch from /user/emails endpoint
+        // GitHub only returns email in /user if it's set as publicly visible
+        if provider == "github" && user_info.email.is_none() {
+            if let Some(email) = self.fetch_github_primary_email(access_token).await {
+                user_info.email = Some(email);
+            }
+        }
+
         log::info!("Successfully fetched user info for provider: {provider}");
         Ok(Some(user_info))
+    }
+
+    /// Fetch the primary email from GitHub's /user/emails endpoint
+    ///
+    /// GitHub requires the `user:email` scope to access this endpoint.
+    /// Returns the primary verified email, or any primary email if no verified one exists.
+    async fn fetch_github_primary_email(&self, access_token: &str) -> Option<String> {
+        #[derive(serde::Deserialize)]
+        struct GitHubEmail {
+            email: String,
+            primary: bool,
+            verified: bool,
+        }
+
+        let client = reqwest::Client::new();
+        let response = client
+            .get("https://api.github.com/user/emails")
+            .header("Authorization", format!("Bearer {access_token}"))
+            .header("User-Agent", "Continuum-Desktop-App")
+            .header("Accept", "application/vnd.github+json")
+            .send()
+            .await
+            .ok()?;
+
+        if !response.status().is_success() {
+            log::debug!(
+                "GitHub emails endpoint returned status: {}",
+                response.status()
+            );
+            return None;
+        }
+
+        let emails: Vec<GitHubEmail> = response.json().await.ok()?;
+
+        // Prefer primary + verified email, then just primary
+        emails
+            .iter()
+            .find(|e| e.primary && e.verified)
+            .or_else(|| emails.iter().find(|e| e.primary))
+            .map(|e| e.email.clone())
     }
 }
 

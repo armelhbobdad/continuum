@@ -411,13 +411,85 @@ pub struct TokenResponse {
     pub scope: Option<String>,
 }
 
+/// Custom deserializer for user ID that handles both string and number formats.
+///
+/// GitHub returns `id` as a number (e.g., `"id": 1`), while Google returns
+/// `sub` as a string (e.g., `"sub": "123456789"`). This deserializer handles both.
+fn deserialize_id_from_any<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+
+    struct IdVisitor;
+
+    impl Visitor<'_> for IdVisitor {
+        type Value = Option<String>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string or number")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value.to_string()))
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value))
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value.to_string()))
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value.to_string()))
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_any(IdVisitor)
+}
+
 /// User info response from OAuth provider's userinfo endpoint
 ///
 /// Common structure across providers, with optional fields that may vary.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthUserInfo {
     /// User's unique ID from the provider
-    #[serde(alias = "id", alias = "sub")]
+    /// Note: GitHub returns `id` as a number, Google returns `sub` as a string.
+    /// This field uses a custom deserializer to handle both formats.
+    #[serde(
+        alias = "id",
+        alias = "sub",
+        deserialize_with = "deserialize_id_from_any",
+        default
+    )]
     pub id: Option<String>,
     /// User's email address
     pub email: Option<String>,
@@ -572,5 +644,93 @@ mod tests {
         assert_eq!(config.provider, "google");
         assert_eq!(config.client_id, "client_123");
         assert_eq!(config.scopes.len(), 2);
+    }
+
+    #[test]
+    fn test_oauth_user_info_github_numeric_id() {
+        // GitHub returns id as a number
+        let json = r#"{
+            "login": "octocat",
+            "id": 12345,
+            "name": "monalisa octocat",
+            "email": "octocat@github.com",
+            "avatar_url": "https://github.com/images/error/octocat.gif"
+        }"#;
+
+        let user_info: OAuthUserInfo =
+            serde_json::from_str(json).expect("Failed to parse GitHub user info");
+        assert_eq!(user_info.id, Some("12345".to_string()));
+        assert_eq!(user_info.login, Some("octocat".to_string()));
+        assert_eq!(user_info.name, Some("monalisa octocat".to_string()));
+        assert_eq!(user_info.email, Some("octocat@github.com".to_string()));
+        assert_eq!(
+            user_info.picture,
+            Some("https://github.com/images/error/octocat.gif".to_string())
+        );
+    }
+
+    #[test]
+    fn test_oauth_user_info_google_string_sub() {
+        // Google returns sub as a string
+        let json = r#"{
+            "sub": "123456789012345678901",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "picture": "https://lh3.googleusercontent.com/photo.jpg",
+            "email_verified": true
+        }"#;
+
+        let user_info: OAuthUserInfo =
+            serde_json::from_str(json).expect("Failed to parse Google user info");
+        assert_eq!(user_info.id, Some("123456789012345678901".to_string()));
+        assert_eq!(user_info.name, Some("John Doe".to_string()));
+        assert_eq!(user_info.email, Some("john@example.com".to_string()));
+        assert_eq!(
+            user_info.picture,
+            Some("https://lh3.googleusercontent.com/photo.jpg".to_string())
+        );
+        assert_eq!(user_info.email_verified, Some(true));
+    }
+
+    #[test]
+    fn test_oauth_user_info_to_user_info() {
+        let oauth_info = OAuthUserInfo {
+            id: Some("12345".to_string()),
+            email: Some("test@example.com".to_string()),
+            name: Some("Test User".to_string()),
+            picture: Some("https://example.com/photo.jpg".to_string()),
+            email_verified: Some(true),
+            login: Some("testuser".to_string()),
+        };
+
+        let user_info = oauth_info
+            .to_user_info()
+            .expect("Conversion should succeed");
+        assert_eq!(user_info.id, "12345");
+        assert_eq!(user_info.email, Some("test@example.com".to_string()));
+        assert_eq!(user_info.display_name, Some("Test User".to_string()));
+        assert_eq!(
+            user_info.picture,
+            Some("https://example.com/photo.jpg".to_string())
+        );
+    }
+
+    #[test]
+    fn test_oauth_user_info_fallback_to_login() {
+        // When id is None but login is present, should use login as id
+        let oauth_info = OAuthUserInfo {
+            id: None,
+            email: None,
+            name: None,
+            picture: None,
+            email_verified: None,
+            login: Some("testuser".to_string()),
+        };
+
+        let user_info = oauth_info
+            .to_user_info()
+            .expect("Conversion should succeed");
+        assert_eq!(user_info.id, "testuser");
+        assert_eq!(user_info.display_name, Some("testuser".to_string()));
     }
 }
