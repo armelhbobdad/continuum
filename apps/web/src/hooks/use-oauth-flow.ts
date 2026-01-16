@@ -32,7 +32,7 @@ export interface UseOAuthFlowResult {
   isComplete: boolean;
   /** Whether OAuth flow failed */
   isFailed: boolean;
-  /** Current step number (0-4) */
+  /** Current step number (0-3) */
   currentStep: number;
   /** Human-readable step description */
   stepDescription: string;
@@ -46,16 +46,12 @@ export interface UseOAuthFlowResult {
   timeoutRemaining: number | null;
   /** Start OAuth flow with optional provider */
   startOAuth: (provider?: OAuthProvider) => Promise<void>;
-  /** Submit manual authorization code (AC3) */
-  submitManualCode: (code: string) => Promise<void>;
   /** Cancel the current OAuth flow */
   cancelOAuth: () => Promise<void>;
   /** Retry after failure */
   retryOAuth: () => Promise<void>;
   /** Trigger fallback to local server (AC2) */
   fallbackToLocalServer: () => Promise<void>;
-  /** Trigger fallback to manual entry (AC3) */
-  fallbackToManualEntry: () => Promise<void>;
 }
 
 /**
@@ -71,7 +67,10 @@ function isTauriEnvironment(): boolean {
 /**
  * useOAuthFlow
  *
- * Hook for managing OAuth authentication flow with 3-tier fallback.
+ * Hook for managing OAuth authentication flow with 2-tier fallback.
+ * Tier 1: Deep link callback (attempts first)
+ * Tier 2: Local HTTP server callback (fallback)
+ *
  * Provides progress tracking, error handling, and all flow control methods.
  *
  * SECURITY: Tokens are stored via Credential Bridge (Story 5.1).
@@ -245,31 +244,6 @@ export function useOAuthFlow(): UseOAuthFlowResult {
   );
 
   /**
-   * Submit manual authorization code (AC3)
-   */
-  const submitManualCode = useCallback(
-    async (code: string) => {
-      if (!isTauriEnvironment()) {
-        setError({
-          type: "InternalError",
-          message: "OAuth is only available in desktop app",
-        });
-        return;
-      }
-
-      try {
-        setError(null);
-        await invoke("submit_manual_code", { code });
-        await pollProgress();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        setError({ type: "InternalError", message });
-      }
-    },
-    [pollProgress]
-  );
-
-  /**
    * Cancel OAuth flow
    */
   const cancelOAuth = useCallback(async () => {
@@ -332,28 +306,6 @@ export function useOAuthFlow(): UseOAuthFlowResult {
     }
   }, [pollProgress]);
 
-  /**
-   * Trigger fallback to manual entry (AC3)
-   */
-  const fallbackToManualEntry = useCallback(async () => {
-    if (!isTauriEnvironment()) {
-      setError({
-        type: "InternalError",
-        message: "OAuth is only available in desktop app",
-      });
-      return;
-    }
-
-    try {
-      setError(null);
-      await invoke("fallback_to_manual_entry");
-      await pollProgress();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError({ type: "InternalError", message });
-    }
-  }, [pollProgress]);
-
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
@@ -382,10 +334,8 @@ export function useOAuthFlow(): UseOAuthFlowResult {
     canRetry,
     timeoutRemaining,
     startOAuth,
-    submitManualCode,
     cancelOAuth,
     retryOAuth,
     fallbackToLocalServer,
-    fallbackToManualEntry,
   };
 }

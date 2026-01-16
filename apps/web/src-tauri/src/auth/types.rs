@@ -17,10 +17,10 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// OAuth flow state machine (AC1, AC2, AC3, AC4)
+/// OAuth flow state machine (AC1, AC2, AC4)
 ///
 /// Represents the current state of an OAuth authentication flow.
-/// Transitions follow the fallback chain: DeepLink → LocalServer → ManualEntry
+/// 2-tier fallback: DeepLink → LocalServer
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum OAuthState {
@@ -41,11 +41,6 @@ pub enum OAuthState {
         started_at: i64,
         /// When this step times out (Unix timestamp milliseconds)
         timeout_at: i64,
-    },
-    /// Local server failed, waiting for manual code entry
-    AwaitingManualEntry {
-        /// When this step started (Unix timestamp milliseconds)
-        started_at: i64,
     },
     /// Code received, exchanging for tokens
     ExchangingTokens,
@@ -73,7 +68,7 @@ pub struct OAuthProgress {
     pub state: OAuthState,
     /// Human-readable step description
     pub step_description: String,
-    /// Current step number (1-4)
+    /// Current step number (1-3)
     pub current_step: u8,
     /// Total steps
     pub total_steps: u8,
@@ -91,7 +86,7 @@ impl Default for OAuthProgress {
             state: OAuthState::Idle,
             step_description: "Ready to sign in".to_string(),
             current_step: 0,
-            total_steps: 4,
+            total_steps: 3,
             started_at: 0,
             timeout_at: None,
             cancellable: true,
@@ -109,7 +104,7 @@ impl OAuthProgress {
             },
             step_description: "Waiting for sign-in callback...".to_string(),
             current_step: 1,
-            total_steps: 4,
+            total_steps: 3,
             started_at,
             timeout_at: Some(timeout_at),
             cancellable: true,
@@ -126,22 +121,9 @@ impl OAuthProgress {
             },
             step_description: "Using alternative sign-in method...".to_string(),
             current_step: 2,
-            total_steps: 4,
+            total_steps: 3,
             started_at,
             timeout_at: Some(timeout_at),
-            cancellable: true,
-        }
-    }
-
-    /// Create progress for awaiting manual entry state
-    pub fn awaiting_manual_entry(started_at: i64) -> Self {
-        Self {
-            state: OAuthState::AwaitingManualEntry { started_at },
-            step_description: "Please enter the authorization code".to_string(),
-            current_step: 3,
-            total_steps: 4,
-            started_at,
-            timeout_at: None,
             cancellable: true,
         }
     }
@@ -151,8 +133,8 @@ impl OAuthProgress {
         Self {
             state: OAuthState::ExchangingTokens,
             step_description: "Completing sign-in...".to_string(),
-            current_step: 4,
-            total_steps: 4,
+            current_step: 3,
+            total_steps: 3,
             started_at,
             timeout_at: None,
             cancellable: false,
@@ -164,8 +146,8 @@ impl OAuthProgress {
         Self {
             state: OAuthState::Complete,
             step_description: "Sign-in complete!".to_string(),
-            current_step: 4,
-            total_steps: 4,
+            current_step: 3,
+            total_steps: 3,
             started_at: 0,
             timeout_at: None,
             cancellable: false,
@@ -180,7 +162,7 @@ impl OAuthProgress {
             },
             step_description: error.to_string(),
             current_step: 0,
-            total_steps: 4,
+            total_steps: 3,
             started_at: 0,
             timeout_at: None,
             cancellable: false,
@@ -188,7 +170,7 @@ impl OAuthProgress {
     }
 }
 
-/// OAuth callback data from provider (AC1, AC2, AC3)
+/// OAuth callback data from provider (AC1, AC2)
 ///
 /// Contains the authorization code and state from the OAuth provider callback.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -567,12 +549,8 @@ mod tests {
         let progress = OAuthProgress::awaiting_local_server(8080, 1000, 31000);
         assert_eq!(progress.current_step, 2);
 
-        let progress = OAuthProgress::awaiting_manual_entry(1000);
-        assert_eq!(progress.current_step, 3);
-        assert!(progress.timeout_at.is_none());
-
         let progress = OAuthProgress::exchanging_tokens(1000);
-        assert_eq!(progress.current_step, 4);
+        assert_eq!(progress.current_step, 3);
         assert!(!progress.cancellable);
 
         let progress = OAuthProgress::complete();

@@ -35,7 +35,7 @@ const createProgress = (state: OAuthState, step = 1): OAuthProgress => ({
   state,
   step_description: "Test step",
   current_step: step,
-  total_steps: 4,
+  total_steps: 3,
   started_at: Date.now(),
   timeout_at: null,
   cancellable: true,
@@ -175,7 +175,7 @@ describe("useOAuthFlow", () => {
       vi.useRealTimers();
 
       const authUrl = "https://example.com/auth";
-      const completedProgress = createProgress({ type: "Complete" }, 4);
+      const completedProgress = createProgress({ type: "Complete" }, 3);
 
       mockInvoke
         .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS)
@@ -189,7 +189,7 @@ describe("useOAuthFlow", () => {
       });
 
       expect(result.current.isComplete).toBe(true);
-      expect(result.current.currentStep).toBe(4);
+      expect(result.current.currentStep).toBe(3);
     });
 
     it("stops polling when flow fails", async () => {
@@ -214,44 +214,6 @@ describe("useOAuthFlow", () => {
 
       expect(result.current.isFailed).toBe(true);
       expect(result.current.error?.type).toBe("DeepLinkTimeout");
-    });
-  });
-
-  describe("submitManualCode", () => {
-    it("submits manual code to backend", async () => {
-      const exchangingProgress = createProgress(
-        { type: "ExchangingTokens" },
-        4
-      );
-
-      mockInvoke
-        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS)
-        .mockResolvedValueOnce(undefined) // submit_manual_code
-        .mockResolvedValueOnce(exchangingProgress);
-
-      const { result } = renderHook(() => useOAuthFlow());
-
-      await act(async () => {
-        await result.current.submitManualCode("test_auth_code_123");
-      });
-
-      expect(mockInvoke).toHaveBeenCalledWith("submit_manual_code", {
-        code: "test_auth_code_123",
-      });
-    });
-
-    it("handles submit error", async () => {
-      mockInvoke
-        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS)
-        .mockRejectedValueOnce(new Error("Invalid code"));
-
-      const { result } = renderHook(() => useOAuthFlow());
-
-      await act(async () => {
-        await result.current.submitManualCode("invalid_code");
-      });
-
-      expect(result.current.error?.type).toBe("InternalError");
     });
   });
 
@@ -323,33 +285,6 @@ describe("useOAuthFlow", () => {
       expect(mockInvoke).toHaveBeenCalledWith("fallback_to_local_server");
       expect(mockShellOpen).toHaveBeenCalledWith(authUrl);
     });
-
-    it("fallbackToManualEntry triggers manual entry mode", async () => {
-      vi.useRealTimers();
-
-      const manualEntryProgress = createProgress(
-        { type: "AwaitingManualEntry", started_at: Date.now() },
-        3
-      );
-
-      mockInvoke
-        .mockResolvedValueOnce(DEFAULT_OAUTH_PROGRESS) // Initial fetch on mount
-        .mockResolvedValueOnce(undefined) // fallback_to_manual_entry
-        .mockResolvedValue(manualEntryProgress); // progress polls
-
-      const { result } = renderHook(() => useOAuthFlow());
-
-      // Wait for initial fetch
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 10));
-      });
-
-      await act(async () => {
-        await result.current.fallbackToManualEntry();
-      });
-
-      expect(mockInvoke).toHaveBeenCalledWith("fallback_to_manual_entry");
-    });
   });
 
   describe("retryOAuth", () => {
@@ -410,16 +345,6 @@ describe("useOAuthFlow", () => {
       expect(result.current.error?.type).toBe("InternalError");
       expect(result.current.errorMessage).toContain("desktop app");
       expect(mockInvoke).not.toHaveBeenCalled();
-    });
-
-    it("sets error when submitting manual code in browser", async () => {
-      const { result } = renderHook(() => useOAuthFlow());
-
-      await act(async () => {
-        await result.current.submitManualCode("code");
-      });
-
-      expect(result.current.error?.type).toBe("InternalError");
     });
   });
 });

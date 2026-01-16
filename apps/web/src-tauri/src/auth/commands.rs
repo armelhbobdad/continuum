@@ -7,8 +7,8 @@
 //!
 //! - `start_oauth_flow` - Initiates OAuth flow, returns authorization URL
 //! - `get_oauth_progress` - Returns current progress for UI
-//! - `submit_manual_code` - Submits manually entered authorization code
 //! - `cancel_oauth_flow` - Aborts the current flow
+//! - `fallback_to_local_server` - Triggers fallback to local HTTP server
 //! - `get_oauth_authorization_url` - Gets the authorization URL for browser
 
 use super::state::OAuthManagedState;
@@ -162,30 +162,6 @@ pub async fn get_oauth_progress(
     Ok(state.get_progress().await)
 }
 
-/// Submit a manually entered authorization code
-///
-/// Used when deep link and local server fallbacks fail,
-/// and the user must copy-paste the authorization code.
-///
-/// # Arguments
-///
-/// * `code` - The authorization code from the provider
-///
-/// # Returns
-///
-/// * `Ok(())` - Code accepted, flow will proceed to token exchange
-/// * `Err(String)` - Error if not in manual entry state
-#[tauri::command]
-pub async fn submit_manual_code(
-    code: String,
-    state: State<'_, OAuthManagedState>,
-) -> Result<(), String> {
-    state
-        .submit_manual_code(code)
-        .await
-        .map_err(|e| e.to_string())
-}
-
 /// Cancel the current OAuth flow
 ///
 /// Aborts any in-progress flow and resets state to Idle.
@@ -264,15 +240,6 @@ pub async fn fallback_to_local_server(
         port,
         authorization_url,
     })
-}
-
-/// Trigger fallback to manual entry
-///
-/// Called when local server times out or is unavailable.
-#[tauri::command]
-pub async fn fallback_to_manual_entry(state: State<'_, OAuthManagedState>) -> Result<(), String> {
-    state.fallback_to_manual_entry().await;
-    Ok(())
 }
 
 /// Exchange authorization code for tokens and store via Credential Bridge (AC5)
@@ -402,48 +369,6 @@ mod tests {
 
         let progress = state.get_progress().await;
         assert_eq!(progress.current_step, 0);
-    }
-
-    #[tokio::test]
-    async fn test_managed_state_manual_code() {
-        let state = OAuthManagedState::new();
-        let config = OAuthConfig::new(
-            "test",
-            "client",
-            "https://example.com/auth",
-            "https://example.com/token",
-            vec![],
-        );
-
-        state
-            .start_flow(Some(config))
-            .await
-            .expect("start should succeed");
-        state.fallback_to_manual_entry().await;
-
-        let result = state.submit_manual_code("test_code".to_string()).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_managed_state_submit_code_wrong_state() {
-        let state = OAuthManagedState::new();
-        let config = OAuthConfig::new(
-            "test",
-            "client",
-            "https://example.com/auth",
-            "https://example.com/token",
-            vec![],
-        );
-
-        state
-            .start_flow(Some(config))
-            .await
-            .expect("start should succeed");
-        // Don't call fallback_to_manual_entry
-
-        let result = state.submit_manual_code("test_code".to_string()).await;
-        assert!(result.is_err());
     }
 
     #[tokio::test]

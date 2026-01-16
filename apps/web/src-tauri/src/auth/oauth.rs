@@ -7,15 +7,14 @@
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::unused_self)]
 //!
-//! Orchestrates the OAuth authentication flow with 3-tier fallback:
+//! Orchestrates the OAuth authentication flow with 2-tier fallback:
 //! 1. Deep Link (`continuum://callback`) - fastest, preferred
 //! 2. Local Server (`http://localhost:{port}/callback`) - fallback
-//! 3. Manual Entry - user copies authorization code
 //!
 //! # Architecture
 //!
 //! The flow manager is a state machine that transitions through:
-//! `Idle` → `AwaitingDeepLink` → `AwaitingLocalServer` → `AwaitingManualEntry`
+//! `Idle` → `AwaitingDeepLink` → `AwaitingLocalServer`
 //!        → `ExchangingTokens` → `Complete` or `Failed`
 //!
 //! # Security
@@ -64,8 +63,6 @@ pub enum RedirectMethod {
     DeepLink,
     /// Local server callback (http://127.0.0.1:{port})
     LocalServer { port: u16 },
-    /// Manual code entry (no redirect)
-    Manual,
 }
 
 impl RedirectMethod {
@@ -75,7 +72,6 @@ impl RedirectMethod {
             Self::DeepLink => "continuum://callback".to_string(),
             // Google requires loopback redirect WITHOUT path for desktop apps
             Self::LocalServer { port } => format!("http://127.0.0.1:{port}"),
-            Self::Manual => "urn:ietf:wg:oauth:2.0:oob".to_string(),
         }
     }
 }
@@ -151,9 +147,6 @@ impl OAuthFlowManager {
                 started_at,
                 timeout_at,
             } => OAuthProgress::awaiting_local_server(*port, *started_at, *timeout_at),
-            OAuthState::AwaitingManualEntry { started_at } => {
-                OAuthProgress::awaiting_manual_entry(*started_at)
-            },
             OAuthState::ExchangingTokens => OAuthProgress::exchanging_tokens(now_ms()),
             OAuthState::Complete => OAuthProgress::complete(),
             OAuthState::Failed { error } => OAuthProgress::failed(error.clone()),
@@ -334,18 +327,12 @@ impl OAuthFlowManager {
                 state.auth_code = Some(callback_data.code);
                 state.state = OAuthState::ExchangingTokens;
             },
-            Err(OAuthError::LocalServerTimeout) => {
-                // Timeout - transition to manual entry
-                state.state = OAuthState::AwaitingManualEntry {
-                    started_at: now_ms(),
-                };
-            },
             Err(OAuthError::Cancelled) => {
                 // Flow was cancelled - reset to idle
                 state.state = OAuthState::Idle;
             },
             Err(e) => {
-                // Other error - mark as failed
+                // Error (including timeout) - mark as failed
                 state.state = OAuthState::Failed { error: e };
             },
         }
@@ -508,47 +495,8 @@ impl OAuthFlowManager {
                 state.state = OAuthState::ExchangingTokens;
                 Ok(())
             },
-            Err(e) => {
-                // On timeout, transition to manual entry
-                if matches!(e, OAuthError::LocalServerTimeout) {
-                    self.fallback_to_manual_entry().await;
-                }
-                Err(e)
-            },
+            Err(e) => Err(e),
         }
-    }
-
-    /// Transition to manual code entry fallback
-    pub async fn fallback_to_manual_entry(&self) {
-        let mut state = self.flow_state.lock().await;
-        state.state = OAuthState::AwaitingManualEntry {
-            started_at: now_ms(),
-        };
-    }
-
-    /// Submit a manually entered authorization code
-    ///
-    /// # Arguments
-    ///
-    /// * `code` - The authorization code entered by the user
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - If code was accepted
-    /// * `Err(OAuthError)` - If not in manual entry state
-    pub async fn submit_manual_code(&self, code: String) -> Result<(), OAuthError> {
-        let mut state = self.flow_state.lock().await;
-
-        if !matches!(state.state, OAuthState::AwaitingManualEntry { .. }) {
-            return Err(OAuthError::InternalError {
-                message: "Not expecting manual code entry".to_string(),
-            });
-        }
-
-        state.auth_code = Some(code);
-        state.state = OAuthState::ExchangingTokens;
-
-        Ok(())
     }
 
     /// Get the PKCE code verifier for token exchange
@@ -939,43 +887,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_fallback_to_manual_entry() {
-        let manager = OAuthFlowManager::new();
-        let config = test_config();
-
-        manager
-            .start_flow(config)
-            .await
-            .expect("start should succeed");
-        manager.fallback_to_manual_entry().await;
-
-        let state = manager.get_state().await;
-        assert!(matches!(state, OAuthState::AwaitingManualEntry { .. }));
-    }
-
-    #[tokio::test]
-    async fn test_submit_manual_code() {
-        let manager = OAuthFlowManager::new();
-        let config = test_config();
-
-        manager
-            .start_flow(config)
-            .await
-            .expect("start should succeed");
-        manager.fallback_to_manual_entry().await;
-        manager
-            .submit_manual_code("auth_code_123".to_string())
-            .await
-            .expect("submit should succeed");
-
-        let state = manager.get_state().await;
-        assert!(matches!(state, OAuthState::ExchangingTokens));
-
-        let code = manager.get_auth_code().await;
-        assert_eq!(code, Some("auth_code_123".to_string()));
-    }
-
-    #[tokio::test]
     async fn test_complete_flow() {
         let manager = OAuthFlowManager::new();
         let config = test_config();
@@ -1026,11 +937,6 @@ mod tests {
         let progress = manager.get_progress().await;
         assert_eq!(progress.current_step, 1);
         assert!(progress.cancellable);
-
-        // After fallback to manual
-        manager.fallback_to_manual_entry().await;
-        let progress = manager.get_progress().await;
-        assert_eq!(progress.current_step, 3);
     }
 
     #[tokio::test]

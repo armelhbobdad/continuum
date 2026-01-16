@@ -13,7 +13,6 @@ import { OAuthError } from "../oauth-error";
 describe("OAuthError", () => {
   const user = userEvent.setup();
   const mockOnRetry = vi.fn();
-  const mockOnTryManualEntry = vi.fn();
   const mockOnCancel = vi.fn();
 
   beforeEach(() => {
@@ -113,9 +112,7 @@ describe("OAuthError", () => {
         />
       );
 
-      expect(
-        screen.getByText(/You can try again or enter the code manually/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Please try again/)).toBeInTheDocument();
     });
 
     it("should show suggestion for network errors", () => {
@@ -199,61 +196,6 @@ describe("OAuthError", () => {
       await user.click(screen.getByRole("button", { name: /Try Again/i }));
 
       expect(mockOnRetry).toHaveBeenCalled();
-    });
-  });
-
-  describe("Manual Entry Fallback", () => {
-    it("should show manual entry button for timeout errors", () => {
-      const error: OAuthErrorType = { type: "DeepLinkTimeout" };
-
-      render(
-        <OAuthError
-          error={error}
-          errorMessage="Timed out"
-          onCancel={mockOnCancel}
-          onTryManualEntry={mockOnTryManualEntry}
-        />
-      );
-
-      expect(
-        screen.getByRole("button", { name: /Enter Code Manually/i })
-      ).toBeInTheDocument();
-    });
-
-    it("should not show manual entry button for other errors", () => {
-      const error: OAuthErrorType = { type: "InvalidCode" };
-
-      render(
-        <OAuthError
-          error={error}
-          errorMessage="Invalid code"
-          onCancel={mockOnCancel}
-          onTryManualEntry={mockOnTryManualEntry}
-        />
-      );
-
-      expect(
-        screen.queryByRole("button", { name: /Enter Code Manually/i })
-      ).not.toBeInTheDocument();
-    });
-
-    it("should call onTryManualEntry when clicked", async () => {
-      const error: OAuthErrorType = { type: "LocalServerTimeout" };
-
-      render(
-        <OAuthError
-          error={error}
-          errorMessage="Timed out"
-          onCancel={mockOnCancel}
-          onTryManualEntry={mockOnTryManualEntry}
-        />
-      );
-
-      await user.click(
-        screen.getByRole("button", { name: /Enter Code Manually/i })
-      );
-
-      expect(mockOnTryManualEntry).toHaveBeenCalled();
     });
   });
 

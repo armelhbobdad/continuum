@@ -10,9 +10,6 @@ export { CredentialRefreshButton } from "./credential-refresh-button";
 // Story 5.4: Degraded Mode Indicator
 export type { DegradedModeIndicatorProps } from "./degraded-mode-indicator";
 export { DegradedModeIndicator } from "./degraded-mode-indicator";
-// Story 5.3: Manual Code Entry
-export type { ManualCodeEntryProps } from "./manual-code-entry";
-export { ManualCodeEntry } from "./manual-code-entry";
 // Story 5.2: Memory Only Warning
 export type { MemoryOnlyWarningProps } from "./memory-only-warning";
 export {

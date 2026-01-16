@@ -2,7 +2,7 @@
  * OAuth Flow Component (Story 5.3, AC1-AC4; Story 5.5 Integration)
  *
  * Displays OAuth authentication progress with visual feedback.
- * Supports 3-tier fallback: Deep Link -> Local Server -> Manual Entry.
+ * Supports 2-tier fallback: Deep Link -> Local Server.
  *
  * Story 5.5: Integrates migration dialog for anonymous-to-authenticated flow.
  * Shows MigrationDialog after OAuth completes if user has anonymous sessions.
@@ -19,7 +19,6 @@
  * # Features
  * - Step-by-step progress indicator
  * - Countdown timer for timeout states
- * - Manual code entry fallback
  * - Error display with retry option
  * - Migration dialog after OAuth (Story 5.5)
  */
@@ -29,7 +28,6 @@ import { MigrationDialog } from "@/components/features/auth/migration-dialog";
 import { Button } from "@/components/ui/button";
 import { useMigration, useOAuthFlow } from "@/hooks";
 import type { OAuthProvider } from "@/types";
-import { ManualCodeEntry } from "./manual-code-entry";
 import { OAuthError } from "./oauth-error";
 
 /**
@@ -136,7 +134,6 @@ function getStepTextClass(isPast: boolean, isActive: boolean): string {
 const STEP_NAMES = [
   "Opening browser",
   "Waiting for callback",
-  "Manual entry",
   "Completing sign-in",
 ];
 
@@ -177,15 +174,6 @@ function StepItem({
 }
 
 /**
- * Check if manual entry button should be shown
- */
-function shouldShowManualEntryButton(stateType: string): boolean {
-  return (
-    stateType === "AwaitingDeepLink" || stateType === "AwaitingLocalServer"
-  );
-}
-
-/**
  * OAuth Flow Component
  *
  * Displays the OAuth authentication flow with progress indicators.
@@ -209,10 +197,8 @@ export function OAuthFlow({
     canRetry,
     timeoutRemaining,
     startOAuth,
-    submitManualCode,
     cancelOAuth,
     retryOAuth,
-    fallbackToManualEntry,
   } = useOAuthFlow();
 
   // Story 5.5: Migration integration (Task 12.1)
@@ -262,18 +248,6 @@ export function OAuthFlow({
         errorMessage={errorMessage ?? "An error occurred"}
         onCancel={handleCancel}
         onRetry={canRetry ? retryOAuth : undefined}
-        onTryManualEntry={fallbackToManualEntry}
-      />
-    );
-  }
-
-  // Show manual entry state
-  if (progress.state.type === "AwaitingManualEntry") {
-    return (
-      <ManualCodeEntry
-        className={className}
-        onCancel={handleCancel}
-        onSubmit={submitManualCode}
       />
     );
   }
@@ -409,16 +383,6 @@ export function OAuthFlow({
         {progress.cancellable && (
           <Button onClick={handleCancel} type="button" variant="outline">
             Cancel
-          </Button>
-        )}
-
-        {shouldShowManualEntryButton(progress.state.type) && (
-          <Button
-            onClick={fallbackToManualEntry}
-            type="button"
-            variant="secondary"
-          >
-            Enter Code Manually
           </Button>
         )}
       </div>

@@ -125,12 +125,10 @@ pub fn run() {
             // OAuth commands (Story 5.3)
             auth::start_oauth_flow,
             auth::get_oauth_progress,
-            auth::submit_manual_code,
             auth::cancel_oauth_flow,
             auth::get_oauth_authorization_url,
             auth::handle_oauth_callback,
             auth::fallback_to_local_server,
-            auth::fallback_to_manual_entry,
             auth::exchange_oauth_tokens,
         ])
         .setup(|app| {

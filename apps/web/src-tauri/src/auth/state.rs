@@ -106,18 +106,6 @@ impl OAuthManagedState {
         manager.get_local_server_redirect_uri().await
     }
 
-    /// Transition to manual code entry
-    pub async fn fallback_to_manual_entry(&self) {
-        let manager = self.manager.lock().await;
-        manager.fallback_to_manual_entry().await;
-    }
-
-    /// Submit a manually entered authorization code
-    pub async fn submit_manual_code(&self, code: String) -> Result<(), OAuthError> {
-        let manager = self.manager.lock().await;
-        manager.submit_manual_code(code).await
-    }
-
     /// Get the PKCE code verifier
     pub async fn get_code_verifier(&self) -> Option<String> {
         let manager = self.manager.lock().await;

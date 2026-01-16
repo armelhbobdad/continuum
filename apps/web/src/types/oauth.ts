@@ -9,17 +9,20 @@
  * Story 5.3: OAuth Authentication Flow
  * - AC1: Deep link callback flow
  * - AC2: Local server fallback
- * - AC3: Manual code entry fallback
  * - AC4: Progress indicators
  * - AC5: Token storage via Credential Bridge
  * - AC6: Error handling and retry
  */
 
 /**
- * OAuth flow state (AC1-4)
+ * OAuth flow state (AC1-2)
  *
  * Represents the current state of an OAuth authentication flow.
  * Uses tagged union pattern to match Rust serde serialization.
+ *
+ * 2-tier fallback:
+ * - Tier 1: Deep link callback (AwaitingDeepLink)
+ * - Tier 2: Local HTTP server callback (AwaitingLocalServer)
  */
 export type OAuthState =
   | { type: "Idle" }
@@ -30,7 +33,6 @@ export type OAuthState =
       started_at: number;
       timeout_at: number;
     }
-  | { type: "AwaitingManualEntry"; started_at: number }
   | { type: "ExchangingTokens" }
   | { type: "Complete" }
   | { type: "Failed"; error: OAuthError };
@@ -45,7 +47,7 @@ export interface OAuthProgress {
   state: OAuthState;
   /** Human-readable step description */
   step_description: string;
-  /** Current step number (1-4) */
+  /** Current step number (1-3) */
   current_step: number;
   /** Total steps */
   total_steps: number;
@@ -89,7 +91,7 @@ export function getOAuthErrorMessage(error: OAuthError): string {
     case "DeepLinkTimeout":
       return "The sign-in callback timed out. Trying an alternative method...";
     case "LocalServerTimeout":
-      return "The local sign-in server timed out. Please try manual code entry.";
+      return "The local sign-in server timed out. Please try again.";
     case "InvalidState":
       return "Security check failed. Please try signing in again.";
     case "InvalidCode":
@@ -134,9 +136,9 @@ export function isRetriableError(error: OAuthError): boolean {
 }
 
 /**
- * Check if error should trigger fallback (AC2, AC3)
+ * Check if error should trigger fallback (AC2)
  *
- * Timeout errors should automatically fall back to the next method.
+ * Deep link timeout triggers fallback to local server.
  */
 export function isTimeoutError(error: OAuthError): boolean {
   return (
@@ -151,7 +153,6 @@ export function isOAuthLoading(state: OAuthState): boolean {
   return (
     state.type === "AwaitingDeepLink" ||
     state.type === "AwaitingLocalServer" ||
-    state.type === "AwaitingManualEntry" ||
     state.type === "ExchangingTokens"
   );
 }
@@ -187,8 +188,6 @@ export function getStepLabel(step: number): string {
     case 2:
       return "Using local server";
     case 3:
-      return "Manual code entry";
-    case 4:
       return "Completing sign-in";
     default:
       return "Ready";
@@ -202,7 +201,7 @@ export const DEFAULT_OAUTH_PROGRESS: OAuthProgress = {
   state: { type: "Idle" },
   step_description: "Ready to sign in",
   current_step: 0,
-  total_steps: 4,
+  total_steps: 3,
   started_at: 0,
   timeout_at: null,
   cancellable: true,
