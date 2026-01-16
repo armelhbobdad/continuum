@@ -2,6 +2,7 @@
  * OAuthFlow Component Tests (Story 5.3, AC1-AC4)
  *
  * Tests for the OAuth authentication flow UI component.
+ * Note: Manual code entry feature was removed (2-tier fallback: Deep Link → Local Server)
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
@@ -12,10 +13,8 @@ import { DEFAULT_OAUTH_PROGRESS } from "@/types";
 
 // Mock useOAuthFlow hook
 const mockStartOAuth = vi.fn();
-const mockSubmitManualCode = vi.fn();
 const mockCancelOAuth = vi.fn();
 const mockRetryOAuth = vi.fn();
-const mockFallbackToManualEntry = vi.fn();
 
 const mockUseOAuthFlow = vi.fn();
 
@@ -42,7 +41,7 @@ const createProgress = (
   state: { type: stateType, ...extra } as OAuthProgress["state"],
   step_description: `Step for ${stateType}`,
   current_step: 1,
-  total_steps: 4,
+  total_steps: 3,
   started_at: Date.now(),
   timeout_at: null,
   cancellable: true,
@@ -67,10 +66,8 @@ describe("OAuthFlow", () => {
       canRetry: false,
       timeoutRemaining: null,
       startOAuth: mockStartOAuth,
-      submitManualCode: mockSubmitManualCode,
       cancelOAuth: mockCancelOAuth,
       retryOAuth: mockRetryOAuth,
-      fallbackToManualEntry: mockFallbackToManualEntry,
     });
   });
 
@@ -103,10 +100,8 @@ describe("OAuthFlow", () => {
         canRetry: false,
         timeoutRemaining: 30_000,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
@@ -133,10 +128,8 @@ describe("OAuthFlow", () => {
         canRetry: false,
         timeoutRemaining: 25_000,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
@@ -162,10 +155,8 @@ describe("OAuthFlow", () => {
         canRetry: false,
         timeoutRemaining: 25_000,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
@@ -191,10 +182,8 @@ describe("OAuthFlow", () => {
         canRetry: false,
         timeoutRemaining: 28_000,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
@@ -217,10 +206,8 @@ describe("OAuthFlow", () => {
         canRetry: false,
         timeoutRemaining: null,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
@@ -246,10 +233,8 @@ describe("OAuthFlow", () => {
         canRetry: false,
         timeoutRemaining: null,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow onCancel={onCancel} />);
@@ -260,68 +245,6 @@ describe("OAuthFlow", () => {
     });
   });
 
-  describe("Manual Entry Fallback", () => {
-    it("should show manual entry button during deep link wait", () => {
-      mockUseOAuthFlow.mockReturnValue({
-        progress: createProgress("AwaitingDeepLink", {
-          started_at: Date.now(),
-          timeout_at: Date.now() + 30_000,
-        }),
-        isLoading: true,
-        isComplete: false,
-        isFailed: false,
-        currentStep: 1,
-        stepDescription: "Waiting",
-        error: null,
-        errorMessage: null,
-        canRetry: false,
-        timeoutRemaining: 25_000,
-        startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
-        cancelOAuth: mockCancelOAuth,
-        retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
-      });
-
-      render(<OAuthFlow />);
-
-      expect(
-        screen.getByRole("button", { name: "Enter Code Manually" })
-      ).toBeInTheDocument();
-    });
-
-    it("should call fallbackToManualEntry when clicked", async () => {
-      mockUseOAuthFlow.mockReturnValue({
-        progress: createProgress("AwaitingDeepLink", {
-          started_at: Date.now(),
-          timeout_at: Date.now() + 30_000,
-        }),
-        isLoading: true,
-        isComplete: false,
-        isFailed: false,
-        currentStep: 1,
-        stepDescription: "Waiting",
-        error: null,
-        errorMessage: null,
-        canRetry: false,
-        timeoutRemaining: 25_000,
-        startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
-        cancelOAuth: mockCancelOAuth,
-        retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
-      });
-
-      render(<OAuthFlow />);
-
-      await user.click(
-        screen.getByRole("button", { name: "Enter Code Manually" })
-      );
-
-      expect(mockFallbackToManualEntry).toHaveBeenCalled();
-    });
-  });
-
   describe("Completion State", () => {
     it("should show success message when complete", () => {
       mockUseOAuthFlow.mockReturnValue({
@@ -329,17 +252,15 @@ describe("OAuthFlow", () => {
         isLoading: false,
         isComplete: true,
         isFailed: false,
-        currentStep: 4,
+        currentStep: 3,
         stepDescription: "Complete",
         error: null,
         errorMessage: null,
         canRetry: false,
         timeoutRemaining: null,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
@@ -358,17 +279,15 @@ describe("OAuthFlow", () => {
         isLoading: false,
         isComplete: true,
         isFailed: false,
-        currentStep: 4,
+        currentStep: 3,
         stepDescription: "Complete",
         error: null,
         errorMessage: null,
         canRetry: false,
         timeoutRemaining: null,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow onComplete={onComplete} />);
@@ -395,43 +314,13 @@ describe("OAuthFlow", () => {
         canRetry: true,
         timeoutRemaining: null,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
 
       expect(screen.getByRole("alert")).toBeInTheDocument();
-    });
-  });
-
-  describe("Manual Entry State", () => {
-    it("should show manual code entry when in AwaitingManualEntry state", () => {
-      mockUseOAuthFlow.mockReturnValue({
-        progress: createProgress("AwaitingManualEntry", {
-          started_at: Date.now(),
-        }),
-        isLoading: true,
-        isComplete: false,
-        isFailed: false,
-        currentStep: 3,
-        stepDescription: "Waiting for code",
-        error: null,
-        errorMessage: null,
-        canRetry: false,
-        timeoutRemaining: null,
-        startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
-        cancelOAuth: mockCancelOAuth,
-        retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
-      });
-
-      render(<OAuthFlow />);
-
-      expect(screen.getByText("Enter Authorization Code")).toBeInTheDocument();
     });
   });
 
@@ -452,10 +341,8 @@ describe("OAuthFlow", () => {
         canRetry: false,
         timeoutRemaining: 25_000,
         startOAuth: mockStartOAuth,
-        submitManualCode: mockSubmitManualCode,
         cancelOAuth: mockCancelOAuth,
         retryOAuth: mockRetryOAuth,
-        fallbackToManualEntry: mockFallbackToManualEntry,
       });
 
       render(<OAuthFlow />);
